@@ -1,0 +1,136 @@
+{
+ "strikes": [
+  {
+   "frame": 28,
+   "t": 0.934,
+   "player": "P3",
+   "src": "video, verified"
+  },
+  {
+   "frame": 62,
+   "t": 2.069,
+   "player": "P1",
+   "src": "video, verified"
+  },
+  {
+   "frame": 109,
+   "t": 3.637,
+   "player": "P4",
+   "src": "video, verified"
+  },
+  {
+   "frame": 145,
+   "t": 4.838,
+   "player": "P1",
+   "src": "video, verified"
+  },
+  {
+   "frame": 182,
+   "t": 6.073,
+   "player": "P4",
+   "src": "video, verified"
+  },
+  {
+   "frame": 216,
+   "t": 7.207,
+   "player": "P1",
+   "src": "video, verified"
+  },
+  {
+   "frame": 251,
+   "t": 8.375,
+   "player": "P4",
+   "src": "video, verified"
+  },
+  {
+   "frame": 276,
+   "t": 9.209,
+   "player": "P2",
+   "src": "video, verified"
+  },
+  {
+   "frame": 320,
+   "t": 10.677,
+   "player": "P3",
+   "src": "video, verified"
+  },
+  {
+   "frame": 355,
+   "t": 11.845,
+   "player": "P2",
+   "src": "video, verified"
+  },
+  {
+   "frame": 382,
+   "t": 12.746,
+   "player": "P3",
+   "src": "video, verified"
+  },
+  {
+   "frame": 421,
+   "t": 14.047,
+   "player": "P2",
+   "src": "video, verified"
+  },
+  {
+   "frame": 440,
+   "t": 14.681,
+   "player": "P3",
+   "src": "video, verified"
+  },
+  {
+   "frame": 472,
+   "t": 15.749,
+   "player": "P2",
+   "src": "video, verified"
+  },
+  {
+   "frame": 506,
+   "t": 16.884,
+   "player": "P3",
+   "src": "video, verified"
+  },
+  {
+   "frame": 529,
+   "t": 17.651,
+   "player": "P1",
+   "src": "video, verified"
+  }
+ ],
+ "bounces_native": [
+  [
+   51,
+   1275,
+   740
+  ],
+  93,
+  137,
+  173,
+  [
+   209,
+   606,
+   626
+  ],
+  245,
+  [
+   304,
+   703,
+   455
+  ],
+  346,
+  [
+   380,
+   905,
+   392
+  ],
+  411,
+  464,
+  [
+   499,
+   666,
+   392
+  ],
+  550
+ ],
+ "note": "contact frames read from the footage (audio peaks lag the picture by about 2-3 frames); hitters confirmed by shirt and position; bounces read from the footage, positions given where the ball was hidden at the bounce"
+}

@@ -1,0 +1,78 @@
+{
+ "title": "PPA Chicago Cup · Rally B (0:38–0:58)",
+ "headline": "<em>P1</em> chơi chuyên nghiệp nhất rally này: 83/100",
+ "verdict": "P1 trả giao sâu (P4 phải đánh cú thứ ba từ 6,9 m sau lưới), lên tới vạch kitchen trong 1 giây và kết thúc điểm bằng cú vô-lê chéo sân 40 km/h rơi trong sân, cách biên phải khoảng 0,4 m. P4 vung vợt nhưng không chạm bóng.",
+ "intro": "P3 (áo đỏ, cuối sân xa bên trái) chuẩn bị giao bóng.",
+ "strike_lines": {
+  "1": "P3 giao bóng chéo sân, khoảng 51 km/h, bóng nảy sâu ở 11,1 m trong ô giao bên phải.",
+  "2": "P1 trả giao chéo sân 34 km/h, bóng nảy cách đáy sân xa 2,5 m nên P4 phải đánh từ 6,9 m sau lưới.",
+  "3": "P4 đánh cú thứ ba kiểu drop 30 km/h, bóng rơi vào kitchen gần (8,7 m) để đội mình kịp lên lưới.",
+  "4": "P1 dink chéo sân 19 km/h vào kitchen xa, kéo P4 ngang 1,4 m sang biên phải.",
+  "5": "P4 dink chéo sân 23 km/h, bóng rơi sát chân P1 ở sát biên trái.",
+  "6": "P1 dink chéo 22 km/h nhưng bóng nảy cách vạch kitchen xa 1,3 m, P4 đỡ thoải mái ở 3,2 m.",
+  "7": "P4 dink thẳng 22 km/h về phía P2, buộc P2 lao người sang phải.",
+  "8": "P2 vô-lê nhẹ 13 km/h khi đang lao người, đặt bóng vào kitchen xa và kéo P3 ngang 1,5 m.",
+  "9": "P3 dink chéo 18 km/h, bóng nảy trong kitchen gần ở 7,5 m.",
+  "10": "P2 dink chéo 25 km/h, bóng nảy cách vạch kitchen xa 0,6 m về phía sau.",
+  "11": "P3 dink chéo 19 km/h, bóng nảy giữa hai chân P2.",
+  "12": "P2 đánh trái tay 34 km/h nhanh hơn dink thường, P3 đỡ ở 2,7 m sau lưới.",
+  "13": "P3 vô-lê chéo 19 km/h, bóng nảy sát vạch kitchen gần (8,1 m).",
+  "14": "P2 dink chéo 21 km/h ra sát biên trái, kéo P3 ngang 1,3 m.",
+  "15": "P3 lao người sang trái dink thẳng 24 km/h về phía P1.",
+  "16": "P1 vô-lê chéo sân 40 km/h, bóng đi dưới vợt P4 và nảy trong sân cách đáy xa 2,0 m. Kết thúc điểm."
+ },
+ "players": {
+  "P1": {
+   "good": [
+    "Sau cú trả giao, tiến 3,5 m về vạch kitchen chỉ trong 1 giây. Giữ thói quen “trả sâu rồi lên lưới” này.",
+    "Cú vô-lê kết thúc 40 km/h, chéo sân, rơi cách đáy sân xa 2,0 m: tăng tốc đúng lúc bóng đến cao ngang vai.",
+    "Tư thế thấp và vợt cao: gối trung vị 154°, cổ tay cao hơn hông 0,57 lần chiều dài thân (mốc chuẩn 0,625)."
+   ],
+   "work": [
+    "Đứng sau vạch kitchen trung bình 0,70 m, xa hơn P2 (0,16 m). Bước thêm nửa mét lên sát vạch để thu hẹp góc đánh của đối thủ.",
+    "Cú dink thứ hai (22 km/h) nảy cách vạch kitchen xa 1,3 m nên P4 đỡ dễ ở 3,2 m. Hạ điểm rơi vào trong kitchen, sát chân đối thủ."
+   ]
+  },
+  "P2": {
+   "good": [
+    "Bám vạch kitchen tốt nhất sân: trung bình chỉ 0,16 m sau vạch suốt rally.",
+    "Cú vô-lê lúc lao người (13 km/h) vẫn đặt được bóng vào kitchen xa và kéo P3 lệch ngang 1,5 m."
+   ],
+   "work": [
+    "Hai cú ở giữa rally (25 và 34 km/h) chỉ kéo P3 ngang 0,1–0,2 m. Đưa dink ra góc chéo để kéo đối thủ rộng hơn 1 m.",
+    "Tốc độ di chuyển trung bình thấp nhất sân, 0,56 m/s (9,9 m cả rally). Nhún chân bước nhỏ (split step) giữa các cú để phản ứng nhanh hơn với bóng xuống chân."
+   ]
+  },
+  "P3": {
+   "good": [
+    "Cú giao 51 km/h chéo sân rơi sâu ở 11,1 m, buộc P1 trả giao từ 7,8 m sau lưới.",
+    "Tư thế thấp nhất sân: gối trung vị 132°, luôn sẵn sàng với bóng thấp."
+   ],
+   "work": [
+    "Vợt gần như ngang hông: cổ tay chỉ cao hơn hông 0,04 lần chiều dài thân. Nâng vợt lên trước ngực (khoảng 0,6) để kịp chặn bóng cao.",
+    "Đứng sau vạch kitchen 0,92 m trung bình và sau cú đánh của mình chỉ tiến 0,1–0,2 m (có lần lùi 0,3 m). Bước lên sát vạch sau mỗi cú dink.",
+    "Bốn cú sau cú giao để đội gần đỡ ở 1,7–2,9 m với kéo ngang tối đa 0,8 m. Đặt dink sâu và rộng hơn về góc."
+   ]
+  },
+  "P4": {
+   "good": [
+    "Cú thứ ba drop 30 km/h rơi vào kitchen gần (8,7 m), rồi tiến 3,55 m trong 1 giây ngay sau đó: đúng bài “drop rồi lên lưới”.",
+    "Cú dink chéo 23 km/h kéo P1 ngang 1,4 m ra sát biên trái."
+   ],
+   "work": [
+    "Đứng sau vạch kitchen trung bình 0,90 m. Lên thêm khoảng nửa mét để đỡ bóng sớm hơn.",
+    "Bóng cuối (vô-lê 40 km/h của P1) đi dưới mặt vợt: hạ vợt sớm hơn khi bóng đến nhanh và thấp; cổ tay hiện chỉ cao hơn hông 0,23 lần chiều dài thân nên cần chủ động đưa vợt ra trước người."
+   ]
+  }
+ },
+ "limits": "Mẫu: 16 cú đánh trong 17,8 giây của một rally, đây là nhận xét về rally này chứ không phải về trình độ của người chơi. Video phát sóng 29,97 fps được nội suy lên 60 fps. Tốc độ bóng = khoảng cách giữa chân hai người đánh liên tiếp ÷ thời gian bay, là tốc độ trung bình chứ không phải tốc độ đầu vợt. Thời điểm chạm bóng đọc từ hình (tiếng trong bản phát sóng trễ hình khoảng 2–3 frame) và 46 sự kiện ứng viên được kiểm tra lại bằng mắt. Góc gối lấy từ khung xương 3D của MediaPipe: người phía gần quay lưng về camera nên góc gối của P1, P2 có thể đo cao hơn thực tế. P2 mất khung xương khoảng 1 giây khi lao người (giây 8,7–9,5). Vị trí nảy của 5 lần bóng bị che được ước lượng từ đường bay. Bóng trong video không có viền tối như quy trình mô tả, nên bộ dò bóng chấm điểm theo độ vàng của bóng.",
+ "advice": "Lần quay sau: camera cố định phía sau đường biên cuối, thấy trọn sân, quay 60 fps, và dùng video gốc không có đồ họa của người khác (bảng tỉ số, hiệu ứng).",
+ "cover": {
+  "topleft": [
+   40,
+   28,
+   420,
+   165
+  ]
+ }
+}

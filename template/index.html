@@ -1,0 +1,1878 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RallyScope</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+/* RallyScope: a fixed 1920x1080 "screen" (stage + telemetry panel + timeline) that the recorder
+   captures frame by frame, followed by the written report for the interactive page.
+   Single dark theme by design: it is a broadcast HUD laid over footage. */
+:root{
+  color-scheme: dark;
+  --bg:#04080F; --panel:#07111D; --panel-2:#0A1828; --line:#14283D; --line-2:#21405E;
+  --ink:#E2EEF8; --ink-2:#9DB4C9; --ink-3:#6C869F;
+  --cyan:#4DE3FF; --amber:#FFC857; --white:#FFFFFF;
+  --p1:#FF7A3D; --p2:#9CFF57; --p3:#FF5FD2; --p4:#4DE3FF;
+  --f-display:"Chakra Petch",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --f-body:"Noto Sans","Noto Sans TC",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body)}
+body.rec{overflow:hidden;width:1920px;height:1080px}
+.cut{clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- the 1920x1080 screen ---------- */
+#wrap{position:relative;width:100%;overflow:hidden}
+#screen{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:var(--bg);overflow:hidden;
+  background-image:linear-gradient(rgba(77,227,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(77,227,255,.028) 1px,transparent 1px);background-size:40px 40px}
+body.rec #wrap{width:1920px;height:1080px}
+
+#hdr{position:absolute;left:32px;right:36px;top:0;height:76px;display:flex;align-items:center;gap:28px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand b{font:700 30px/1 var(--f-display);letter-spacing:.14em;color:var(--cyan);text-shadow:0 0 14px rgba(77,227,255,.55)}
+.brand small{display:block;font:500 12px/1 var(--f-mono);letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase;margin-top:6px}
+.rname{border-left:1px solid var(--line-2);padding-left:22px;font:600 18px/1.2 var(--f-display);color:var(--ink);letter-spacing:.04em;max-width:640px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rname span{display:block;font:400 12px/1.4 var(--f-mono);color:var(--ink-3);letter-spacing:.06em}
+.lights{display:flex;gap:18px;margin-left:auto}
+.light{display:flex;align-items:center;gap:7px;font:600 12px/1 var(--f-display);letter-spacing:.14em;color:var(--ink-3)}
+.light i{width:8px;height:8px;background:var(--line-2);transform:rotate(45deg)}
+.light.on{color:var(--ink-2)} .light.on i{background:#57FFA8;box-shadow:0 0 10px #57FFA8}
+.light.warn i{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.tc{text-align:right;min-width:230px}
+.tc b{display:block;font:600 34px/1 var(--f-display);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.tc span{display:block;margin-top:5px;font:400 12px/1 var(--f-mono);color:var(--ink-3);letter-spacing:.08em}
+
+#stagebox{position:absolute;left:32px;top:92px;width:1360px;height:765px;border:1px solid var(--line-2);background:#000}
+#stagebox:before,#stagebox:after{content:"";position:absolute;width:26px;height:26px;border:2px solid var(--cyan);z-index:3;pointer-events:none}
+#stagebox:before{left:-6px;top:-6px;border-right:0;border-bottom:0}
+#stagebox:after{right:-6px;bottom:-6px;border-left:0;border-top:0}
+#stage{position:absolute;inset:0;width:1360px;height:765px;z-index:2}
+#vid{position:absolute;inset:0;width:1360px;height:765px;object-fit:contain;z-index:1}
+
+#panel{position:absolute;left:1424px;top:92px;width:460px;height:765px;display:flex;flex-direction:column;gap:12px}
+.box{position:relative;background:var(--panel);border:1px solid var(--line-2);padding:12px 14px}
+.box h3{margin:0 0 8px;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3);display:flex;justify-content:space-between}
+.box h3 em{font-style:normal;color:var(--cyan)}
+#spd{height:128px}
+#spd .val{display:flex;align-items:baseline;gap:8px}
+#spd .val b{font:700 46px/1 var(--f-display);color:var(--white);text-shadow:0 0 18px rgba(95,184,255,.6);font-variant-numeric:tabular-nums;min-width:94px}
+#spd .val span{font:500 14px/1 var(--f-mono);color:var(--ink-2)}
+#spd .val small{margin-left:auto;font:500 12px/1.3 var(--f-mono);color:var(--ink-3);text-align:right}
+#spark{position:absolute;left:14px;right:14px;bottom:10px;width:430px;height:34px}
+#radarbox{height:222px}
+#radar{display:block;width:430px;height:178px}
+#listbox{flex:1;min-height:0;overflow:hidden}
+#slist{position:relative;overflow:hidden;height:calc(100% - 20px)}
+#slist .in{position:absolute;left:0;right:0;top:0}
+.srow{display:grid;grid-template-columns:34px 34px 1fr 96px 62px;align-items:center;height:26px;font:500 13px/1 var(--f-mono);color:var(--ink-3);border-left:2px solid transparent;padding-left:6px}
+.srow .pl{font-weight:600}
+.srow .ty{font:600 13px/1 var(--f-display);letter-spacing:.06em}
+.srow .kmh{text-align:right}
+.srow.done{color:var(--ink-2)}
+.srow.cur{color:var(--white);background:linear-gradient(90deg,rgba(77,227,255,.16),transparent);border-left-color:var(--cyan)}
+#prows{height:178px;padding:10px 14px}
+.prow{display:grid;grid-template-columns:44px 104px 1fr 1fr 40px;align-items:center;height:38px;border-bottom:1px solid var(--line);font:500 13px/1 var(--f-mono);color:var(--ink-2)}
+.prow:last-child{border-bottom:0}
+.prow .id{font:700 18px/1 var(--f-display)}
+.prow .zn{font:600 12px/1 var(--f-display);letter-spacing:.12em}
+.prow .zn.k{color:var(--cyan)} .prow .zn.t{color:var(--amber)} .prow .zn.b{color:var(--ink-3)}
+.prow .ct{text-align:right;color:var(--ink-3)}
+
+#tl{position:absolute;left:32px;top:874px;width:1852px;height:66px}
+#tl .lab{position:absolute;left:0;top:0;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3)}
+#tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2)}
+#tl .fill{position:absolute;left:0;top:38px;height:4px;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+#tl .mk{position:absolute;top:18px;transform:translateX(-50%);font:600 11px/1 var(--f-mono);color:#04080F;padding:3px 4px 2px;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);opacity:.45}
+#tl .mk.done{opacity:1}
+#tl .mk:after{content:"";position:absolute}
+#tl .tick{position:absolute;top:44px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--amber);transform:translateX(-50%);opacity:.5}
+#tl .tick.done{opacity:1}
+#tl .ph{position:absolute;top:12px;width:2px;height:46px;background:var(--white);box-shadow:0 0 10px var(--cyan)}
+#tl .t0,#tl .t1{position:absolute;top:52px;font:400 11px/1 var(--f-mono);color:var(--ink-3)}
+#tl .t1{right:0}
+
+#line{position:absolute;left:32px;top:956px;width:1852px;height:96px;display:flex;align-items:center;gap:24px;background:var(--panel);border:1px solid var(--line-2);padding:0 26px}
+#line .chip{flex:none;min-width:250px}
+#line .chip b{display:block;font:700 24px/1 var(--f-display);color:var(--amber);letter-spacing:.06em}
+#line .chip span{display:block;margin-top:7px;font:500 13px/1 var(--f-mono);color:var(--ink-2);letter-spacing:.1em}
+#line p{margin:0;font:500 23px/1.4 var(--f-body);color:var(--ink)}
+
+/* ---------- end cards ---------- */
+#end{position:absolute;left:0;top:77px;width:1920px;height:1003px;background:rgba(4,8,15,.93);opacity:0;pointer-events:none;padding:30px 32px 0;z-index:5}
+#end .hl{font:700 38px/1.15 var(--f-display);color:var(--white);letter-spacing:.02em}
+#end .hl em{font-style:normal;color:var(--amber)}
+#end .vd{margin-top:10px;font:400 20px/1.45 var(--f-body);color:var(--ink-2);max-width:1600px}
+#cards{margin-top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--panel);border:1px solid var(--line-2);padding:18px 20px 20px;position:relative;min-height:640px}
+.card .top{display:flex;align-items:center;gap:12px}
+.card .top .id{font:700 30px/1 var(--f-display)}
+.card .top .pos{font:500 12px/1.3 var(--f-mono);color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+.card .top .tot{margin-left:auto;text-align:right}
+.card .top .tot b{font:700 48px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.card .top .tot span{display:block;font:500 11px/1 var(--f-mono);color:var(--ink-3);letter-spacing:.14em;margin-top:4px}
+.card .badge{display:inline-block;margin:0 0 12px;font:700 12px/1 var(--f-display);letter-spacing:.16em;color:#04080F;background:var(--amber);padding:6px 10px 5px}
+.bars{margin-top:16px;display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:150px 1fr 38px;align-items:center;gap:10px;font:500 12px/1 var(--f-mono);color:var(--ink-2);letter-spacing:.04em;white-space:nowrap}
+.bar .tr{height:8px;background:var(--line)}
+.bar .tr i{display:block;height:100%}
+.bar b{text-align:right;color:var(--ink);font-weight:600}
+.card h4{margin:18px 0 8px;font:600 12px/1 var(--f-display);letter-spacing:.2em}
+.card h4.g{color:#57FFA8} .card h4.w{color:var(--amber)}
+.card ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.card li{font:400 15px/1.42 var(--f-body);color:var(--ink);padding-left:16px;position:relative}
+.card li:before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;transform:rotate(45deg)}
+.card .gl li:before{background:#57FFA8} .card .wl li:before{background:var(--amber)}
+
+/* ---------- interactive page ---------- */
+#ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+#ctrl button,#ctrl select{height:34px;padding:0 14px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#ctrl button:hover{border-color:var(--cyan);color:var(--cyan)}
+#ctrl input[type=range]{flex:1 1 240px;accent-color:var(--cyan)}
+#ctrl .tm{font:500 13px/1 var(--f-mono);color:var(--ink-2);min-width:120px}
+#ctrl .grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#ctrl .lbl{font:600 11px/1 var(--f-display);letter-spacing:.18em;color:var(--ink-3)}
+#ctrl .row2{flex-basis:100%;display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center}
+#ctrl button.tg[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);background:rgba(77,227,255,.10)}
+#ctrl button.tg[aria-pressed="false"]{color:var(--ink-3)}
+#ctrl button.tg:before{content:"";display:inline-block;width:8px;height:8px;margin-right:8px;transform:rotate(45deg);background:var(--line-2);vertical-align:1px}
+#ctrl button.tg[aria-pressed="true"]:before{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+#ctrl .upl{display:inline-flex;align-items:center;height:34px;padding:0 16px;background:var(--amber);color:#04080F;font:700 12px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid var(--amber)}
+#ctrl .upl:hover{background:#FFD98A}
+#ctrl .upl:focus-within{outline:2px solid var(--white);outline-offset:2px}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
+.panel-x{max-width:1100px;margin:0 auto;padding-block:22px 28px;padding-inline:16px;display:grid;gap:14px}
+.panel-x h2{margin:0;font:700 24px/1.2 var(--f-display);letter-spacing:.04em;color:var(--white);text-wrap:balance}
+.panel-x p{margin:0;font:400 15px/1.55 var(--f-body);color:var(--ink-2);max-width:72ch}
+.panel-x .row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.panel-x label{display:flex;align-items:center;gap:10px;font:500 13px/1 var(--f-mono);color:var(--ink-2);flex:1 1 260px;min-width:0}
+.panel-x input[type=range]{flex:1;min-width:0;accent-color:var(--amber)}
+.panel-x button{height:38px;padding:0 16px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.panel-x button:hover{border-color:var(--cyan);color:var(--cyan)}
+.panel-x button.primary{background:var(--amber);border-color:var(--amber);color:#04080F}
+.panel-x button.primary:hover{background:#FFD98A;color:#04080F}
+.panel-x button:disabled{opacity:.45;cursor:default}
+.cvbox{position:relative;width:100%;background:#000;border:1px solid var(--line-2)}
+.cvbox canvas{display:block;width:100%;height:auto;touch-action:none}
+#setupCv{cursor:grab}
+.pbar{height:8px;background:var(--line)}
+.pbar i{display:block;height:100%;width:0;background:var(--amber);box-shadow:0 0 10px rgba(255,200,87,.6);transition:width .2s}
+#procStep{color:var(--ink);font-weight:500}
+.note{border-left:3px solid var(--amber);padding:8px 12px;background:var(--panel);font:400 14px/1.5 var(--f-body);color:var(--ink-2)}
+.err{border-left-color:#FF6B6B;color:var(--ink)}
+#aiBox{display:grid;gap:10px;margin-top:10px}
+#report{max-width:1100px;margin:0 auto;padding:28px 16px 64px}
+#report h2{font:700 26px/1.2 var(--f-display);letter-spacing:.04em;color:var(--white);margin:28px 0 10px}
+#report h2:first-child{margin-top:0}
+#report p,#report li{font:400 16px/1.6 var(--f-body);color:var(--ink)}
+#report .muted{color:var(--ink-2)}
+.tbl{width:100%;border-collapse:collapse;font:400 14px/1.4 var(--f-body)}
+.tblw{overflow-x:auto}
+.tbl th{font:600 11px/1 var(--f-display);letter-spacing:.14em;color:var(--ink-3);text-align:left;padding:10px 8px;border-bottom:1px solid var(--line-2);text-transform:uppercase}
+.tbl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pchip{display:inline-block;font:700 14px/1 var(--f-display);padding:4px 7px 3px;color:#04080F}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.pcard{background:var(--panel);border:1px solid var(--line-2);padding:14px 16px}
+.pcard h3{margin:0 0 6px;font:700 20px/1 var(--f-display);display:flex;justify-content:space-between}
+.pcard ul{padding-left:18px;margin:6px 0}
+.pcard li{font-size:15px}
+.pcard h4{margin:12px 0 0;font:600 11px/1 var(--f-display);letter-spacing:.18em}
+</style>
+</head>
+<body>
+<div id="ctrl" hidden>
+  <button id="bplay" type="button">Play</button>
+  <button id="bback" type="button" aria-label="Previous frame">−1f</button>
+  <button id="bfwd" type="button" aria-label="Next frame">+1f</button>
+  <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+  <span class="tm num" id="tmtxt">0.00 s</span>
+  <select id="rate" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
+  <button id="bsnd" type="button">Sound off</button>
+  <div class="row2">
+    <div class="grp"><span class="lbl">LỚP PHỦ</span>
+      <button class="tg" type="button" data-ov="skel" aria-pressed="true">Khung xương</button>
+      <button class="tg" type="button" data-ov="ball" aria-pressed="true">Đường bóng</button>
+      <button class="tg" type="button" data-ov="tags" aria-pressed="true">Bảng tên</button>
+      <button class="tg" type="button" data-ov="court" aria-pressed="true">Mặt sân</button>
+      <button id="ovAll" type="button">Tắt hết</button>
+    </div>
+    <div class="grp" style="margin-left:auto">
+      <label class="upl" for="file">Tải video lên<input id="file" type="file" accept="video/*" hidden></label>
+      <button id="bsample" type="button" hidden>Xem rally mẫu</button>
+    </div>
+  </div>
+</div>
+<section id="setup" hidden><div class="panel-x">
+  <h2>Kiểm tra sân trước khi phân tích</h2>
+  <p id="setupMsg">Kéo 4 chấm vàng vào 4 góc ngoài của sân. Đường xanh là sân mà máy hiểu: vạch kitchen và lưới phải trùng vạch thật.</p>
+  <div class="cvbox"><canvas id="setupCv" width="1280" height="720"></canvas></div>
+  <div class="row">
+    <label for="rgA">Từ <input id="rgA" type="range" min="0" max="1000" value="0"> <span id="rgAv" class="num">0.0 s</span></label>
+    <label for="rgB">Đến <input id="rgB" type="range" min="0" max="1000" value="1000"> <span id="rgBv" class="num">0.0 s</span></label>
+  </div>
+  <p id="rangeMsg" class="num"></p>
+  <div class="row">
+    <button id="btnGo" class="primary" type="button">Bắt đầu phân tích</button>
+    <button id="btnRedetect" type="button">Tự tìm lại sân</button>
+    <button id="btnCancelSetup" type="button">Huỷ</button>
+  </div>
+  <p class="note">Video chỉ được xử lý trong trình duyệt của bạn, không gửi đi đâu. Nên chọn 1 rally, camera đứng yên, thấy trọn sân. Đoạn càng dài thì chờ càng lâu (khoảng 2–5 giây xử lý cho mỗi giây video).</p>
+</div></section>
+<section id="proc" hidden><div class="panel-x">
+  <h2 id="procTitle">Đang phân tích</h2>
+  <div class="pbar"><i id="procBar"></i></div>
+  <p id="procStep">Đang chuẩn bị</p>
+  <p id="procMeta" class="num"></p>
+  <div class="cvbox"><canvas id="procCv" width="1280" height="720"></canvas></div>
+  <div class="row"><button id="btnStop" type="button">Dừng</button></div>
+</div></section>
+<div id="wrap">
+ <div id="screen">
+  <header id="hdr">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14" fill="none" stroke="#4DE3FF" stroke-width="2"/><circle cx="17" cy="17" r="6" fill="none" stroke="#FFC857" stroke-width="2"/><path d="M17 0v8M17 26v8M0 17h8M26 17h8" stroke="#4DE3FF" stroke-width="2"/></svg>
+      <div><b>RALLYSCOPE</b><small>rally analysis · fixed camera</small></div>
+    </div>
+    <div class="rname" id="rname">—<span id="rsub"></span></div>
+    <div class="lights" id="lights">
+      <div class="light" data-k="vid"><i></i>VIDEO</div>
+      <div class="light" data-k="court"><i></i>COURT</div>
+      <div class="light" data-k="pose"><i></i><span>POSE 0/4</span></div>
+      <div class="light" data-k="ball"><i></i>BALL</div>
+      <div class="light" data-k="sync"><i></i>AUDIO SYNC</div>
+    </div>
+    <div class="tc"><b id="tc" class="num">00:00.00</b><span id="fc" class="num">FRAME 0000</span></div>
+  </header>
+
+  <div id="stagebox">
+    <video id="vid" muted playsinline preload="auto">
+      <source src="rally.mp4" type='video/mp4; codecs="avc1.640028"'>
+      <source src="rally.webm" type='video/webm; codecs="vp9"'>
+    </video>
+    <canvas id="stage" width="1360" height="765"></canvas>
+  </div>
+
+  <aside id="panel">
+    <div class="box cut" id="spd">
+      <h3>BALL SPEED <em id="spdlab">—</em></h3>
+      <div class="val"><b id="spdv" class="num">—</b><span>km/h</span><small id="spdsub"></small></div>
+      <canvas id="spark" width="430" height="34"></canvas>
+    </div>
+    <div class="box cut" id="radarbox">
+      <h3>TOP-DOWN RADAR <em>13.41 × 6.10 m</em></h3>
+      <canvas id="radar" width="430" height="178"></canvas>
+    </div>
+    <div class="box cut" id="listbox">
+      <h3>STRIKES <em id="scount">0 / 0</em></h3>
+      <div id="slist"><div class="in" id="slistin"></div></div>
+    </div>
+    <div class="box cut" id="prows"></div>
+  </aside>
+
+  <div id="tl">
+    <div class="lab">RALLY TIMELINE</div>
+    <div class="rail"></div><div class="fill" id="tlfill"></div>
+    <div id="tlmk"></div>
+    <div class="ph" id="tlph"></div>
+    <div class="t0 num">0.0 s</div><div class="t1 num" id="tlend"></div>
+  </div>
+
+  <div id="line" class="cut">
+    <div class="chip"><b id="lnchip">READY</b><span id="lnsub">WAITING FOR SERVE</span></div>
+    <p id="lntext"></p>
+  </div>
+
+  <section id="end">
+    <div class="hl" id="endhl"></div>
+    <div class="vd" id="endvd"></div>
+    <div id="cards"></div>
+  </section>
+ </div>
+</div>
+<main id="report" hidden></main>
+
+<script>
+"use strict";
+const REC = new URLSearchParams(location.search).has("record");
+if (REC) document.body.classList.add("rec");
+const PCOL = ["#FF7A3D", "#9CFF57", "#FF5FD2", "#4DE3FF"];
+const PPOS = ["near right", "near left", "far left", "far right"];
+const TYPE_EN = {serve:"SERVE", return:"RETURN", third_drop:"3RD SHOT DROP", third_drive:"3RD SHOT DRIVE",
+  volley:"VOLLEY", dink:"DINK", get:"GET", drive:"DRIVE", rally:"RALLY BALL"};
+const DIR_EN = {cross:"CROSS-COURT", line:"DOWN THE LINE", middle:"MIDDLE"};
+const PART = [["positioning","POSITIONING",35],["shots","SHOTS",25],["stance","STANCE",20],["movement","MOVEMENT",20]];
+// local indices into series.pose (nose, shoulders, elbows, wrists, hips, knees, ankles, heels, toes)
+const EDGES = [[1,2],[1,3],[3,5],[2,4],[4,6],[1,7],[2,8],[7,8],[7,9],[9,11],[8,10],[10,12],[11,13],[13,15],[11,15],[12,14],[14,16],[12,16]];
+const TRAIL = 34, BLUE = [95,184,255], PINK = [255,95,210];
+
+const $ = id => document.getElementById(id);
+const vid = $("vid"), cv = $("stage"), g = cv.getContext("2d");
+const SW = 1360, SH = 765;
+let D, FPS, DUR, NF, S, OX, OY, Hinv, H, CW, CL, CK, NET;
+let courtPaths, scanPat, vignette, lastF = -1, lastT = 0;
+// which overlay layers are drawn (viewer's choice, remembered in this browser)
+const OV = {skel: true, ball: true, tags: true, court: true};
+try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); } catch (e) {}
+
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ease = k => 1 - Math.pow(1 - clamp(k), 3);
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const pad = (n, w = 2) => String(n).padStart(w, "0");
+function hom(M, p) { const x = p[0], y = p[1]; const w = M[2][0]*x + M[2][1]*y + M[2][2];
+  return [(M[0][0]*x + M[0][1]*y + M[0][2]) / w, (M[1][0]*x + M[1][1]*y + M[1][2]) / w]; }
+const st = p => [OX + p[0] * S, OY + p[1] * S];               // source px -> stage px
+const c2s = p => st(hom(Hinv, p));                              // court metres -> stage px
+function fmtT(t) { const m = Math.floor(t / 60), s = t - m * 60; return `${pad(m)}:${s.toFixed(2).padStart(5, "0")}`; }
+
+function cutPath(x, y, w, h, c = 8) {
+  g.beginPath(); g.moveTo(x + c, y); g.lineTo(x + w, y); g.lineTo(x + w, y + h - c);
+  g.lineTo(x + w - c, y + h); g.lineTo(x, y + h); g.lineTo(x, y + c); g.closePath();
+}
+
+// ------------------------------------------------------------------ setup
+let SAMPLE = null;   // the bundled rally: data and the video source the browser picked
+async function init() {
+  const data = await (await fetch("data.json")).json();
+  await Promise.all(["600 14px 'Chakra Petch'", "700 14px 'Chakra Petch'", "500 12px 'IBM Plex Mono'",
+    "400 16px 'Noto Sans'", "500 16px 'Noto Sans'"].map(f => document.fonts.load(f, "Aăâđêôơư ẠẾỘỮ0123")));
+  await document.fonts.ready;
+  if (!REC) setupInteractive();
+  await applyData(data, null);
+  SAMPLE = {data, src: vid.currentSrc};
+}
+
+// Load a rally (the bundled one, or one analysed in this browser) into the screen.
+async function applyData(data, src) {
+  if (window.PLAYER) PLAYER.stop();
+  D = data; FPS = D.meta.fps; NF = D.range.frames;
+  ({W: CW, L: CL, K: CK} = D.court); NET = CL / 2;
+  Hinv = D.court.Hinv; H = D.court.H;
+  if (src) {
+    vid.querySelectorAll("source").forEach(e => e.remove());
+    vid.src = src; vid.load();
+  }
+  await new Promise(r => vid.readyState >= 1 ? r() : vid.addEventListener("loadedmetadata", r, {once: true}));
+  DUR = Math.min(vid.duration, NF / FPS);
+  const vw = vid.videoWidth || D.meta.width, vh = vid.videoHeight || D.meta.height;
+  S = Math.min(SW / vw, SH / vh); OX = (SW - vw * S) / 2; OY = (SH - vh * S) / 2;
+  // pose/ball coordinates are in the analysis frame's pixels
+  S = S * vw / D.meta.width;
+  buildStatic();
+  if (!REC) buildReport();
+  await new Promise(r => vid.readyState >= 2 ? r() : vid.addEventListener("loadeddata", r, {once: true}));
+  const t0 = D.meta.t0 || 0;
+  if (window.PLAYER) PLAYER.seek(t0); else draw(t0);
+}
+
+function buildStatic() {
+  $("rname").firstChild.textContent = D.meta.name;
+  $("rsub").textContent = `${D.strikes.length} STRIKES · ${D.report.sample.seconds.toFixed(1)} S · ${D.meta.width}×${D.meta.height} @ ${FPS} FPS`;
+  // court paths in stage px
+  const P = (a, b) => { const p = new Path2D(), u = c2s(a), v = c2s(b); p.moveTo(...u); p.lineTo(...v); return p; };
+  const grid = new Path2D();
+  for (let x = 1; x < CW; x += 1) { const u = c2s([x, 0]), v = c2s([x, CL]); grid.moveTo(...u); grid.lineTo(...v); }
+  for (let y = 1; y < CL; y += 1) { const u = c2s([0, y]), v = c2s([CW, y]); grid.moveTo(...u); grid.lineTo(...v); }
+  const lines = new Path2D();
+  [[[0,0],[CW,0]],[[CW,0],[CW,CL]],[[CW,CL],[0,CL]],[[0,CL],[0,0]],[[0,NET-CK],[CW,NET-CK]],[[0,NET+CK],[CW,NET+CK]],
+   [[CW/2,0],[CW/2,NET-CK]],[[CW/2,NET+CK],[CW/2,CL]]].forEach(([a, b]) => lines.addPath(P(a, b)));
+  const kz = new Path2D();
+  [[NET - CK, NET], [NET, NET + CK]].forEach(([y0, y1]) => {
+    const q = [[0, y0], [CW, y0], [CW, y1], [0, y1]].map(c2s);
+    kz.moveTo(...q[0]); q.slice(1).forEach(p => kz.lineTo(...p)); kz.closePath(); });
+  // the net stood up with the perspective scale measured from the players (0.88 m tall)
+  const sr = D.court.stature_ratio || 0.45, hz = D.court.horizon_y;
+  const netTop = x => { const b = hom(Hinv, [x, NET]); const hpx = 0.88 / 1.5 * sr * (b[1] - hz); return st([b[0], b[1] - hpx]); };
+  const net = {a: c2s([-0.3, NET]), b: c2s([CW + 0.3, NET]), ta: netTop(-0.3), tb: netTop(CW + 0.3)};
+  courtPaths = {grid, lines, kz, net};
+  // scanlines + vignette
+  const sc = document.createElement("canvas"); sc.width = 4; sc.height = 3;
+  const sg = sc.getContext("2d"); sg.fillStyle = "rgba(0,0,0,.32)"; sg.fillRect(0, 0, 4, 1);
+  scanPat = g.createPattern(sc, "repeat");
+  vignette = g.createRadialGradient(SW / 2, SH / 2, SH * 0.35, SW / 2, SH / 2, SW * 0.62);
+  vignette.addColorStop(0, "rgba(4,8,15,0)"); vignette.addColorStop(1, "rgba(4,8,15,.78)");
+
+  // strike list
+  $("slistin").innerHTML = D.strikes.map(s => `<div class="srow" data-f="${s.frame}"><span>${pad(s.n)}</span>
+    <span class="pl" style="color:${PCOL[s.pi]}">${s.player}</span><span class="ty">${TYPE_EN[s.type]}</span>
+    <span>${s.dir ? DIR_EN[s.dir].replace("DOWN THE LINE", "LINE").replace("CROSS-COURT", "CROSS") : "—"}</span>
+    <span class="kmh num">${s.kmh == null ? "—" : s.kmh.toFixed(0) + " km/h"}</span></div>`).join("");
+  // player rows
+  $("prows").innerHTML = D.players.map((p, i) => `<div class="prow" id="pr${i}">
+    <span class="id" style="color:${PCOL[i]}">${p.id}</span><span class="zn"></span>
+    <span class="nd num"></span><span class="kn num"></span><span class="ct num"></span></div>`).join("");
+  // timeline
+  const x = t => (t / DUR * 100).toFixed(3) + "%";
+  $("tlmk").innerHTML = D.strikes.map(s => `<div class="mk" data-f="${s.frame}" style="left:${x(s.frame / FPS)};background:${PCOL[s.pi]}">${pad(s.n)}</div>`).join("")
+    + D.bounces.map(b => `<div class="tick" data-f="${b.frame}" style="left:${x(b.frame / FPS)}"></div>`).join("");
+  $("tlend").textContent = DUR.toFixed(1) + " s";
+  buildEnd();
+  drawSparkBase();
+}
+
+function buildEnd() {
+  const best = D.players.reduce((a, b) => (b.total > a.total ? b : a));
+  $("endhl").innerHTML = D.report.headline;
+  $("endvd").textContent = D.report.verdict;
+  $("cards").innerHTML = D.players.map((p, i) => `<div class="card cut" data-at="${0.5 + i * 0.35}" style="border-top:3px solid ${PCOL[i]}">
+    <div class="badge" style="visibility:${p.id === best.id ? "visible" : "hidden"}">MOST PROFESSIONAL</div>
+    <div class="top"><span class="id" style="color:${PCOL[i]}">${p.id}</span><span class="pos">${PPOS[i]}<br>${p.strikes} strikes</span>
+      <span class="tot"><b style="color:${PCOL[i]}">${Math.round(p.total)}</b><span>TOTAL / 100</span></span></div>
+    <div class="bars">${PART.map(([k, lab, w]) => `<div class="bar"><span>${lab} ${w}%</span><span class="tr"><i data-w="${p.parts[k] ?? 0}" style="background:${PCOL[i]};width:0"></i></span><b class="num">${p.parts[k] == null ? "—" : Math.round(p.parts[k])}</b></div>`).join("")}</div>
+    <h4 class="g">DONE WELL</h4><ul class="gl" data-at="${2.0 + i * 0.25}">${p.good.map(t => `<li>${t}</li>`).join("")}</ul>
+    <h4 class="w">WORK ON</h4><ul class="wl" data-at="${2.6 + i * 0.25}">${p.work.map(t => `<li>${t}</li>`).join("")}</ul>
+  </div>`).join("");
+}
+
+// ------------------------------------------------------------------ stage
+function drawStage(f) {
+  g.save();
+  g.fillStyle = "#04080F"; g.fillRect(0, 0, SW, SH);
+  g.filter = "saturate(.62) contrast(1.1) brightness(.9)";
+  if (vid.readyState >= 2) g.drawImage(vid, OX, OY, SW - 2 * OX, SH - 2 * OY);
+  g.filter = "none";
+  g.globalCompositeOperation = "multiply"; g.fillStyle = "#93BEE6"; g.fillRect(0, 0, SW, SH);
+  g.globalCompositeOperation = "screen"; g.fillStyle = "rgba(10,40,70,.22)"; g.fillRect(0, 0, SW, SH);
+  g.globalCompositeOperation = "source-over";
+  g.restore();
+
+  if (OV.court) { drawCourt(f); drawBounces(f); }
+  const tags = drawPlayers(f);
+  if (OV.ball) drawBall(f);
+  drawStrikeFx(f, tags);
+  if (OV.tags) drawTags(tags);
+
+  g.fillStyle = vignette; g.fillRect(0, 0, SW, SH);
+  g.fillStyle = scanPat; g.globalAlpha = 0.5; g.fillRect(0, 0, SW, SH); g.globalAlpha = 1;
+  // bottom edge fades to dark (covers any old progress bar)
+  const bh = D.meta.cover?.bottom ? D.meta.cover.bottom * S + 40 : 110;
+  const bg = g.createLinearGradient(0, SH - bh, 0, SH);
+  bg.addColorStop(0, "rgba(4,8,15,0)"); bg.addColorStop(0.55, "rgba(4,8,15,.82)"); bg.addColorStop(1, "rgba(4,8,15,.97)");
+  g.fillStyle = bg; g.fillRect(0, SH - bh, SW, bh);
+  drawTopLeft(f);
+  drawTopRight(f);
+}
+
+function drawCourt(f) {
+  const {grid, lines, kz, net} = courtPaths;
+  g.save();
+  g.fillStyle = "rgba(77,227,255,.075)"; g.fill(kz);
+  g.strokeStyle = "rgba(77,227,255,.10)"; g.lineWidth = 1; g.stroke(grid);
+  g.globalCompositeOperation = "lighter";
+  g.shadowColor = "#4DE3FF"; g.shadowBlur = 14;
+  g.strokeStyle = "rgba(77,227,255,.45)"; g.lineWidth = 4; g.stroke(lines);
+  g.shadowBlur = 0; g.strokeStyle = "rgba(190,245,255,.85)"; g.lineWidth = 1.4; g.stroke(lines);
+  // amber net
+  const ng = g.createLinearGradient(0, net.a[1], 0, Math.min(net.ta[1], net.tb[1]));
+  ng.addColorStop(0, "rgba(255,200,87,.02)"); ng.addColorStop(1, "rgba(255,200,87,.11)");
+  g.fillStyle = ng; g.beginPath(); g.moveTo(...net.a); g.lineTo(...net.b); g.lineTo(...net.tb); g.lineTo(...net.ta); g.closePath(); g.fill();
+  g.shadowColor = "#FFC857"; g.shadowBlur = 12; g.strokeStyle = "rgba(255,200,87,.95)"; g.lineWidth = 2.2;
+  g.beginPath(); g.moveTo(...net.ta); g.lineTo(...net.tb); g.stroke();
+  g.lineWidth = 1.2; g.strokeStyle = "rgba(255,200,87,.6)";
+  g.beginPath(); g.moveTo(...net.a); g.lineTo(...net.b); g.moveTo(...net.a); g.lineTo(...net.ta); g.moveTo(...net.b); g.lineTo(...net.tb); g.stroke();
+  g.restore();
+}
+
+function ringPts(c, r, n = 40) {
+  const out = [];
+  for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2; out.push(c2s([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)])); }
+  return out;
+}
+function strokePts(pts) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); }
+
+function drawBounces(f) {
+  for (const b of D.bounces) {
+    const k = f - b.frame;
+    if (k < 0 || k >= 45) continue;
+    g.save(); g.globalCompositeOperation = "lighter";
+    for (const off of [0, 10]) {
+      const kk = (k - off) / 45; if (kk < 0) continue;
+      strokePts(ringPts(b.court, 0.12 + 0.95 * ease(kk)));
+      g.strokeStyle = `rgba(255,200,87,${0.9 * (1 - kk)})`; g.lineWidth = 2.2 * (1 - kk) + 0.6;
+      g.shadowColor = "#FFC857"; g.shadowBlur = 10; g.stroke();
+    }
+    if (k < 8) { const p = c2s(b.court); g.fillStyle = `rgba(255,230,160,${1 - k / 8})`; g.beginPath(); g.arc(p[0], p[1], 3, 0, 7); g.fill(); }
+    g.restore();
+  }
+}
+
+function drawPlayers(f) {
+  const tags = [];
+  for (let i = 0; i < D.players.length; i++) {
+    const pose = D.series.pose[i][f]; if (!pose) continue;
+    const col = PCOL[i], rgb = hex2rgb(col);
+    // a pose that was not found for a while is not drawn: only the ring at the estimated feet
+    let gone = 0; for (let j = f - 8; j <= f + 8; j++) if (j >= 0 && j < NF && !D.series.det[i][j]) gone++;
+    const lost = !D.series.det[i][f] && gone >= 10;
+    const feet = D.series.feet[i][f];
+    const P = pose.map(p => p && st(p));
+    if (!OV.skel || lost) {
+      if (lost && OV.skel) {   // only the ring at the estimated feet
+        g.save(); strokePts(ringPts(feet, 0.55)); g.setLineDash([6, 6]); g.strokeStyle = rgba(rgb, 0.7); g.lineWidth = 1.4; g.stroke(); g.restore();
+      }
+      const fp = c2s(feet), hh = Math.hypot(P[1][0] - P[11][0], P[1][1] - P[11][1]) || 120;
+      const ys = P.filter(Boolean).map(p => p[1]), xs = P.filter(Boolean).map(p => p[0]);
+      const top = lost ? fp[1] - hh : Math.min(...ys), cx = lost ? fp[0] : (Math.min(...xs) + Math.max(...xs)) / 2;
+      const z = D.series.zone[i][f], dn = D.series.dnet[i][f], kn = D.series.knee[i][f];
+      tags.push({i, col, rgb, ax: cx, ay: top - 6, w: 168, h: 44, x: cx - 84, y: top - 62,
+        l1: `${D.players[i].id}  ${lost ? "POSE LOST" : z}`, l2: lost ? `NET ${dn.toFixed(1)} m · estimated` : `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`});
+      continue;
+    }
+    // floor ring
+    g.save(); g.globalCompositeOperation = "lighter";
+    strokePts(ringPts(feet, 0.55)); g.fillStyle = rgba(rgb, 0.10); g.fill();
+    g.strokeStyle = rgba(rgb, 0.85); g.lineWidth = 1.6; g.shadowColor = col; g.shadowBlur = 10; g.stroke();
+    const rp = ringPts(feet, 0.72, 48), rot = Math.floor(f / 3) % 12;
+    g.lineWidth = 2.4; g.strokeStyle = rgba(rgb, 0.6);
+    for (let k = 0; k < 48; k += 12) { const a = (k + rot * 1) % 48; g.beginPath(); g.moveTo(...rp[a]); g.lineTo(...rp[Math.min(a + 4, 48)]); g.stroke(); }
+    g.restore();
+    // skeleton
+    g.save(); g.lineCap = "round"; g.lineJoin = "round";
+    g.shadowColor = col; g.shadowBlur = 12; g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 3.4;
+    g.beginPath(); for (const [a, b] of EDGES) if (P[a] && P[b]) { g.moveTo(...P[a]); g.lineTo(...P[b]); }
+    if (P[0] && P[1] && P[2]) { const nk = [(P[1][0] + P[2][0]) / 2, (P[1][1] + P[2][1]) / 2]; g.moveTo(...nk); g.lineTo(...P[0]); }
+    g.stroke();
+    g.shadowBlur = 0; g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1; g.stroke();
+    g.fillStyle = "#fff";
+    for (const k of [0, 5, 6, 9, 10, 11, 12]) if (P[k]) { g.beginPath(); g.arc(P[k][0], P[k][1], k === 0 ? 3.2 : 2.2, 0, 7); g.fill(); }
+    if (P[0]) { const hr = Math.max(5, Math.hypot(P[1][0] - P[2][0], P[1][1] - P[2][1]) * 0.42);
+      g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 1.6; g.shadowColor = col; g.shadowBlur = 8; g.beginPath(); g.arc(P[0][0], P[0][1], hr, 0, 7); g.stroke(); }
+    g.restore();
+    const ys = P.filter(Boolean).map(p => p[1]), xs = P.filter(Boolean).map(p => p[0]);
+    const top = Math.min(...ys), cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const z = D.series.zone[i][f], dn = D.series.dnet[i][f], kn = D.series.knee[i][f];
+    tags.push({i, col, rgb, ax: cx, ay: top - 6, w: 168, h: 44, x: cx - 84, y: top - 62,
+      l1: `${D.players[i].id}  ${z}`, l2: `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`});
+  }
+  return tags;
+}
+
+function resolveTags(tags, fixed) {
+  const inter = (a, b) => a.x < b.x + b.w + 6 && b.x < a.x + a.w + 6 && a.y < b.y + b.h + 6 && b.y < a.y + a.h + 6;
+  for (const t of tags) { t.x = clamp(t.x, 8, SW - t.w - 8); t.y = clamp(t.y, 8, SH - t.h - 8); }
+  for (let it = 0; it < 12; it++) {
+    let moved = false;
+    const all = [...fixed, ...tags];
+    for (const t of tags) for (const o of all) {
+      if (o === t || !inter(t, o)) continue;
+      const tu = t.y + t.h / 2 <= o.y + o.h / 2;
+      if (fixed.includes(o) || tu) {   // move t away from o, vertically first
+        const up = o.y - t.h - 8, down = o.y + o.h + 8;
+        t.y = (up >= 8 && (tu || down + t.h > SH - 8)) ? up : down;
+        moved = true;
+      }
+    }
+    for (const t of tags) { t.x = clamp(t.x, 8, SW - t.w - 8); t.y = clamp(t.y, 8, SH - t.h - 8); }
+    if (!moved) break;
+  }
+}
+
+function drawTags(tags) {
+  for (const t of tags) {
+    g.save();
+    g.strokeStyle = rgba(t.rgb, 0.7); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.x + t.w / 2, t.y + t.h); g.stroke();
+    cutPath(t.x, t.y, t.w, t.h, 8); g.fillStyle = "rgba(4,8,15,.8)"; g.fill();
+    g.strokeStyle = t.col; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = t.col; g.fillRect(t.x, t.y + 8, 3, t.h - 16);
+    g.font = "600 14px 'Chakra Petch'"; g.fillStyle = t.col; g.textBaseline = "top";
+    g.fillText(t.l1, t.x + 11, t.y + 7);
+    g.font = "500 11.5px 'IBM Plex Mono'"; g.fillStyle = "#DCEAF6"; g.fillText(t.l2, t.x + 11, t.y + 26);
+    g.restore();
+  }
+}
+
+function drawBall(f) {
+  const B = D.series.ball;
+  if (!B[f]) return;
+  g.save(); g.globalCompositeOperation = "lighter"; g.lineCap = "round";
+  for (let k = TRAIL - 1; k >= 1; k--) {
+    const a = B[f - k], b = B[f - k + 1];
+    if (!a || !b || f - k < 0) continue;
+    const u = (k - 0.5) / TRAIL;                       // 0 at the ball, 1 at the tail end
+    const c = [0, 1, 2].map(j => Math.round(lerp(BLUE[j], PINK[j], u)));
+    const pa = st(a), pb = st(b);
+    g.strokeStyle = rgba(c, 0.85 * Math.pow(1 - u, 1.25)); g.lineWidth = 1 + 8 * Math.pow(1 - u, 0.9);
+    g.shadowColor = rgba(c, 0.9); g.shadowBlur = 10 * (1 - u);
+    g.beginPath(); g.moveTo(...pa); g.lineTo(...pb); g.stroke();
+  }
+  g.shadowBlur = 0;
+  for (let k = 5; k >= 1; k--) {                     // thin white core on the newest frames
+    const a = B[f - k], b = B[f - k + 1]; if (!a || !b) continue;
+    g.strokeStyle = `rgba(255,255,255,${0.75 * (1 - k / 6)})`; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(...st(a)); g.lineTo(...st(b)); g.stroke();
+  }
+  const p = st(B[f]);
+  const glow = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], 16);
+  glow.addColorStop(0, "rgba(95,184,255,.55)"); glow.addColorStop(1, "rgba(95,184,255,0)");
+  g.fillStyle = glow; g.beginPath(); g.arc(p[0], p[1], 16, 0, 7); g.fill();
+  g.globalCompositeOperation = "source-over";
+  g.fillStyle = "#fff"; g.beginPath(); g.arc(p[0], p[1], 3.6, 0, 7); g.fill();
+  g.restore();
+}
+
+function curStrike(f) { let c = null; for (const s of D.strikes) if (s.frame <= f) c = s; return c; }
+
+function drawStrikeFx(f, tags) {
+  const fixed = [];
+  for (const s of D.strikes) {
+    const k = f - s.frame;
+    if (k < 0 || k >= 80 || !s.ball_img) continue;
+    const p = st(s.ball_img);
+    if (k < 14 && OV.ball) {
+      g.save(); g.globalCompositeOperation = "lighter";
+      if (k < 7) { g.fillStyle = `rgba(255,255,255,${0.16 * (1 - k / 7)})`; g.fillRect(0, 0, SW, SH);
+        const fl = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], 90);
+        fl.addColorStop(0, `rgba(255,255,255,${0.9 * (1 - k / 7)})`); fl.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = fl; g.beginPath(); g.arc(p[0], p[1], 90, 0, 7); g.fill(); }
+      for (const [d, col] of [[0, "255,255,255"], [4, "77,227,255"]]) {
+        const kk = (k - d) / 12; if (kk < 0 || kk > 1) continue;
+        g.strokeStyle = `rgba(${col},${0.95 * (1 - kk)})`; g.lineWidth = 3 * (1 - kk) + 0.8;
+        g.shadowColor = `rgb(${col})`; g.shadowBlur = 14;
+        g.beginPath(); g.arc(p[0], p[1], 8 + ease(kk) * 70, 0, 7); g.stroke();
+      }
+      g.restore();
+    }
+    // callout (only the latest strike keeps one, so close strikes never stack)
+    const next = D.strikes.find(o => o.frame > s.frame);
+    if (next && f >= next.frame) continue;
+    if (!OV.tags) continue;
+    const a = Math.min(1, k / 6) * Math.min(1, (80 - k) / 12);
+    const w = 236, h = 74;
+    const right = p[0] < SW / 2;
+    const c = {x: right ? p[0] + 40 : p[0] - 40 - w, y: p[1] - h - 30, w, h};
+    c.x = clamp(c.x, 330, SW - w - 340 > 330 ? SW - w - 340 : SW - w - 8);
+    c.y = clamp(c.y, 130, SH - h - 120);
+    fixed.push(c);
+    g.save(); g.globalAlpha = a;
+    const col = PCOL[s.pi];
+    g.strokeStyle = col; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(right ? c.x : c.x + w, c.y + h / 2); g.stroke();
+    cutPath(c.x, c.y, w, h, 10); g.fillStyle = "rgba(4,8,15,.86)"; g.fill();
+    g.strokeStyle = "#FFC857"; g.lineWidth = 1.4; g.stroke();
+    g.textBaseline = "top";
+    g.font = "700 13px 'Chakra Petch'"; g.fillStyle = "#FFC857"; g.fillText(`STRIKE ${pad(s.n)} / ${pad(D.strikes.length)}`, c.x + 12, c.y + 9);
+    g.font = "700 20px 'Chakra Petch'"; g.fillStyle = col; g.fillText(s.player, c.x + 12, c.y + 27);
+    g.fillStyle = "#fff"; g.fillText(TYPE_EN[s.type], c.x + 50, c.y + 27);
+    g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = "#BFD3E6";
+    g.fillText(`${s.dir ? DIR_EN[s.dir] : "—"} · ${s.kmh == null ? "— km/h" : s.kmh.toFixed(0) + " km/h"}`, c.x + 12, c.y + 53);
+    g.restore();
+  }
+  resolveTags(tags, fixed);
+}
+
+function drawTopLeft(f) {
+  const cv0 = D.meta.cover?.topleft;
+  const x = 14, y = 14, w = cv0 ? Math.max(300, cv0[2] * S + 20) : 300, h = cv0 ? Math.max(104, cv0[3] * S + 20) : 104;
+  const s = curStrike(f);
+  g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
+  g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
+  const on = Math.floor(f / 20) % 2 === 0;
+  g.fillStyle = on ? "#FF4D6A" : "rgba(255,77,106,.35)"; g.beginPath(); g.arc(x + 18, y + 19, 5, 0, 7); g.fill();
+  g.textBaseline = "top"; g.font = "600 13px 'Chakra Petch'"; g.fillStyle = "#4DE3FF";
+  g.fillText("LIVE TRACKING", x + 30, y + 12);
+  g.font = "500 11px 'IBM Plex Mono'"; g.fillStyle = "#6C869F"; g.textAlign = "right";
+  g.fillText(`4 PLAYERS · BALL`, x + w - 12, y + 13); g.textAlign = "left";
+  g.font = "700 30px 'Chakra Petch'"; g.fillStyle = "#fff";
+  g.fillText(s ? `STRIKE ${pad(s.n)}` : "PRE-SERVE", x + 14, y + 36);
+  g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = s ? PCOL[s.pi] : "#9DB4C9";
+  g.fillText(s ? `${s.player} · ${TYPE_EN[s.type]} · ${s.kmh == null ? "—" : s.kmh.toFixed(0)} km/h` : "waiting for the serve", x + 14, y + 76);
+  g.restore();
+}
+
+function drawTopRight(f) {
+  const cv0 = D.meta.cover?.topright;
+  const w = cv0 ? Math.max(320, cv0[2] * S + 20) : 320, h = cv0 ? Math.max(124, cv0[3] * S + 20) : 124;
+  const x = SW - 14 - w, y = 14;
+  g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
+  g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
+  g.textBaseline = "top"; g.font = "600 13px 'Chakra Petch'"; g.fillStyle = "#4DE3FF"; g.fillText("STRIKE SPEED", x + 14, y + 12);
+  g.font = "500 11px 'IBM Plex Mono'"; g.fillStyle = "#6C869F"; g.textAlign = "right"; g.fillText("km/h", x + w - 12, y + 13); g.textAlign = "left";
+  const ss = D.strikes, n = ss.length, top = Math.max(50, ...ss.map(s => s.kmh || 0));
+  const bx = x + 14, bw = (w - 28) / Math.max(n, 1), base = y + h - 14, bhmax = h - 52;
+  const cur = curStrike(f);
+  ss.forEach((s, i) => {
+    const v = s.kmh || 0, hh = Math.max(2, v / top * bhmax), done = s.frame <= f;
+    const xx = bx + i * bw + bw * 0.18, ww = bw * 0.64;
+    g.fillStyle = done ? PCOL[s.pi] : "rgba(108,134,159,.25)";
+    if (cur && s.n === cur.n) { g.shadowColor = PCOL[s.pi]; g.shadowBlur = 14; }
+    g.fillRect(xx, base - hh, ww, hh); g.shadowBlur = 0;
+    if (cur && s.n === cur.n && s.kmh) { g.font = "600 11px 'IBM Plex Mono'"; g.fillStyle = "#fff"; g.textAlign = "center";
+      g.fillText(s.kmh.toFixed(0), xx + ww / 2, base - hh - 14); g.textAlign = "left"; }
+  });
+  g.strokeStyle = "rgba(77,227,255,.35)"; g.beginPath(); g.moveTo(bx, base + 0.5); g.lineTo(x + w - 14, base + 0.5); g.stroke();
+  g.restore();
+}
+
+// ------------------------------------------------------------------ panel
+let sparkBase;
+function drawSparkBase() {
+  const c = document.createElement("canvas"); c.width = 430; c.height = 34; const s = c.getContext("2d");
+  const sp = D.series.speed, top = Math.max(50, ...sp.filter(v => v != null));
+  s.strokeStyle = "rgba(95,184,255,.85)"; s.lineWidth = 1.4; s.beginPath();
+  let pen = false;
+  for (let i = 0; i < NF; i++) { const v = sp[i]; const x = i / (NF - 1) * 430;
+    if (v == null) { pen = false; continue; } const y = 32 - v / top * 30;
+    pen ? s.lineTo(x, y) : s.moveTo(x, y); pen = true; }
+  s.stroke();
+  sparkBase = {c, top};
+}
+function drawSpark(f) {
+  const s = $("spark").getContext("2d"); s.clearRect(0, 0, 430, 34); s.drawImage(sparkBase.c, 0, 0);
+  const x = f / (NF - 1) * 430; s.fillStyle = "rgba(4,8,15,.6)"; s.fillRect(x, 0, 430 - x, 34);
+  s.strokeStyle = "#fff"; s.lineWidth = 1; s.beginPath(); s.moveTo(x, 0); s.lineTo(x, 34); s.stroke();
+}
+
+function drawRadar(f) {
+  const r = $("radar").getContext("2d"), RW = 430, RH = 178, m = 12;
+  const k = Math.min((RW - 2 * m) / CL, (RH - 2 * m) / CW);
+  const ox = (RW - CL * k) / 2, oy = (RH - CW * k) / 2;
+  const R = p => [ox + p[1] * k, oy + (CW - p[0]) * k];
+  r.clearRect(0, 0, RW, RH);
+  r.fillStyle = "rgba(77,227,255,.06)"; r.fillRect(...R([CW, 0]), CL * k, CW * k);
+  r.fillStyle = "rgba(77,227,255,.12)"; r.fillRect(R([CW, NET - CK])[0], oy, 2 * CK * k, CW * k);
+  r.strokeStyle = "rgba(77,227,255,.8)"; r.lineWidth = 1.2; r.strokeRect(ox, oy, CL * k, CW * k);
+  r.beginPath();
+  for (const y of [NET - CK, NET + CK]) { r.moveTo(R([0, y])[0], oy); r.lineTo(R([0, y])[0], oy + CW * k); }
+  r.moveTo(ox, R([CW / 2, 0])[1]); r.lineTo(R([0, NET - CK])[0], R([CW / 2, 0])[1]);
+  r.moveTo(R([0, NET + CK])[0], R([CW / 2, 0])[1]); r.lineTo(ox + CL * k, R([CW / 2, 0])[1]); r.stroke();
+  r.strokeStyle = "#FFC857"; r.lineWidth = 2.4; r.shadowColor = "#FFC857"; r.shadowBlur = 8;
+  r.beginPath(); r.moveTo(R([0, NET])[0], oy - 4); r.lineTo(R([0, NET])[0], oy + CW * k + 4); r.stroke(); r.shadowBlur = 0;
+  // strike points so far
+  for (const s of D.strikes) if (s.frame <= f) { const p = R(s.from); r.strokeStyle = PCOL[s.pi]; r.lineWidth = 1.2;
+    r.beginPath(); r.moveTo(p[0] - 3, p[1] - 3); r.lineTo(p[0] + 3, p[1] + 3); r.moveTo(p[0] + 3, p[1] - 3); r.lineTo(p[0] - 3, p[1] + 3); r.stroke(); }
+  for (const b of D.bounces) if (b.frame <= f) { const p = R(b.court); r.strokeStyle = "rgba(255,200,87,.9)"; r.beginPath(); r.arc(p[0], p[1], 3.5, 0, 7); r.stroke(); }
+  // ball ground trail
+  const BG = D.series.ball_ground;
+  for (let j = TRAIL; j >= 0; j--) { const q = BG[f - j]; if (!q || f - j < 0) continue;
+    const u = j / TRAIL, c = [0, 1, 2].map(i => Math.round(lerp(BLUE[i], PINK[i], u)));
+    const p = R(q); r.fillStyle = rgba(c, 0.8 * (1 - u)); r.beginPath(); r.arc(p[0], p[1], 2.4 * (1 - u) + 0.6, 0, 7); r.fill(); }
+  // players with trails
+  for (let i = 0; i < D.players.length; i++) {
+    const F = D.series.feet[i], rgb = hex2rgb(PCOL[i]);
+    r.strokeStyle = rgba(rgb, 0.45); r.lineWidth = 1.4; r.beginPath();
+    for (let j = Math.max(0, f - 90); j <= f; j++) { const p = R(F[j]); j === Math.max(0, f - 90) ? r.moveTo(...p) : r.lineTo(...p); }
+    r.stroke();
+    const p = R(F[f]); r.fillStyle = PCOL[i]; r.shadowColor = PCOL[i]; r.shadowBlur = 10;
+    r.beginPath(); r.arc(p[0], p[1], 5.5, 0, 7); r.fill(); r.shadowBlur = 0;
+    r.font = "700 10px 'Chakra Petch'"; r.fillStyle = "#fff"; r.textAlign = "center"; r.textBaseline = "middle";
+    r.fillText(String(i + 1), p[0], p[1] + 0.5);
+  }
+  r.textAlign = "left";
+}
+
+function updatePanel(f) {
+  const v = D.series.speed[f];
+  let shown = v, sub = "";
+  const s = curStrike(f);
+  if (v == null && s && s.kmh != null && f - s.frame < 90) shown = null;
+  $("spdv").textContent = shown == null ? "—" : Math.round(shown);
+  $("spdlab").textContent = s ? `${s.player} · ${TYPE_EN[s.type]}` : "—";
+  $("spdsub").innerHTML = s && s.kmh != null ? `SHOT AVG ${s.kmh.toFixed(0)}<br>${s.dist_m.toFixed(1)} m / ${s.flight_s.toFixed(2)} s` : "";
+  drawSpark(f);
+  drawRadar(f);
+  // strike list
+  let ci = -1;
+  document.querySelectorAll("#slistin .srow").forEach((row, i) => {
+    const fr = +row.dataset.f; row.classList.toggle("done", fr <= f); row.classList.toggle("cur", s && D.strikes[i].n === s.n);
+    if (s && D.strikes[i].n === s.n) ci = i; });
+  const vis = Math.floor(($("slist").clientHeight || 200) / 26);
+  const off = Math.max(0, Math.min(ci - Math.floor(vis / 2), D.strikes.length - vis));
+  $("slistin").style.transform = `translateY(${-off * 26}px)`;
+  $("scount").textContent = `${s ? s.n : 0} / ${D.strikes.length}`;
+  // players
+  for (let i = 0; i < D.players.length; i++) {
+    const row = $("pr" + i), z = D.series.zone[i][f];
+    const zn = row.querySelector(".zn"); zn.textContent = z; zn.className = "zn " + z[0].toLowerCase();
+    row.querySelector(".nd").textContent = `NET ${D.series.dnet[i][f].toFixed(1)} m`;
+    row.querySelector(".kn").textContent = `KNEE ${D.series.knee[i][f] ?? "—"}°`;
+    row.querySelector(".ct").textContent = `×${D.strikes.filter(x => x.pi === i && x.frame <= f).length}`;
+  }
+}
+
+function updateChrome(t, f) {
+  $("tc").textContent = fmtT(Math.min(t, DUR));
+  $("fc").textContent = t > DUR ? "REPORT" : `FRAME ${pad(f, 4)} / ${pad(NF - 1, 4)} · ${FPS} FPS`;
+  const det = D.series.det.reduce((a, d) => a + (d[f] ? 1 : 0), 0);
+  const L = k => document.querySelector(`.light[data-k="${k}"]`);
+  L("vid").classList.toggle("on", vid.readyState >= 2);
+  L("court").classList.add("on");
+  L("pose").classList.toggle("on", det === 4); L("pose").classList.toggle("warn", det < 4);
+  L("pose").querySelector("span").textContent = `POSE ${det}/4`;
+  L("ball").classList.toggle("on", !!D.series.ball[f]);
+  L("sync").classList.toggle("on", D.strikes.length > 0);
+  // timeline
+  const pct = clamp(t / DUR) * 100;
+  $("tlph").style.left = pct + "%"; $("tlfill").style.width = pct + "%";
+  document.querySelectorAll("#tlmk > div").forEach(el => el.classList.toggle("done", +el.dataset.f <= f));
+  // plain-language line
+  const s = curStrike(f);
+  $("lnchip").textContent = s ? `STRIKE ${pad(s.n)} / ${pad(D.strikes.length)}` : "READY";
+  $("lnsub").textContent = s ? `${s.player} · ${TYPE_EN[s.type]}` : "WAITING FOR SERVE";
+  $("lntext").textContent = s ? s.line : (D.report.intro || "");
+}
+
+function updateEnd(ph) {
+  const end = $("end");
+  end.style.opacity = ph <= 0 ? 0 : clamp(ph / 0.4);
+  if (ph <= 0) return;
+  const rev = (el, at) => { const k = ease((ph - at) / 0.45); el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 16}px)`; };
+  rev($("endhl"), 0.05); rev($("endvd"), 0.25);
+  document.querySelectorAll("#cards .card").forEach(c => {
+    const at = +c.dataset.at; rev(c, at);
+    c.querySelectorAll(".bar i").forEach(b => { b.style.width = (ease((ph - at - 0.3) / 0.8) * (+b.dataset.w)) + "%"; });
+    c.querySelectorAll("ul").forEach(u => rev(u, +u.dataset.at));
+  });
+}
+
+function draw(t) {
+  const f = Math.max(0, Math.min(NF - 1, t >= DUR ? NF - 1 : Math.floor(t * FPS + 1e-6)));
+  drawStage(f);
+  updatePanel(f);
+  updateChrome(t, f);
+  updateEnd(t - DUR);
+  lastF = f; lastT = t;
+}
+
+// ------------------------------------------------------------------ recorder hooks
+window.__ready = init();
+window.__duration = () => DUR + D.meta.endcard;
+window.__seekTo = t => new Promise(res => {
+  const target = Math.min(t, DUR - 0.5 / FPS) + 0.5 / FPS;   // middle of the frame
+  const tt = Math.min(target, vid.duration - 1e-3);
+  if (Math.abs(vid.currentTime - tt) < 1e-4) return res();
+  const done = () => { if (vid.requestVideoFrameCallback) { let ok = false; vid.requestVideoFrameCallback(() => { ok = true; res(); }); setTimeout(() => ok || res(), 120); } else res(); };
+  vid.addEventListener("seeked", done, {once: true});
+  vid.currentTime = tt;
+});
+window.__draw = t => draw(t);
+
+// ------------------------------------------------------------------ interactive page
+function fit() {
+  const w = document.documentElement.clientWidth, k = Math.min(1, w / 1920);
+  $("screen").style.transform = `scale(${k})`; $("wrap").style.height = (1080 * k) + "px";
+}
+function setupInteractive() {
+  $("ctrl").hidden = false; $("report").hidden = false;
+  fit(); addEventListener("resize", fit);
+  let playing = false, tEnd = null;
+  const total = () => DUR + D.meta.endcard;
+  const t0 = () => D.meta.t0 || 0;
+  const show = t => { draw(t); $("scrub").value = Math.round(t / total() * 1000); $("tmtxt").textContent = `${Math.min(t, total()).toFixed(2)} s`; };
+  const loop = now => {
+    if (!playing) return;
+    let t;
+    if (tEnd == null && !vid.ended && vid.currentTime < DUR - 1 / FPS) t = vid.currentTime;
+    else { if (tEnd == null) { tEnd = now; vid.pause(); } t = DUR + (now - tEnd) / 1000; }
+    if (t >= total()) { t = total(); playing = false; $("bplay").textContent = "Replay"; }
+    show(t); requestAnimationFrame(loop);
+  };
+  const play = () => { if ($("bplay").textContent === "Replay") { vid.currentTime = t0(); tEnd = null; }
+    playing = true; $("bplay").textContent = "Pause"; vid.playbackRate = +$("rate").value;
+    if (tEnd == null) vid.play(); requestAnimationFrame(loop); };
+  const pause = () => { playing = false; vid.pause(); $("bplay").textContent = "Play"; };
+  const seek = t => { pause(); t = clamp(t, 0, total());
+    if (t < DUR) { tEnd = null; vid.currentTime = Math.min(t, DUR - 1e-3); vid.addEventListener("seeked", () => show(t), {once: true}); }
+    else { tEnd = performance.now() - (t - DUR) * 1000; vid.currentTime = DUR - 0.5 / FPS; show(t); } };
+  window.PLAYER = {seek, stop: () => { pause(); tEnd = null; $("bplay").textContent = "Play"; }};
+  $("bplay").onclick = () => playing ? pause() : play();
+  $("scrub").oninput = e => seek(e.target.value / 1000 * total());
+  // overlay layers
+  const syncOv = () => {
+    document.querySelectorAll("#ctrl .tg").forEach(b => b.setAttribute("aria-pressed", OV[b.dataset.ov] ? "true" : "false"));
+    $("ovAll").textContent = Object.values(OV).some(Boolean) ? "Tắt hết" : "Bật hết";
+    try { localStorage.setItem("rallyscope-ov", JSON.stringify(OV)); } catch (e) {}
+    if (D) draw(lastT);
+  };
+  document.querySelectorAll("#ctrl .tg").forEach(b => b.onclick = () => { OV[b.dataset.ov] = !OV[b.dataset.ov]; syncOv(); });
+  $("ovAll").onclick = () => { const on = !Object.values(OV).some(Boolean); for (const k in OV) OV[k] = on; syncOv(); };
+  syncOv();
+  $("bsample").onclick = async () => { if (!SAMPLE) return; $("bsample").hidden = true; vid.src = SAMPLE.src; await applyData(SAMPLE.data, null); };
+  $("bback").onclick = () => seek(Math.max(0, (Math.round(vid.currentTime * FPS) - 1) / FPS));
+  $("bfwd").onclick = () => seek((Math.round(vid.currentTime * FPS) + 1) / FPS);
+  $("rate").onchange = e => { vid.playbackRate = +e.target.value; };
+  $("bsnd").onclick = () => { vid.muted = !vid.muted; $("bsnd").textContent = vid.muted ? "Sound off" : "Sound on"; };
+  addEventListener("keydown", e => { if (!$("setup").hidden || !$("proc").hidden || /INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
+    if (e.code === "Space") { e.preventDefault(); playing ? pause() : play(); }
+    if (e.code === "ArrowRight") $("bfwd").click(); if (e.code === "ArrowLeft") $("bback").click(); });
+}
+
+function buildReport() {
+  const R = D.report, best = D.players.reduce((a, b) => (b.total > a.total ? b : a));
+  const fmt = v => v == null ? "—" : Math.round(v);
+  $("report").innerHTML = `
+    <h2>${R.title}</h2>
+    <p>${R.headline}</p><p class="muted">${R.verdict}</p>
+    <h2>Điểm từng người</h2>
+    <div class="tblw"><table class="tbl"><thead><tr><th>Người</th><th>Tổng</th><th>Vị trí 35%</th><th>Cú đánh 25%</th><th>Tư thế 20%</th><th>Di chuyển 20%</th><th>Số cú</th></tr></thead><tbody>
+    ${D.players.map((p, i) => `<tr><td><span class="pchip" style="background:${PCOL[i]}">${p.id}</span> <span class="muted">${PPOS[i]}</span></td>
+      <td class="n"><b>${fmt(p.total)}</b>${p.id === best.id ? " ★" : ""}</td>${PART.map(([k]) => `<td class="n">${fmt(p.parts[k])}</td>`).join("")}<td class="n">${p.strikes}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="pgrid" style="margin-top:16px">${D.players.map((p, i) => `<div class="pcard" style="border-top:3px solid ${PCOL[i]}">
+      <h3><span style="color:${PCOL[i]}">${p.id}</span><span>${fmt(p.total)}</span></h3>
+      <h4 style="color:#57FFA8">LÀM TỐT</h4><ul>${p.good.map(t => `<li>${t}</li>`).join("")}</ul>
+      <h4 style="color:var(--amber)">CẦN SỬA</h4><ul>${p.work.map(t => `<li>${t}</li>`).join("")}</ul></div>`).join("")}</div>
+    <h2>Danh sách cú đánh</h2>
+    <div class="tblw"><table class="tbl"><thead><tr><th>#</th><th>Thời điểm</th><th>Người</th><th>Loại</th><th>Hướng</th><th>Tốc độ</th><th>Diễn giải</th></tr></thead><tbody>
+    ${D.strikes.map(s => `<tr><td class="n">${s.n}</td><td class="n">${s.t.toFixed(2)} s</td><td><span class="pchip" style="background:${PCOL[s.pi]}">${s.player}</span></td>
+      <td>${TYPE_EN[s.type]}</td><td>${s.dir ? DIR_EN[s.dir] : "—"}</td><td class="n">${s.kmh == null ? "—" : s.kmh.toFixed(0) + " km/h"}</td><td>${s.line}</td></tr>`).join("")}
+    </tbody></table></div>
+    <h2>Cỡ mẫu và giới hạn đo</h2><p>${R.limits}</p>
+    ${R.advice ? `<h2>Lần quay sau</h2><p>${R.advice}</p>` : ""}
+    <div id="aiBox"></div>`;
+  if (window.onReportBuilt) window.onReportBuilt();
+}
+</script>
+<script>
+"use strict";
+// =====================================================================================
+// Upload a video and analyse it in this browser (nothing leaves the viewer's computer).
+// Same steps as the Python kit: background + court, ball candidates solved as one path,
+// four players tracked jointly in their own crops, paddle sound, strikes, bounces, scores.
+// =====================================================================================
+(() => {
+if (REC) return;
+const MP_BASE = window.__MP_BASE || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
+const MP_DIR = window.__MP_DIR || "mp/";
+const CWd = 6.10, CLd = 13.41, CKd = 2.134, NETd = CLd / 2;
+const KEEP = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+const TYPE_VI = {serve: "giao bóng", return: "trả giao", third_drop: "cú thứ ba (drop)", third_drive: "cú thứ ba (drive)",
+  volley: "vô-lê", dink: "dink", get: "cứu bóng", drive: "drive", rally: "đánh qua lại"};
+const DIR_VI = {cross: "chéo sân", line: "dọc biên", middle: "vào giữa"};
+const mk = (w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
+const c2d = c => c.getContext("2d", {willReadFrequently: true});
+const tick = () => new Promise(r => setTimeout(r, 0));
+const num = (v, d = 1) => v.toFixed(d).replace(".", ",");
+class Cancelled extends Error {}
+let mpLib = null, poseBuf = null, LM = null, job = null;
+
+// ------------------------------------------------------------------ small maths
+function median(arr) { const a = Float64Array.from(arr).sort(); const n = a.length; return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : NaN; }
+function solveLin(A, b) {
+  const n = b.length; A = A.map(r => r.slice()); b = b.slice();
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    if (Math.abs(A[p][c]) < 1e-12) return null;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < n; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; }
+  }
+  return b.map((v, i) => v / A[i][i]);
+}
+function homFrom(src, dst) {
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = src[i], [u, v] = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u); A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v); }
+  const h = solveLin(A, b); return h && [[h[0], h[1], h[2]], [h[3], h[4], h[5]], [h[6], h[7], 1]];
+}
+function inv3(m) {
+  const [a, b, c] = m[0], [d, e, f] = m[1], [g_, h, i] = m[2];
+  const A = e * i - f * h, B = -(d * i - f * g_), C = d * h - e * g_, det = a * A + b * B + c * C;
+  if (Math.abs(det) < 1e-12) return null;
+  return [[A / det, -(b * i - c * h) / det, (b * f - c * e) / det], [B / det, (a * i - c * g_) / det, -(a * f - c * d) / det],
+          [C / det, -(a * h - b * g_) / det, (a * e - b * d) / det]];
+}
+function lineX(p1, p2, p3, p4) {
+  const d = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0]);
+  if (Math.abs(d) < 1e-9) return null;
+  const a = p1[0] * p2[1] - p1[1] * p2[0], b = p3[0] * p4[1] - p3[1] * p4[0];
+  return [(a * (p3[0] - p4[0]) - (p1[0] - p2[0]) * b) / d, (a * (p3[1] - p4[1]) - (p1[1] - p2[1]) * b) / d];
+}
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function angleDeg(u, v) { const nu = Math.hypot(u[0], u[1]), nv = Math.hypot(v[0], v[1]); if (!nu || !nv) return 0;
+  return Math.acos(clamp((u[0] * v[0] + u[1] * v[1]) / nu / nv, -1, 1)) * 180 / Math.PI; }
+function ang3(a, b, c) { // angle at b, 3D
+  const u = [a[0] - b[0], a[1] - b[1], a[2] - b[2]], v = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
+  const nu = Math.hypot(...u), nv = Math.hypot(...v); if (!nu || !nv) return NaN;
+  return Math.acos(clamp((u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / nu / nv, -1, 1)) * 180 / Math.PI;
+}
+function gauss1d(arr, sigma) {   // NaN-free array
+  if (sigma < 0.3 || arr.length < 3) return arr.slice();
+  const r = Math.ceil(sigma * 3), k = []; let s = 0;
+  for (let i = -r; i <= r; i++) { const v = Math.exp(-i * i / (2 * sigma * sigma)); k.push(v); s += v; }
+  const out = new Float64Array(arr.length), n = arr.length;
+  for (let i = 0; i < n; i++) { let a = 0; for (let j = -r; j <= r; j++) a += arr[clamp(i + j, 0, n - 1)] * k[j + r]; out[i] = a / s; }
+  return out;
+}
+function fillLinear(vals) {      // NaN gaps filled linearly, ends held
+  const n = vals.length, out = Float64Array.from(vals); let last = -1;
+  for (let i = 0; i < n; i++) {
+    if (isNaN(out[i])) continue;
+    if (last < 0) for (let j = 0; j < i; j++) out[j] = out[i];
+    else for (let j = last + 1; j < i; j++) out[j] = out[last] + (out[i] - out[last]) * (j - last) / (i - last);
+    last = i;
+  }
+  if (last < 0) return null;
+  for (let j = last + 1; j < n; j++) out[j] = out[last];
+  return out;
+}
+function convexHull(P) {
+  const p = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  up.pop(); lo.pop(); return lo.concat(up);
+}
+function orderCorners(q) {   // -> far-left, far-right, near-right, near-left
+  const byY = [...q].sort((a, b) => a[1] - b[1]);
+  const [fl, fr] = byY.slice(0, 2).sort((a, b) => a[0] - b[0]);
+  const [nl, nr] = byY.slice(2).sort((a, b) => a[0] - b[0]);
+  return [fl, fr, nr, nl];
+}
+function snapFps(f) { for (const c of [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60, 100, 119.88, 120]) if (Math.abs(f - c) / c < 0.02) return c; return f; }
+
+// ------------------------------------------------------------------ video helpers
+function waitMeta(v) {
+  return new Promise((res, rej) => {
+    if (v.readyState >= 1) return res();
+    v.addEventListener("loadedmetadata", () => res(), {once: true});
+    v.addEventListener("error", () => rej(new Error("Trình duyệt không đọc được video này. Hãy xuất lại thành MP4 (H.264) rồi thử lại.")), {once: true});
+  });
+}
+function seekV(v, t) {
+  return new Promise(res => { let done = false;
+    const end = () => { if (done) return; done = true; v.removeEventListener("seeked", end); res(); };
+    v.addEventListener("seeked", end); v.currentTime = t; setTimeout(end, 4000); });
+}
+function grayThumb(d) { const g_ = new Float32Array(d.length / 4); for (let i = 0; i < g_.length; i++) g_[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; return g_; }
+function medAbsDiff(a, b) { const d = new Float32Array(a.length); for (let i = 0; i < a.length; i++) d[i] = Math.abs(a[i] - b[i]); return median(d); }
+
+// ------------------------------------------------------------------ UI
+const say = (step, meta) => { $("procStep").textContent = step; if (meta != null) $("procMeta").textContent = meta; };
+const prog = f => { $("procBar").style.width = (clamp(f) * 100).toFixed(1) + "%"; };
+function check() { if (job && job.cancel) throw new Cancelled("cancelled"); }
+function showOnly(which) {
+  for (const id of ["setup", "proc"]) $(id).hidden = id !== which;
+  $("wrap").hidden = !!which; $("report").hidden = !!which;
+  if (which) window.scrollTo({top: 0});
+  else fit();
+}
+
+// ------------------------------------------------------------------ pose model
+async function loadPose() {
+  if (!mpLib) { say("Đang tải thư viện AI (MediaPipe)"); mpLib = await import(`${MP_BASE}/vision_bundle.mjs`); }
+  if (!poseBuf) {
+    say("Đang tải mô hình khung xương (khoảng 10 MB, chỉ lần đầu)");
+    const r = await fetch(MP_DIR + "pose_model.wasm");
+    if (!r.ok) throw new Error("Không tải được mô hình khung xương. Mở trang từ link claude.ai rồi thử lại.");
+    poseBuf = new Uint8Array(await r.arrayBuffer());
+  }
+  if (!LM) {
+    const fileset = {wasmLoaderPath: `${MP_BASE}/wasm/vision_wasm_internal.js`,
+      wasmBinaryPath: new URL(MP_DIR + "vision_wasm_internal.wasm", location.href).href};
+    const opt = delegate => ({baseOptions: {modelAssetBuffer: poseBuf.slice(), delegate}, runningMode: "IMAGE", numPoses: 3,
+      minPoseDetectionConfidence: 0.3, minPosePresenceConfidence: 0.3, minTrackingConfidence: 0.3});
+    try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("GPU")); }
+    catch (e) { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("CPU")); }
+  }
+}
+// detect poses in a square crop of the frame canvas; returns [{pts: Float32Array(99) in frame px, world}]
+const cropCv = mk(512, 512), cropCx = c2d(cropCv);
+function detectCrop(src, cx, cy, side) {
+  const s = Math.max(16, Math.round(side)), x0 = Math.round(cx - s / 2), y0 = Math.round(cy - s * 0.55);
+  cropCx.fillStyle = "#000"; cropCx.fillRect(0, 0, 512, 512);
+  cropCx.drawImage(src, x0, y0, s, s, 0, 0, 512, 512);
+  const r = LM.detect(cropCv);
+  return (r.landmarks || []).map((L, k) => {
+    const pts = new Float32Array(99);
+    for (let j = 0; j < 33; j++) { pts[j * 3] = x0 + L[j].x * s; pts[j * 3 + 1] = y0 + L[j].y * s; pts[j * 3 + 2] = L[j].visibility ?? 1; }
+    const W_ = r.worldLandmarks && r.worldLandmarks[k];
+    return {pts, world: W_ ? W_.map(q => [q.x, q.y, q.z]) : null};
+  });
+}
+const hipOf = pts => [(pts[69] + pts[72]) / 2, (pts[70] + pts[73]) / 2];
+const jp = (pts, j) => [pts[j * 3], pts[j * 3 + 1]];
+
+// ------------------------------------------------------------------ background and court
+async function sampleBackground(av, t0, t1, aw, ah) {
+  const n = Math.round(clamp((t1 - t0) / 1.2, 10, 18));
+  const x = c2d(mk(aw, ah)), tc = c2d(mk(64, 36)), frames = [], thumbs = [];
+  for (let k = 0; k < n; k++) {
+    check(); say(`Đang dựng ảnh nền của sân (${k + 1}/${n})`); prog(0.02 + 0.06 * k / n);
+    await seekV(av, t0 + (t1 - t0) * (k + 0.5) / n);
+    x.drawImage(av, 0, 0, aw, ah); frames.push(x.getImageData(0, 0, aw, ah).data);
+    tc.drawImage(av, 0, 0, 64, 36); thumbs.push(grayThumb(tc.getImageData(0, 0, 64, 36).data));
+  }
+  const ref = new Float32Array(64 * 36), col = new Float32Array(n);
+  for (let p = 0; p < ref.length; p++) { for (let k = 0; k < n; k++) col[k] = thumbs[k][p]; ref[p] = median(col); }
+  let keep = thumbs.map((t, k) => medAbsDiff(t, ref) <= 12 ? k : -1).filter(k => k >= 0);
+  if (keep.length < 3) keep = thumbs.map((_, k) => k);
+  const m = keep.length, bg = new Uint8ClampedArray(aw * ah * 4), buf = new Uint8Array(m);
+  for (let p = 0; p < bg.length; p++) {
+    if ((p & 3) === 3) { bg[p] = 255; continue; }
+    for (let k = 0; k < m; k++) { const v = frames[keep[k]][p]; let j = k - 1; while (j >= 0 && buf[j] > v) { buf[j + 1] = buf[j]; j--; } buf[j + 1] = v; }
+    bg[p] = buf[m >> 1];
+    if ((p & 0x3ffff) === 0) { await tick(); check(); }
+  }
+  return {bg, ref, cuts: thumbs.length - keep.length};
+}
+function minMax1(src, w, h, r, isMax, horiz) {
+  const out = new Uint8Array(src.length);
+  if (horiz) for (let y = 0; y < h; y++) { const o = y * w; for (let x = 0; x < w; x++) { let v = isMax ? 0 : 255;
+    for (let k = Math.max(0, x - r); k <= Math.min(w - 1, x + r); k++) { const q = src[o + k]; v = isMax ? (q > v ? q : v) : (q < v ? q : v); } out[o + x] = v; } }
+  else for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) { let v = isMax ? 0 : 255;
+    for (let k = Math.max(0, y - r); k <= Math.min(h - 1, y + r); k++) { const q = src[k * w + x]; v = isMax ? (q > v ? q : v) : (q < v ? q : v); } out[y * w + x] = v; }
+  return out;
+}
+function lineMask(bg, w, h) {
+  const n = w * h, gray = new Uint8Array(n), white = new Uint8Array(n);
+  for (let i = 0; i < n; i++) { const r = bg[i * 4], g_ = bg[i * 4 + 1], b = bg[i * 4 + 2];
+    gray[i] = (0.299 * r + 0.587 * g_ + 0.114 * b) | 0;
+    const mx = Math.max(r, g_, b), mn = Math.min(r, g_, b), sat = mx ? (mx - mn) * 255 / mx : 0;
+    white[i] = sat < 70 && mx > 165 ? 1 : 0; }
+  const r = Math.max(4, Math.round(10 * w / 1920));
+  const er = minMax1(minMax1(gray, w, h, r, false, true), w, h, r, false, false);
+  const op = minMax1(minMax1(er, w, h, r, true, true), w, h, r, true, false);
+  const m = new Uint8Array(n);
+  for (let i = 0; i < n; i++) m[i] = white[i] && gray[i] - op[i] > 25 ? 1 : 0;
+  return m;
+}
+function detectCourt(bg, w, h) {
+  const m = lineMask(bg, w, h), n = w * h, lab = new Int32Array(n).fill(-1), stack = new Int32Array(n), comps = [];
+  for (let s0 = 0; s0 < n; s0++) {
+    if (!m[s0] || lab[s0] >= 0) continue;
+    const id = comps.length; let top = 0, area = 0, x0 = w, x1 = 0, y0 = h, y1 = 0; stack[top++] = s0; lab[s0] = id;
+    while (top) {
+      const p = stack[--top], x = p % w, y = (p - x) / w; area++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        const q = yy * w + xx; if (m[q] && lab[q] < 0) { lab[q] = id; stack[top++] = q; }
+      }
+    }
+    comps.push({area, x0, x1, y0, y1});
+  }
+  // the court's lines are big, thin, roughly centred components (the net splits them in two)
+  const keep = new Set();
+  comps.forEach((c, k) => { const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, cx = (c.x0 + c.x1) / 2;
+    if (bw >= 0.12 * w && bh >= 0.08 * h && c.area / (bw * bh) < 0.3 && cx > 0.1 * w && cx < 0.9 * w) keep.add(k); });
+  if (!keep.size) return null;
+  const pts = [];
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) { const l = lab[y * w + x]; if (l >= 0 && keep.has(l)) pts.push([x, y]); }
+  if (pts.length < 20) return null;
+  let hull = convexHull(pts);
+  while (hull.length > 4) {
+    let bi = 0, ba = Infinity;
+    for (let k = 0; k < hull.length; k++) {
+      const a = hull[(k + hull.length - 1) % hull.length], b = hull[k], c = hull[(k + 1) % hull.length];
+      const ar = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]));
+      if (ar < ba) { ba = ar; bi = k; }
+    }
+    hull.splice(bi, 1);
+  }
+  if (hull.length < 4) return null;
+  return refineCorners(orderCorners(hull), m, w, h);
+}
+// fit each side of the court to the white pixels near it and intersect the four lines
+function refineCorners(c, m, w, h) {
+  const win = Math.max(6, Math.round(14 * w / 1920));
+  const fitLine = (pts, vertical) => {   // x = a*y + b (vertical) or y = a*x + b
+    if (pts.length < 12) return null;
+    let keep = pts.map(() => true), A = null;
+    for (let it = 0; it < 3; it++) {
+      const P = pts.filter((_, i) => keep[i]); if (P.length < 8) break;
+      let sx = 0, sy = 0, sxx = 0, sxy = 0;
+      for (const [x, y] of P) { const u = vertical ? y : x, v = vertical ? x : y; sx += u; sy += v; sxx += u * u; sxy += u * v; }
+      const k = P.length, den = k * sxx - sx * sx; if (Math.abs(den) < 1e-9) break;
+      const a = (k * sxy - sx * sy) / den, b = (sy - a * sx) / k; A = [a, b];
+      keep = pts.map(([x, y]) => Math.abs((vertical ? a * y + b - x : a * x + b - y)) < 2.5);
+    }
+    return A;
+  };
+  const side = (p, q) => { const out = [];
+    for (let y = Math.ceil(Math.min(p[1], q[1])) + 2; y < Math.max(p[1], q[1]) - 2; y += 2) {
+      const x0 = p[0] + (q[0] - p[0]) * (y - p[1]) / (q[1] - p[1]); let s = 0, k = 0;
+      for (let x = Math.round(x0 - win); x <= Math.round(x0 + win); x++) if (x >= 0 && x < w && m[y * w + x]) { s += x; k++; }
+      if (k >= 2) out.push([s / k, y]); }
+    return out; };
+  const base = (p, q) => { const out = [];
+    for (let x = Math.ceil(Math.min(p[0], q[0])) + 3; x < Math.max(p[0], q[0]) - 3; x += 3) {
+      const y0 = p[1] + (q[1] - p[1]) * (x - p[0]) / (q[0] - p[0]); let s = 0, k = 0;
+      for (let y = Math.round(y0 - win); y <= Math.round(y0 + win); y++) if (y >= 0 && y < h && m[y * w + x]) { s += y; k++; }
+      if (k >= 2) out.push([x, s / k]); }
+    return out; };
+  const L = fitLine(side(c[0], c[3]), true), R = fitLine(side(c[1], c[2]), true);
+  const F = fitLine(base(c[0], c[1]), false), N = fitLine(base(c[3], c[2]), false);
+  if (!L || !R || !F || !N) return c;
+  const X = (V, Hh) => { const y = (Hh[0] * V[1] + Hh[1]) / (1 - Hh[0] * V[0]); return [V[0] * y + V[1], y]; };
+  const out = [X(L, F), X(R, F), X(R, N), X(L, N)];
+  return out.every(p => isFinite(p[0]) && isFinite(p[1]) && p[0] > -w && p[0] < 2 * w && p[1] > -h && p[1] < 2 * h) ? out : c;
+}
+function courtModel(corners, aw, ah) {
+  const Hm = homFrom(corners, [[0, 0], [CWd, 0], [CWd, CLd], [0, CLd]]); if (!Hm) return null;
+  const Hi = inv3(Hm); if (!Hi) return null;
+  const vp = lineX(corners[0], corners[3], corners[1], corners[2]);
+  const hz = vp && vp[1] < corners[0][1] ? vp[1] : -10 * ah;
+  return {H: Hm, Hinv: Hi, hz};
+}
+
+// ------------------------------------------------------------------ setup screen (court corners + range)
+function runSetup(av, bgImg, auto, aw, ah, dur) {
+  return new Promise(resolve => {
+    showOnly("setup");
+    const cvs = $("setupCv"); cvs.width = aw; cvs.height = ah;
+    const x = cvs.getContext("2d");
+    const bgC = mk(aw, ah); bgC.getContext("2d").putImageData(new ImageData(bgImg, aw, ah), 0, 0);
+    let frameC = bgC;
+    let corners = (auto || [[0.36 * aw, 0.36 * ah], [0.64 * aw, 0.36 * ah], [0.84 * aw, 0.88 * ah], [0.16 * aw, 0.88 * ah]]).map(p => p.slice());
+    $("setupMsg").textContent = auto ? "Máy đã tự tìm sân. Kiểm tra 4 chấm vàng ở 4 góc ngoài của sân: đường xanh (vạch kitchen, lưới) phải trùng vạch thật. Kéo chấm nếu lệch."
+      : "Chưa tự tìm được sân. Kéo 4 chấm vàng vào 4 góc ngoài của sân (2 góc xa ở trên, 2 góc gần ở dưới).";
+    const names = ["Xa trái", "Xa phải", "Gần phải", "Gần trái"];
+    const rA = $("rgA"), rB = $("rgB");
+    rA.value = 0; rB.value = 1000;
+    const tA = () => rA.value / 1000 * dur, tB = () => rB.value / 1000 * dur;
+    const showRange = () => { $("rgAv").textContent = `${tA().toFixed(1)} s`; $("rgBv").textContent = `${tB().toFixed(1)} s`;
+      const L_ = tB() - tA(); $("rangeMsg").textContent = `Đoạn được phân tích: ${L_.toFixed(1)} giây` + (L_ > 60 ? " · đoạn dài, sẽ mất vài phút" : "");
+      $("btnGo").disabled = L_ < 2; };
+    const paint = () => {
+      x.drawImage(frameC, 0, 0);
+      const m = courtModel(corners, aw, ah);
+      if (m) {
+        const P = p => hom(m.Hinv, p);
+        const segs = [[[0, 0], [CWd, 0]], [[CWd, 0], [CWd, CLd]], [[CWd, CLd], [0, CLd]], [[0, CLd], [0, 0]],
+          [[0, NETd - CKd], [CWd, NETd - CKd]], [[0, NETd + CKd], [CWd, NETd + CKd]], [[CWd / 2, 0], [CWd / 2, NETd - CKd]], [[CWd / 2, NETd + CKd], [CWd / 2, CLd]]];
+        x.lineWidth = Math.max(2, aw / 640); x.strokeStyle = "rgba(77,227,255,.95)"; x.beginPath();
+        for (const [a, b] of segs) { x.moveTo(...P(a)); x.lineTo(...P(b)); } x.stroke();
+        x.strokeStyle = "rgba(255,200,87,.95)"; x.beginPath(); x.moveTo(...P([0, NETd])); x.lineTo(...P([CWd, NETd])); x.stroke();
+      }
+      const r = Math.max(7, aw / 110);
+      corners.forEach((p, i) => { x.fillStyle = "#FFC857"; x.strokeStyle = "#04080F"; x.lineWidth = 2;
+        x.beginPath(); x.arc(p[0], p[1], r, 0, 7); x.fill(); x.stroke();
+        x.font = `600 ${Math.round(r * 1.6)}px 'Chakra Petch', sans-serif`; x.fillStyle = "#FFC857"; x.textBaseline = "bottom";
+        x.fillText(names[i], p[0] + r * 1.2, p[1] - r * 0.6); });
+    };
+    let drag = -1;
+    const toCv = e => { const b = cvs.getBoundingClientRect(); return [(e.clientX - b.left) * aw / b.width, (e.clientY - b.top) * ah / b.height]; };
+    cvs.onpointerdown = e => { const p = toCv(e); let best = -1, bd = Infinity;
+      corners.forEach((c, i) => { const d = dist(c, p); if (d < bd) { bd = d; best = i; } });
+      if (bd < aw / 18) { drag = best; cvs.setPointerCapture(e.pointerId); cvs.style.cursor = "grabbing"; } };
+    cvs.onpointermove = e => { if (drag < 0) return; const p = toCv(e); corners[drag] = [clamp(p[0], 0, aw), clamp(p[1], 0, ah)]; paint(); };
+    cvs.onpointerup = cvs.onpointercancel = () => { drag = -1; cvs.style.cursor = "grab"; };
+    let seekBusy = false;
+    const preview = async t => { if (seekBusy) return; seekBusy = true; await seekV(av, t); const c = mk(aw, ah); c.getContext("2d").drawImage(av, 0, 0, aw, ah); frameC = c; seekBusy = false; paint(); };
+    rA.oninput = () => { if (+rA.value > +rB.value - 20) rA.value = +rB.value - 20; showRange(); preview(tA()); };
+    rB.oninput = () => { if (+rB.value < +rA.value + 20) rB.value = +rA.value + 20; showRange(); preview(tB()); };
+    $("btnRedetect").onclick = () => { const c = detectCourt(bgImg, aw, ah); if (c) { corners = c; frameC = bgC; paint(); } else $("setupMsg").textContent = "Vẫn chưa tự tìm được sân. Hãy kéo 4 chấm bằng tay."; };
+    $("btnGo").onclick = () => resolve({corners: corners.map(p => p.slice()), t0: tA(), t1: tB()});
+    $("btnCancelSetup").onclick = () => resolve(null);
+    showRange(); paint();
+  });
+}
+
+// ------------------------------------------------------------------ ball candidates
+function makeBallFinder(bg, aw, ah, corners) {
+  const sc = aw / 1920, n = aw * ah;
+  const isBall = (r, g_, b) => { const mx = Math.max(r, g_, b), mn = Math.min(r, g_, b), dl = mx - mn;
+    if (mx < 100 || dl * 255 < 60 * mx || !dl) return false;
+    let hd = mx === r ? 60 * (g_ - b) / dl : mx === g_ ? 120 + 60 * (b - r) / dl : 240 + 60 * (r - g_) / dl; if (hd < 0) hd += 360;
+    return hd >= 50 && hd <= 125; };
+  // ball-coloured things that never move (logos, a ball on the bench) are masked out, 5 px around
+  const still = new Uint8Array(n);
+  for (let i = 0; i < n; i++) still[i] = isBall(bg[i * 4], bg[i * 4 + 1], bg[i * 4 + 2]) ? 1 : 0;
+  const rr = Math.max(2, Math.round(5 * sc)), bgMask = minMax1(minMax1(still, aw, ah, rr, true, true), aw, ah, rr, true, false);
+  const xs = corners.map(p => p[0]), ys = corners.map(p => p[1]), cH = Math.max(...ys) - Math.min(...ys);
+  const X0 = Math.max(0, Math.floor(Math.min(...xs) - 0.12 * aw)), X1 = Math.min(aw, Math.ceil(Math.max(...xs) + 0.12 * aw));
+  const Y0 = Math.max(0, Math.floor(Math.min(...ys) - 0.45 * cH)), Y1 = Math.min(ah, Math.ceil(Math.max(...ys) + 0.05 * ah));
+  const bw = X1 - X0, bh = Y1 - Y0, m = new Uint8Array(bw * bh), seen = new Uint8Array(bw * bh), st_ = new Int32Array(bw * bh);
+  const amin = Math.max(3, 6 * sc * sc), amax = 600 * sc * sc;
+  const yel = (d, x, y) => { x = clamp(Math.round(x), 0, aw - 1); y = clamp(Math.round(y), 0, ah - 1); const q = (y * aw + x) * 4; return (d[q] + d[q + 1]) / 2 - d[q + 2]; };
+  return d => {
+    m.fill(0); seen.fill(0); const list = [];
+    for (let y = Y0; y < Y1; y++) for (let x = X0; x < X1; x++) {
+      const i = y * aw + x, q = i * 4;
+      if (bgMask[i] || !isBall(d[q], d[q + 1], d[q + 2])) continue;
+      if (Math.max(Math.abs(d[q] - bg[q]), Math.abs(d[q + 1] - bg[q + 1]), Math.abs(d[q + 2] - bg[q + 2])) < 25) continue;
+      const j = (y - Y0) * bw + (x - X0); m[j] = 1; list.push(j);
+    }
+    const out = [];
+    for (const s0 of list) {
+      if (seen[s0]) continue;
+      let top = 0, area = 0, sx = 0, sy = 0, x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1; st_[top++] = s0; seen[s0] = 1;
+      while (top) { const p = st_[--top], x = p % bw, y = (p - x) / bw; area++; sx += x; sy += y;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= bw || yy >= bh) continue; const q = yy * bw + xx; if (m[q] && !seen[q]) { seen[q] = 1; st_[top++] = q; } } }
+      const w_ = x1 - x0 + 1, h_ = y1 - y0 + 1, asp = w_ / h_;
+      if (area < amin || area > amax || asp < 0.25 || asp > 4 || area / (w_ * h_) <= 0.3) continue;
+      const cx = sx / area + X0 + 0.5, cy = sy / area + Y0 + 0.5, re = Math.sqrt(area / Math.PI) + 2.5;
+      let core = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) core += yel(d, cx + dx, cy + dy); core /= 9;
+      let ring = 0; for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; ring += yel(d, cx + re * Math.cos(a), cy + re * Math.sin(a)); } ring /= 12;
+      const score = clamp((core - ring) / 100, 0, 1);
+      out.push([cx, cy, 1.6 * (1 - score) + 0.004 * Math.abs(area / (sc * sc) - 45), score]);
+    }
+    return out;
+  };
+}
+// beam search over (position, velocity, missed frames): the whole ball path at once
+function solveBall(cands, n, scale) {
+  const MISS = 2.2, START = 4.0, MAXMISS = 24, K_PER = 6, K_MISS = 120;
+  let S_ = [{x: 0, y: 0, vx: 0, vy: 0, lx: 0, ly: 0, m: 0, cost: 0, live: false, newv: true}];
+  const back = [];
+  for (let t = 0; t < n; t++) {
+    const cs = cands[t] || [], nxt = [], par = [], obs = [];
+    const push = (pi, ci, s) => { nxt.push(s); par.push(pi); obs.push(ci); };
+    const dead = S_.map((s, i) => s.live ? -1 : i).filter(i => i >= 0);
+    const bestDead = dead.length ? dead.reduce((a, b) => S_[a].cost <= S_[b].cost ? a : b) : -1;
+    for (let j = 0; j < cs.length; j++) {
+      const [cx, cy, cc] = cs[j], opts = [];
+      for (let i = 0; i < S_.length; i++) { const s = S_[i]; if (!s.live) continue;
+        const px = s.x + s.vx, py = s.y + s.vy, d = Math.hypot(px - cx, py - cy);
+        opts.push([s.cost + 0.06 * d / scale + (d > (45 + 22 * s.m) * scale ? 60 : 0) + cc, i]); }
+      opts.sort((a, b) => a[0] - b[0]);
+      for (const [c, i] of opts.slice(0, K_PER)) { const s = S_[i], gap = s.m + 1;
+        const mvx = (cx - s.lx) / gap, mvy = (cy - s.ly) / gap;
+        const vx = s.newv ? mvx : 0.7 * mvx + 0.3 * s.vx, vy = s.newv ? mvy : 0.7 * mvy + 0.3 * s.vy;
+        push(i, j, {x: cx, y: cy, vx, vy, lx: cx, ly: cy, m: 0, cost: c, live: true, newv: false}); }
+      if (bestDead >= 0) push(bestDead, j, {x: cx, y: cy, vx: 0, vy: 0, lx: cx, ly: cy, m: 0, cost: S_[bestDead].cost + START + cc, live: true, newv: true});
+    }
+    const live = S_.map((s, i) => s.live ? i : -1).filter(i => i >= 0).sort((a, b) => S_[a].cost - S_[b].cost).slice(0, K_MISS);
+    for (const i of live) { const s = S_[i];
+      if (s.m + 1 > MAXMISS) push(i, -1, {x: 0, y: 0, vx: 0, vy: 0, lx: 0, ly: 0, m: 0, cost: s.cost + MISS, live: false, newv: true});
+      else push(i, -1, {x: s.x + s.vx, y: s.y + s.vy, vx: s.vx, vy: s.vy, lx: s.lx, ly: s.ly, m: s.m + 1, cost: s.cost + MISS, live: true, newv: s.newv}); }
+    if (bestDead >= 0) push(bestDead, -1, {...S_[bestDead], cost: S_[bestDead].cost + MISS});
+    let idx = nxt.map((_, i) => i);
+    if (idx.length > 600) idx = idx.sort((a, b) => nxt[a].cost - nxt[b].cost).slice(0, 600);
+    S_ = idx.map(i => nxt[i]); back.push({par: idx.map(i => par[i]), obs: idx.map(i => obs[i])});
+  }
+  let i = S_.reduce((b, s, k) => s.cost < S_[b].cost ? k : b, 0);
+  const out = new Array(n).fill(null);
+  for (let t = n - 1; t >= 0; t--) { const j = back[t].obs[i]; if (j >= 0) out[t] = [cands[t][j][0], cands[t][j][1]]; i = back[t].par[i]; }
+  return out;
+}
+
+// ------------------------------------------------------------------ audio: paddle sound peaks
+async function audioPeaks(file, t0, t1) {
+  try {
+    const buf = await file.arrayBuffer();
+    const ac = new OfflineAudioContext(1, 44100, 44100);
+    const au = await ac.decodeAudioData(buf);
+    const sr = au.sampleRate, ch = au.numberOfChannels, a0 = Math.floor(t0 * sr), a1 = Math.min(au.length, Math.ceil(t1 * sr));
+    const x = new Float32Array(a1 - a0);
+    for (let c = 0; c < ch; c++) { const d = au.getChannelData(c); for (let i = 0; i < x.length; i++) x[i] += d[a0 + i] / ch; }
+    // high-pass at 1.2 kHz: two biquads, run forward and backward
+    const w0 = 2 * Math.PI * 1200 / sr, cs = Math.cos(w0), al = Math.sin(w0) / (2 * Math.SQRT1_2);
+    const b0 = (1 + cs) / 2 / (1 + al), b1 = -(1 + cs) / (1 + al), b2 = b0, a1_ = -2 * cs / (1 + al), a2_ = (1 - al) / (1 + al);
+    const run = (s, rev) => { let x1 = 0, x2 = 0, y1 = 0, y2 = 0; const n = s.length;
+      for (let k = 0; k < n; k++) { const i = rev ? n - 1 - k : k, v = s[i], y = b0 * v + b1 * x1 + b2 * x2 - a1_ * y1 - a2_ * y2; x2 = x1; x1 = v; y2 = y1; y1 = y; s[i] = y; } };
+    run(x, false); run(x, true); run(x, false); run(x, true);
+    const win = Math.round(0.01 * sr), hop = Math.round(0.001 * sr), cum = new Float64Array(x.length + 1);
+    for (let i = 0; i < x.length; i++) cum[i + 1] = cum[i] + x[i] * x[i];
+    const E = []; for (let s = 0; s + win < x.length; s += hop) E.push((cum[s + win] - cum[s]) / win);
+    const med = median(E) + 1e-12, back_ = 60, gap = 10, peaks = [];
+    for (let i = back_ + gap; i < E.length - 1; i++) {
+      if (E[i] < E[i - 1] || E[i] < E[i + 1]) continue;
+      let prev = 0; for (let k = i - back_ - gap; k < i - gap; k++) prev += E[k]; prev = prev / back_ + 1e-12;
+      if (E[i] >= 2.5 * prev && E[i] >= 4 * med) peaks.push([i, E[i]]);
+    }
+    peaks.sort((a, b) => b[1] - a[1]);
+    const kept = [];
+    for (const p of peaks) if (kept.every(k => Math.abs(k[0] - p[0]) >= 250)) kept.push(p);
+    return kept.map(p => t0 + (p[0] * hop + win / 2) / sr).sort((a, b) => a - b);
+  } catch (e) { return null; }
+}
+
+// ------------------------------------------------------------------ the frame pass: four players + ball
+function torsoColor(d, aw, ah, pts) {
+  const LS = jp(pts, 11), RS = jp(pts, 12), LH = jp(pts, 23), RH = jp(pts, 24); let r = 0, g_ = 0, b = 0, k = 0;
+  for (let u = 0.25; u <= 0.75; u += 0.125) for (let v = 0.2; v <= 0.8; v += 0.15) {
+    const top = [LS[0] + (RS[0] - LS[0]) * u, LS[1] + (RS[1] - LS[1]) * u], bot = [LH[0] + (RH[0] - LH[0]) * u, LH[1] + (RH[1] - LH[1]) * u];
+    const x = Math.round(top[0] + (bot[0] - top[0]) * v), y = Math.round(top[1] + (bot[1] - top[1]) * v);
+    if (x < 0 || y < 0 || x >= aw || y >= ah) continue; const q = (y * aw + x) * 4; r += d[q]; g_ += d[q + 1]; b += d[q + 2]; k++; }
+  return k >= 6 ? [r / k, g_ / k, b / k] : null;
+}
+function seedCrops(corners, cm, aw, ah) {
+  const [FL, FR, NR, NL] = corners, n0 = hom(cm.Hinv, [0, NETd]), n1 = hom(cm.Hinv, [CWd, NETd]);
+  const netY = (n0[1] + n1[1]) / 2, topY = Math.min(FL[1], FR[1]), depth = Math.max(10, netY - topY), cw = FR[0] - FL[0];
+  const botY = Math.max(NL[1], NR[1]), nd = Math.max(10, botY - netY), bw = NR[0] - NL[0];
+  const box = (x0, y0, x1, y1) => [Math.max(0, x0), Math.max(0, y0), Math.min(aw, x1), Math.min(ah, y1)];
+  const fm = (FL[0] + FR[0]) / 2, nm = (NL[0] + NR[0]) / 2;
+  return [box(FL[0] - 0.35 * cw, topY - 1.1 * depth, fm + 0.15 * cw, netY + 0.3 * depth), box(fm - 0.15 * cw, topY - 1.1 * depth, FR[0] + 0.35 * cw, netY + 0.3 * depth),
+          box(NL[0] - 0.2 * bw, netY - 0.6 * nd, nm + 0.15 * bw, botY + 0.4 * nd), box(nm - 0.15 * bw, netY - 0.6 * nd, NR[0] + 0.2 * bw, botY + 0.4 * nd)]
+    .filter(([a, b, c, e]) => c - a > 16 && e - b > 16);
+}
+function findPlayers(src, corners, cm, aw, ah) {
+  const all = [], big = mk(768, 768), bx = big.getContext("2d");
+  for (const [x0, y0, x1, y1] of seedCrops(corners, cm, aw, ah)) {
+    const s = Math.max(x1 - x0, y1 - y0), z = 768 / s;
+    bx.fillStyle = "#000"; bx.fillRect(0, 0, 768, 768); bx.drawImage(src, x0, y0, x1 - x0, y1 - y0, 0, 0, (x1 - x0) * z, (y1 - y0) * z);
+    const r = LM.detect(big);
+    for (const L of r.landmarks || []) { const pts = new Float32Array(99);
+      for (let j = 0; j < 33; j++) { pts[j * 3] = x0 + L[j].x * 768 / z; pts[j * 3 + 1] = y0 + L[j].y * 768 / z; pts[j * 3 + 2] = L[j].visibility ?? 1; }
+      all.push(pts); }
+  }
+  const diag = Math.hypot(aw, ah), uniq = [];
+  for (const p of all) if (!uniq.some(q => dist(hipOf(p), hipOf(q)) < 0.04 * diag)) uniq.push(p);
+  const cand = uniq.map(pts => {
+    const feet = [(pts[81] + pts[84]) / 2, (pts[82] + pts[85]) / 2], g_ = hom(cm.H, feet);
+    const span = Math.max(pts[82], pts[85]) - pts[1];
+    const out = Math.max(0, -g_[0], g_[0] - CWd) + Math.max(0, -g_[1] - 1, g_[1] - CLd - 1);
+    return {pts, g: g_, span, out};
+  }).filter(c => c.span > 0.04 * ah && c.g[0] > -2 && c.g[0] < CWd + 2 && c.g[1] > -5 && c.g[1] < CLd + 5);
+  const near = cand.filter(c => c.g[1] > NETd).sort((a, b) => a.out - b.out).slice(0, 2);
+  const far = cand.filter(c => c.g[1] <= NETd).sort((a, b) => a.out - b.out).slice(0, 2);
+  return {near, far};
+}
+async function framePass(av, ctx) {
+  const {aw, ah, corners, cm, t0, t1, bg, ref} = ctx;
+  const work = mk(aw, ah), wx = c2d(work), tcx = c2d(mk(64, 36)), pc = $("procCv"), px = pc.getContext("2d");
+  pc.width = aw; pc.height = ah;
+  const ballOf = makeBallFinder(bg, aw, ah, corners);
+  const recs = [];
+  // seed the four players on the first frames where they can be found
+  await seekV(av, t0);
+  let seeds = null, kh = 0.3;
+  for (let tries = 0; tries < 8; tries++) {
+    check(); say("Đang tìm 4 người chơi", "Keep this tab in front · giữ tab này ở trên cùng khi chạy");
+    await seekV(av, Math.min(t1 - 0.05, t0 + tries * 0.25));
+    wx.drawImage(av, 0, 0, aw, ah);
+    const fp = findPlayers(work, corners, cm, aw, ah);
+    if (!seeds || fp.near.length + fp.far.length > seeds.near.length + seeds.far.length) seeds = fp;
+    if (seeds.near.length === 2 && seeds.far.length === 2) break;
+  }
+  if (!seeds || seeds.near.length + seeds.far.length < 2) throw new Error("Không tìm thấy người chơi trên sân ở đầu đoạn đã chọn. Thử chọn đoạn bắt đầu lúc cả 4 người đều đứng trong khung hình.");
+  const nearS = seeds.near.sort((a, b) => b.g[0] - a.g[0]), farS = seeds.far.sort((a, b) => a.g[0] - b.g[0]);
+  const def = [[CWd * 0.75, CLd - 0.5], [CWd * 0.25, NETd + CKd + 0.3], [CWd * 0.25, NETd - CKd - 0.3], [CWd * 0.75, 0.5]];
+  const seedPts = [nearS[0], nearS[1], farS[0], farS[1]];
+  const kh_ = seedPts.filter(Boolean).map(s => { const hp = hipOf(s.pts); return s.span / Math.max(10, hp[1] - cm.hz); });
+  if (kh_.length) kh = median(kh_);
+  const P = 4, c = [], v = [], miss = new Array(P).fill(0), kit = new Array(P).fill(null), kitN = new Array(P).fill(0);
+  for (let p = 0; p < P; p++) {
+    if (seedPts[p]) c.push(hipOf(seedPts[p].pts));
+    else { const f_ = hom(cm.Hinv, def[p]); c.push([f_[0], f_[1] - 0.5 * kh * (f_[1] - cm.hz)]); miss[p] = 10; }
+    v.push([0, 0]);
+  }
+  // search spots for a lost player: 3 x 3 grid on its side of the net
+  const spots = [[], []];
+  [[NETd + CKd + 0.4, NETd + CKd + 2.2, CLd - 0.6], [NETd - CKd - 0.4, NETd - CKd - 2.2, 0.6]].forEach((ys, side) => {
+    for (const cy of ys) for (const cx of [0.2 * CWd, 0.5 * CWd, 0.8 * CWd]) { const f_ = hom(cm.Hinv, [cx, cy]);
+      spots[side].push([f_[0], (f_[1] + 0.5 * kh * cm.hz) / (1 + 0.5 * kh)]); } });
+  const J = [11, 12, 23, 24, 25, 26, 27, 28];
+  const sameBody = (a, b, hh) => { let s = 0, k = 0; for (const j of J) { s += Math.hypot(a[j * 3] - b[j * 3], a[j * 3 + 1] - b[j * 3 + 1]); k++; } return s / k < 0.12 * hh; };
+  const sideOK = (p, hip) => { const hh = kh * (hip[1] - cm.hz), gy = hom(cm.H, [hip[0], hip[1] + 0.5 * hh])[1];
+    return p < 2 ? gy >= NETd - 0.5 : gy <= NETd + 0.5; };
+  const kitOK = (p, col) => { if (!col || kit.some(k => !k)) return true;
+    const own = Math.hypot(...col.map((x, i) => x - kit[p][i]));
+    const opp = Math.min(...[0, 1, 2, 3].filter(q => (q < 2) !== (p < 2)).map(q => Math.hypot(...col.map((x, i) => x - kit[q][i]))));
+    return !(opp + 25 < own); };
+
+  await seekV(av, t0);
+  const t_start = performance.now();
+  let lastTs = -1, done = 0, lastPaint = 0;
+  const onFrame = mediaTime => {
+    wx.drawImage(av, 0, 0, aw, ah);
+    const d = wx.getImageData(0, 0, aw, ah).data;
+    tcx.drawImage(work, 0, 0, 64, 36);
+    const main = medAbsDiff(grayThumb(tcx.getImageData(0, 0, 64, 36).data), ref) <= 14;
+    const rec = {t: mediaTime, main, cands: main ? ballOf(d) : [], lm: new Array(P).fill(null), knee: new Array(P).fill(NaN), wrist: new Array(P).fill(NaN), h: []};
+    if (main) {
+      const pred = c.map((cc, p) => [cc[0] + v[p][0], cc[1] + v[p][1]]);
+      const hpx = pred.map(pp => Math.max(40 * aw / 1920, kh * (pp[1] - cm.hz)));
+      const found = [];
+      for (let p = 0; p < P; p++) {
+        let ctr = pred[p], hh = hpx[p];
+        if (miss[p] > 3) { const sp = spots[p < 2 ? 0 : 1], order = sp.map((s, i) => [dist(s, c[p]), i]).sort((a, b) => a[0] - b[0]);
+          ctr = sp[order[(miss[p] - 4) % sp.length][1]]; hh = Math.max(40 * aw / 1920, kh * (ctr[1] - cm.hz)); }
+        found.push(detectCrop(work, ctr[0], ctr[1], hh * 2.4 * Math.pow(1.15, Math.min(miss[p], 2))));
+      }
+      const pairs = [];
+      for (let p = 0; p < P; p++) for (let k = 0; k < found[p].length; k++) {
+        const pts = found[p][k].pts, hip = hipOf(pts);
+        if (!sideOK(p, hip) || !kitOK(p, torsoColor(d, aw, ah, pts))) continue;
+        const dd = dist(hip, pred[p]) / hpx[p];
+        if (dd < 0.35 * (1 + 0.25 * Math.min(miss[p], 4))) pairs.push([dd, p, k]);
+        else if (miss[p] > 3) pairs.push([1 + dd, p, k]);
+      }
+      pairs.sort((a, b) => a[0] - b[0]);
+      const taken = [], doneP = new Set();
+      for (const [, p, k] of pairs) {
+        if (doneP.has(p)) continue;
+        const {pts, world} = found[p][k];
+        if (taken.some(t => sameBody(pts, t, hpx[p]))) continue;
+        const hip = hipOf(pts);
+        v[p] = miss[p] <= 3 ? [0.5 * (hip[0] - c[p][0]) / (miss[p] + 1) + 0.5 * v[p][0], 0.5 * (hip[1] - c[p][1]) / (miss[p] + 1) + 0.5 * v[p][1]] : [0, 0];
+        c[p] = hip; miss[p] = 0; taken.push(pts); doneP.add(p);
+        rec.lm[p] = pts;
+        if (world) { rec.knee[p] = (ang3(world[23], world[25], world[27]) + ang3(world[24], world[26], world[28])) / 2;
+          const hipW = [(world[23][1] + world[24][1]) / 2], sh = [(world[11][0] + world[12][0]) / 2, (world[11][1] + world[12][1]) / 2, (world[11][2] + world[12][2]) / 2];
+          const hp3 = [(world[23][0] + world[24][0]) / 2, hipW[0], (world[23][2] + world[24][2]) / 2];
+          const torso = Math.hypot(sh[0] - hp3[0], sh[1] - hp3[1], sh[2] - hp3[2]) + 1e-6;
+          rec.wrist[p] = (hp3[1] - Math.min(world[15][1], world[16][1])) / torso; }
+        if (kitN[p] < 8) { const col = torsoColor(d, aw, ah, pts); if (col) { kit[p] = kit[p] ? kit[p].map((x, i) => (x * kitN[p] + col[i]) / (kitN[p] + 1)) : col; kitN[p]++; } }
+      }
+      for (let p = 0; p < P; p++) if (!doneP.has(p)) { miss[p]++; if (miss[p] <= 2) { c[p] = pred[p]; v[p] = [v[p][0] * 0.5, v[p][1] * 0.5]; } else v[p] = [0, 0]; }
+      rec.h = hpx;
+    }
+    recs.push(rec); done++;
+    const now = performance.now();
+    if (now - lastPaint > 150) {
+      lastPaint = now;
+      px.drawImage(work, 0, 0);
+      rec.lm.forEach((pts, p) => { if (!pts) return; px.strokeStyle = PCOL[p]; px.lineWidth = Math.max(2, aw / 500); px.beginPath();
+        for (const [a, b] of [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]]) { px.moveTo(...jp(pts, a)); px.lineTo(...jp(pts, b)); }
+        px.stroke(); });
+      for (const [bx, by] of rec.cands) { px.strokeStyle = "#FFC857"; px.lineWidth = 2; px.beginPath(); px.arc(bx, by, 8, 0, 7); px.stroke(); }
+      const frac = clamp((mediaTime - t0) / (t1 - t0)), rate = done / ((now - t_start) / 1000);
+      const left = rate > 0 ? (1 - frac) * (t1 - t0) * (recs.length > 5 ? recs.length / Math.max(0.1, mediaTime - t0) : 30) / rate : 0;
+      prog(0.1 + 0.8 * frac);
+      say(`Đang theo dõi 4 người và quả bóng · ${Math.round(frac * 100)}%`, `${done} frame · ${rate.toFixed(1)} frame/giây · còn khoảng ${Math.ceil(left)} giây · giữ tab này ở trên cùng`);
+    }
+  };
+  await new Promise((resolve, reject) => {
+    let fin = false;
+    const finish = () => { if (fin) return; fin = true; av.pause(); resolve(); };
+    if (!av.requestVideoFrameCallback) {   // fallback: step by seeking
+      (async () => { try { const step = 1 / 30; for (let t = t0; t <= t1; t += step) { check(); await seekV(av, t); onFrame(t); await tick(); } finish(); } catch (e) { fin = true; reject(e); } })();
+      return;
+    }
+    const cb = (now, meta) => {
+      if (fin) return;
+      av.pause();
+      try { if (job.cancel) throw new Cancelled("cancelled"); if (meta.mediaTime > lastTs) { lastTs = meta.mediaTime; onFrame(meta.mediaTime); } }
+      catch (e) { fin = true; reject(e); return; }
+      if (av.ended || meta.mediaTime >= t1 - 0.002) { finish(); return; }
+      av.requestVideoFrameCallback(cb); av.play().catch(() => { if (!document.hidden) finish(); });
+    };
+    av.requestVideoFrameCallback(cb); av.play().catch(reject);
+  });
+  return {recs, kh};
+}
+
+// ------------------------------------------------------------------ post-processing
+function dropOutliers(raw, hh, n) {
+  const P = raw.length, hips = raw.map(r => r.map(x => x ? hipOf(x) : null));
+  const H_ = (p, i) => Math.max(hh[p][i] || 80, 40);
+  // two players on one body: the one that strays from its own path loses the frame
+  for (let i = 0; i < n; i++) for (let p = 0; p < P; p++) for (let q = p + 1; q < P; q++) {
+    if (!hips[p][i] || !hips[q][i] || dist(hips[p][i], hips[q][i]) > 0.3 * H_(p, i)) continue;
+    const dev = [p, q].map(r => { const nb = []; for (let j = Math.max(0, i - 15); j <= Math.min(n - 1, i + 15); j++) if (j !== i && hips[r][j]) nb.push(hips[r][j]);
+      return nb.length ? dist(hips[r][i], [median(nb.map(a => a[0])), median(nb.map(a => a[1]))]) : 0; });
+    const loser = dev[0] > dev[1] ? p : q; raw[loser][i] = null; hips[loser][i] = null;
+  }
+  for (let p = 0; p < P; p++) for (let i = 0; i < n; i++) {
+    if (!hips[p][i]) continue; const nb = [];
+    for (let j = Math.max(0, i - 5); j <= Math.min(n - 1, i + 5); j++) if (j !== i && hips[p][j]) nb.push(hips[p][j]);
+    if (nb.length < 2) continue;
+    if (dist(hips[p][i], [median(nb.map(a => a[0])), median(nb.map(a => a[1]))]) > 0.6 * H_(p, i)) { raw[p][i] = null; hips[p][i] = null; }
+  }
+}
+function analyse(ctx, pass, peaks) {
+  const {aw, ah, corners, cm, t0, t1, name, fileDur} = ctx, {recs, kh} = pass;
+  const diffs = recs.slice(1).map((r, i) => r.t - recs[i].t).filter(x => x > 0.001);
+  const fps = snapFps(diffs.length ? 1 / median(diffs) : 30), sc = aw / 1920, k60 = fps / 60;
+  const N = Math.round(recs[recs.length - 1].t * fps) + 1, f0 = Math.round(recs[0].t * fps), f1 = N - 1;
+  const P = 4, raw = [[], [], [], []], hh = [[], [], [], []], knee = [[], [], [], []], wr = [[], [], [], []], cands = new Array(N).fill(null), mainF = new Uint8Array(N);
+  for (let p = 0; p < P; p++) { raw[p] = new Array(N).fill(null); hh[p] = new Float64Array(N).fill(NaN); knee[p] = new Float64Array(N).fill(NaN); wr[p] = new Float64Array(N).fill(NaN); }
+  for (const r of recs) { const i = clamp(Math.round(r.t * fps), 0, N - 1); if (cands[i]) continue; cands[i] = r.cands; mainF[i] = r.main ? 1 : 0;
+    for (let p = 0; p < P; p++) { raw[p][i] = r.lm[p]; hh[p][i] = r.h[p] ?? NaN; knee[p][i] = r.knee[p]; wr[p][i] = r.wrist[p]; } }
+  for (let p = 0; p < P; p++) { const f = fillLinear(hh[p]); hh[p] = f || new Float64Array(N).fill(200 * sc); }
+  dropOutliers(raw, hh, N);
+  const ok = raw.map(r => r.map(x => x ? 1 : 0));
+  // fill gaps and smooth every kept joint
+  const sig = 1.6 * k60;
+  const pose = raw.map(r => { const out = new Array(N).fill(null), cols = [];
+    for (const j of KEEP) for (const ax of [0, 1]) { const col = Float64Array.from(r, x => x ? x[j * 3 + ax] : NaN), f = fillLinear(col); cols.push(f ? gauss1d(f, sig) : null); }
+    if (cols.some(c_ => !c_)) return out;
+    for (let i = f0; i < N; i++) { const a = []; for (let k = 0; k < KEEP.length; k++) a.push([Math.round(cols[2 * k][i] * 10) / 10, Math.round(cols[2 * k + 1][i] * 10) / 10]); out[i] = a; }
+    return out; });
+  for (let p = 0; p < P; p++) if (!pose[p][f0]) throw new Error(`Không theo dõi được P${p + 1} trong đoạn này. Thử chọn đoạn có đủ 4 người trên sân.`);
+  // feet on the ground (both ankles), metres
+  const feetRaw = pose.map(pp => pp.map(a => a && hom(cm.H, [(a[11][0] + a[12][0]) / 2, (a[11][1] + a[12][1]) / 2])));
+  const smoothXY = (arr, s) => { const xs = fillLinear(Float64Array.from(arr, a => a ? a[0] : NaN)), ys = fillLinear(Float64Array.from(arr, a => a ? a[1] : NaN));
+    const gx = gauss1d(xs, s), gy = gauss1d(ys, s); return arr.map((_, i) => [gx[i], gy[i]]); };
+  const feetS = feetRaw.map(a => smoothXY(a, 3 * k60)), feetM = feetRaw.map(a => smoothXY(a, 15 * k60));
+  const dnet = feetS.map(a => a.map(q => Math.abs(q[1] - NETd))), behind = dnet.map(a => a.map(d => Math.max(0, d - CKd)));
+  // ball: one global path, then strikes, then smoothing between strikes
+  const bc = cands.map((c_, i) => (i >= f0 && c_) ? c_ : []);
+  const ballRaw = solveBall(bc, N, (60 / fps) * sc);
+  const maxGap = Math.max(3, Math.round(0.27 * fps));
+  const fillShort = arr => { const out = arr.slice(); let last = -1;
+    for (let i = 0; i < arr.length; i++) { if (!arr[i]) continue;
+      if (last >= 0 && i - last > 1 && i - last <= maxGap) for (let j = last + 1; j < i; j++) { const w_ = (j - last) / (i - last); out[j] = [arr[last][0] + (arr[i][0] - arr[last][0]) * w_, arr[last][1] + (arr[i][1] - arr[last][1]) * w_]; }
+      last = i; }
+    return out; };
+  const bF = fillShort(ballRaw);
+  const handD = (p, f, b) => { const a = pose[p][f]; if (!a || !b) return Infinity;
+    return Math.min(dist(a[5], b), dist(a[6], b), 1.3 * dist(a[0], b)) / Math.max(hh[p][f], 40); };
+  const win = Math.max(2, Math.round(0.12 * fps));
+  const vel = (a, b) => { const pts = []; for (let i = Math.max(f0, a); i <= Math.min(f1, b); i++) if (bF[i]) pts.push([i, bF[i]]);
+    if (pts.length < 2) return null; let st_ = 0, sxx = 0, sx = 0, sy = 0, sxy = 0, syy = 0; const k = pts.length;
+    for (const [t, q] of pts) { st_ += t; sxx += t * t; sx += q[0]; sy += q[1]; sxy += t * q[0]; syy += t * q[1]; }
+    const den = k * sxx - st_ * st_; if (!den) return null; return [(k * sxy - st_ * sx) / den, (k * syy - st_ * sy) / den]; };
+  const audioF = (peaks || []).map(t => Math.round(t * fps));
+  const nearAudio = f => audioF.some(a => Math.abs(a - f) <= Math.round(0.15 * fps));
+  let cand = [];
+  for (let f = f0 + win; f <= f1 - win; f++) {
+    if (!bF[f]) continue;
+    const vi = vel(f - win, f - 1), vo = vel(f + 1, f + win); if (!vi || !vo) continue;
+    const ang = angleDeg(vi, vo); if (ang < 35) continue;
+    let best = [Infinity, -1];
+    for (let p = 0; p < P; p++) for (let g_ = f - 2; g_ <= f + 2; g_++) { const d_ = handD(p, clamp(g_, f0, f1), bF[clamp(g_, f0, f1)]); if (d_ < best[0]) best = [d_, p]; }
+    if (best[0] > 0.7) continue;
+    cand.push({f, p: best[1], d: best[0], ang, audio: nearAudio(f)});
+  }
+  for (const fa of audioF) {   // a paddle sound while the ball is hidden by a body
+    if (fa < f0 + win || fa > f1 - win || cand.some(c_ => Math.abs(c_.f - fa) <= Math.round(0.15 * fps))) continue;
+    let fb = -1, fn = -1;
+    for (let i = fa; i >= Math.max(f0, fa - Math.round(0.5 * fps)); i--) if (ballRaw[i]) { fb = i; break; }
+    for (let i = fa; i <= Math.min(f1, fa + Math.round(0.5 * fps)); i++) if (ballRaw[i]) { fn = i; break; }
+    if (fb < 0 || fn < 0) continue;
+    const vi = vel(fb - win, fb), vo = vel(fn, fn + win); if (!vi || !vo) continue;
+    const ang = angleDeg(vi, vo); if (ang < 35) continue;
+    let best = [Infinity, -1];
+    for (let p = 0; p < P; p++) for (const g_ of [fb, fn]) { const d_ = handD(p, g_, ballRaw[g_]); if (d_ < best[0]) best = [d_, p]; }
+    if (best[0] > 0.8) continue;
+    cand.push({f: fa, p: best[1], d: best[0], ang, audio: true});
+  }
+  cand.sort((a, b) => a.f - b.f);
+  const score = c_ => c_.ang / 180 + (0.8 - c_.d) + (c_.audio ? 0.4 : 0);
+  const team = p => p < 2 ? 0 : 1;
+  const merged = [];
+  for (const c_ of cand) { const last = merged[merged.length - 1];
+    if (last && c_.f - last.f <= Math.round(0.2 * fps)) { if (score(c_) > score(last)) merged[merged.length - 1] = c_; } else merged.push(c_); }
+  const strikesF = [];
+  for (const c_ of merged) { const last = strikesF[strikesF.length - 1];
+    if (last && (team(c_.p) === team(last.p) || c_.f - last.f < 0.3 * fps)) { if (score(c_) > score(last) && c_.f - last.f < fps) strikesF[strikesF.length - 1] = c_; continue; }
+    strikesF.push(c_); }
+  // smooth the ball between strikes (never across one)
+  const cuts = new Set(strikesF.map(s_ => s_.f)), ball = new Array(N).fill(null);
+  let run = [];
+  const flushRun = () => { if (run.length > 3) { const gx = gauss1d(Float64Array.from(run, i => bF[i][0]), 1.2 * k60), gy = gauss1d(Float64Array.from(run, i => bF[i][1]), 1.2 * k60);
+      run.forEach((i, k) => { ball[i] = [Math.round(gx[k] * 10) / 10, Math.round(gy[k] * 10) / 10]; }); } else run.forEach(i => { ball[i] = bF[i]; }); run = []; };
+  for (let i = 0; i < N; i++) { if (bF[i] && !(cuts.has(i) && run.length)) run.push(i); else { flushRun(); if (bF[i]) run.push(i); } }
+  flushRun();
+  const bpos = (f, w_ = 3) => { for (let d_ = 0; d_ <= w_; d_++) for (const g_ of [f - d_, f + d_]) if (g_ >= 0 && g_ < N && ball[g_]) return ball[g_]; return null; };
+  // ---- strikes, bounces, speeds and types (same rules as prep.py)
+  const sframes = strikesF.map(s_ => s_.f), hitters = strikesF.map(s_ => s_.p);
+  const lastS = sframes.length ? sframes[sframes.length - 1] : f0;
+  let end = Math.min(f1, lastS + Math.round(1.5 * fps));
+  const start = Math.max(f0, (sframes[0] ?? f0) - Math.round(0.33 * fps));
+  const flights = sframes.map((f, k) => [f, k + 1 < sframes.length ? sframes[k + 1] : end]);
+  const bounces = [];
+  flights.forEach(([fa, fb], k) => {
+    const towards = team(hitters[k]) === 1, lo = fa + Math.round(0.1 * fps), hi = fb - Math.round(0.05 * fps), w4 = Math.max(2, Math.round(4 * k60));
+    if (hi - lo < 6) return;
+    let best = null;
+    for (let f = lo + w4; f < hi - w4; f++) {
+      const a = ball[f - w4], b = ball[f], c_ = ball[f + w4]; if (!a || !b || !c_) continue;
+      if (towards) { let mx = true; for (let j = f - w4; j <= f + w4; j++) if (ball[j] && ball[j][1] > b[1]) mx = false;
+        if (mx && b[1] - a[1] > 2 * sc && b[1] - c_[1] > 2 * sc) { const pr = Math.min(b[1] - a[1], b[1] - c_[1]); if (!best || pr > best[1]) best = [f, pr]; } }
+      else if (f >= (fa + fb) / 2) { const ang = angleDeg([b[0] - a[0], b[1] - a[1]], [c_[0] - b[0], c_[1] - b[1]]), g_ = hom(cm.H, b);
+        if (ang > 60 && g_[0] > -0.3 && g_[0] < CWd + 0.3 && g_[1] > -0.3 && g_[1] < CLd + 0.3 && (!best || ang > best[1])) best = [f, ang]; }
+    }
+    if (best) { const b = ball[best[0]], g_ = hom(cm.H, b);
+      bounces.push({frame: best[0], flight: k, img: b, court: [Math.round(g_[0] * 100) / 100, Math.round(g_[1] * 100) / 100], in: g_[0] >= 0 && g_[0] <= CWd && g_[1] >= 0 && g_[1] <= CLd}); }
+  });
+  const bif = {}; bounces.forEach(b => { if (!bif[b.flight]) bif[b.flight] = b; });
+  if (sframes.length && bif[sframes.length - 1]) end = Math.min(f1, Math.max(end, bif[sframes.length - 1].frame));
+  const strikes = sframes.map((f, k) => {
+    const p = hitters[k], src = feetS[p][f]; let f1_ = null, dst = null, tgt = null;
+    if (k + 1 < sframes.length) { f1_ = sframes[k + 1]; dst = feetS[hitters[k + 1]][f1_]; tgt = "receiver"; }
+    else if (bif[k]) { f1_ = bif[k].frame; dst = bif[k].court; tgt = "bounce"; }
+    let kmh = null, dd = null, dt = null;
+    if (f1_ != null) { dd = dist(dst, src); dt = (f1_ - f) / fps; kmh = dd / dt * 3.6; }
+    const dn = dnet[p][f], bb = (k - 1) in bif;
+    let type;
+    if (k === 0) type = "serve"; else if (k === 1) type = "return"; else if (k === 2) type = (kmh || 0) >= 40 ? "third_drive" : "third_drop";
+    else if (!bb && dn <= 3.8) type = "volley"; else if (kmh != null && kmh < 28 && dn <= 3.8) type = "dink";
+    else if (k === sframes.length - 1 && Math.min(src[0], CWd - src[0]) < 0.9) type = "get"; else if (kmh != null && kmh >= 40) type = "drive"; else type = "rally";
+    let dir = null;
+    if (dst) { const dx = dst[0] - src[0]; dir = Math.abs(dx) >= 1.5 && (src[0] - CWd / 2) * (dst[0] - CWd / 2) < 0 ? "cross" : (Math.abs(dx) < 1.5 && Math.min(src[0], CWd - src[0]) < 1.5 ? "line" : "middle"); }
+    const r2 = x => Math.round(x * 100) / 100, bi = bpos(f);
+    return {n: k + 1, frame: f, t: Math.round(f / fps * 1000) / 1000, player: `P${p + 1}`, pi: p, team: team(p), type, dir,
+      kmh: kmh == null ? null : Math.round(kmh * 10) / 10, dist_m: dd == null ? null : r2(dd), flight_s: dt == null ? null : Math.round(dt * 1000) / 1000,
+      target: tgt, to_frame: f1_, from: [r2(src[0]), r2(src[1])], to: dst && [r2(dst[0]), r2(dst[1])], d_net: r2(dn), bounced_before: bb,
+      ball_img: bi && [Math.round(bi[0] * 10) / 10, Math.round(bi[1] * 10) / 10]};
+  });
+  // live speed on the HUD: shot average scaled by the image speed
+  const live = new Array(N).fill(null);
+  for (const s_ of strikes) { if (s_.kmh == null) continue; const sp = [];
+    for (let f = s_.frame; f < s_.to_frame; f++) { const a = bpos(f - 1, 0), b = bpos(f + 1, 0); sp.push(a && b ? dist(a, b) / 2 : NaN); }
+    const ok_ = sp.filter(x => !isNaN(x)), m = ok_.length ? ok_.reduce((a, b) => a + b, 0) / ok_.length : NaN;
+    sp.forEach((x, i) => { const r = isNaN(x) || isNaN(m) || !m ? 1 : clamp(x / m, 0.6, 1.45); live[s_.frame + i] = Math.round(s_.kmh * r * 10) / 10; }); }
+  // ---- scores: positioning 35 + shots 25 + stance 20 + movement 20
+  const C = (x, a = 0, b = 100) => Math.max(a, Math.min(b, x));
+  const serveTeam = strikes.length ? team(hitters[0]) : 1, retF = sframes[1], thirdF = sframes[2];
+  const players = [0, 1, 2, 3].map(p => {
+    const parts = {}, notes = {}, allowed = team(p) === serveTeam ? thirdF : retF;
+    if (allowed != null && allowed < end) { let s_ = 0, k = 0; for (let f = allowed; f <= end; f++) { s_ += behind[p][f]; k++; } const mb = s_ / k;
+      parts.positioning = C(100 - 20 * Math.max(0, mb - 0.6)); notes.behind_kitchen_m = Math.round(mb * 100) / 100; }
+    const shot = [];
+    strikes.forEach((s_, k) => { if (s_.pi !== p) return;
+      if (k + 1 < strikes.length) { const q = hitters[k + 1], f1_ = sframes[k + 1], depth = dnet[q][f1_], pull = Math.abs(feetS[q][f1_][0] - feetS[q][s_.frame][0]);
+        const sc_ = 0.65 * C((depth - 2.5) / 4 * 100) + 0.35 * C(pull / 2 * 100); shot.push(sc_); s_.recv_depth_m = Math.round(depth * 100) / 100; s_.recv_pull_m = Math.round(pull * 100) / 100; s_.score = Math.round(sc_ * 10) / 10; }
+      else if (bif[k]) { const sc_ = bif[k].in ? 100 : 0; shot.push(sc_); s_.score = sc_; s_.outcome = bif[k].in ? "in" : "out"; } });
+    if (shot.length) parts.shots = shot.reduce((a, b) => a + b, 0) / shot.length;
+    const kn = [], ww = []; for (let f = start; f <= end; f++) if (ok[p][f]) { if (!isNaN(knee[p][f])) kn.push(knee[p][f]); if (!isNaN(wr[p][f])) ww.push(wr[p][f]); }
+    if (kn.length) { const mk_ = median(kn), mw = ww.length ? median(ww) : 0;
+      parts.stance = 0.6 * C((178 - mk_) * 5) + 0.4 * C(mw / 0.625 * 100); notes.knee_deg = Math.round(mk_ * 10) / 10; notes.wrist_torso = Math.round(mw * 100) / 100; }
+    const gains = []; strikes.forEach(s_ => { if (s_.pi !== p) return; const fa = s_.frame, fb = Math.min(end, fa + Math.round(fps));
+      gains.push(behind[p][fa] <= 0.6 ? null : dnet[p][fa] - dnet[p][fb]); });
+    let path = 0; for (let f = start + 1; f <= end; f++) path += dist(feetM[p][f], feetM[p][f - 1]);
+    const spd = path / Math.max(0.1, (end - start) / fps);
+    const gsc = gains.map(g_ => g_ == null ? 100 : C(g_ / 1.5 * 100)), mv = C(spd / 1.3 * 100);
+    parts.movement = gsc.length ? 0.5 * gsc.reduce((a, b) => a + b, 0) / gsc.length + 0.5 * mv : mv;
+    notes.path_m = Math.round(path * 10) / 10; notes.mean_speed_ms = Math.round(spd * 100) / 100; notes.gains_m = gains.map(g_ => g_ == null ? null : Math.round(g_ * 100) / 100);
+    const wts = {positioning: 35, shots: 25, stance: 20, movement: 20}; let tw = 0, tot = 0; for (const k in parts) { tw += wts[k]; tot += parts[k] * wts[k]; }
+    const mine = strikes.filter(s_ => s_.pi === p), sp_ = mine.filter(s_ => s_.kmh);
+    let det = 0, tot_ = 0; for (let f = start; f <= end; f++) { det += ok[p][f]; tot_++; }
+    for (const k in parts) parts[k] = Math.round(parts[k] * 10) / 10;
+    return {id: `P${p + 1}`, team: team(p), strikes: mine.length, types: mine.map(s_ => s_.type), mean_kmh: sp_.length ? Math.round(sp_.reduce((a, b) => a + b.kmh, 0) / sp_.length * 10) / 10 : null,
+      parts, total: tw ? Math.round(tot / tw * 10) / 10 : 0, notes, detected_pct: Math.round(det / Math.max(1, tot_) * 1000) / 10, good: [], work: []};
+  });
+  // ---- per-frame series for the screen
+  const zone = d_ => d_ <= CKd ? "KITCHEN" : d_ >= NETd - 1.5 ? "BASELINE" : "TRANSITION";
+  let sr = []; for (let p = 0; p < P; p++) for (let f = start; f <= end; f += 3) { const a = pose[p][f]; if (!a) continue;
+    const fy = (a[11][1] + a[12][1]) / 2; if (fy - cm.hz > 10) sr.push((fy - a[0][1]) / (fy - cm.hz)); }
+  const series = {
+    pose, feet: feetS.map(a => a.map(q => [Math.round(q[0] * 100) / 100, Math.round(q[1] * 100) / 100])),
+    dnet: dnet.map(a => a.map(x => Math.round(x * 100) / 100)), knee: knee.map((a, p) => Array.from(a, (x, i) => ok[p][i] && !isNaN(x) ? Math.round(x) : null)),
+    zone: dnet.map(a => a.map(zone)), det: ok, speed: live, ball,
+    ball_ground: ball.map(b => b && hom(cm.H, b).map(x => Math.round(x * 100) / 100)),
+  };
+  const data = {
+    meta: {name, fps, width: aw, height: ah, video_size: [aw, ah], duration: fileDur, frames: N, endcard: 5, t0: start / fps, auto: true},
+    court: {kind: "pickleball", W: CWd, L: CLd, K: CKd, corners, H: cm.H, Hinv: cm.Hinv, horizon_y: cm.hz, stature_ratio: sr.length ? median(sr) : 0.45},
+    range: {start, end, frames: N}, strikes, bounces, players, series,
+    report: {sample: {strikes: strikes.length, seconds: Math.round((end - start) / fps * 100) / 100}},
+  };
+  writeTexts(data);
+  return data;
+}
+
+// ------------------------------------------------------------------ texts written from the numbers (rewritable by Claude)
+function writeTexts(D_) {
+  const PN = ["gần bên phải", "gần bên trái", "xa bên trái", "xa bên phải"];
+  const best = D_.players.reduce((a, b) => b.total > a.total ? b : a);
+  for (const p of D_.players) {
+    const n = p.notes, i = +p.id[1] - 1, good = [], work = [];
+    const mine = D_.strikes.filter(s_ => s_.pi === i), fast = mine.filter(s_ => s_.kmh).sort((a, b) => b.kmh - a.kmh)[0];
+    const pulls = mine.filter(s_ => s_.recv_pull_m != null).map(s_ => s_.recv_pull_m), mp = pulls.length ? pulls.reduce((a, b) => a + b, 0) / pulls.length : null;
+    const gains = (n.gains_m || []).filter(x => x != null), mg = gains.length ? gains.reduce((a, b) => a + b, 0) / gains.length : null;
+    if (n.behind_kitchen_m != null) (n.behind_kitchen_m <= 0.6 ? good : work).push(n.behind_kitchen_m <= 0.6
+      ? `Bám vạch kitchen tốt: trung bình chỉ ${num(n.behind_kitchen_m, 2)} m sau vạch khi đã được phép lên lưới.`
+      : `Đứng sau vạch kitchen trung bình ${num(n.behind_kitchen_m, 2)} m. Bước lên thêm khoảng ${num(n.behind_kitchen_m - 0.5)} m để đỡ bóng sớm hơn.`);
+    if (n.knee_deg != null) (n.knee_deg <= 158 ? good : work).push(n.knee_deg <= 158
+      ? `Tư thế thấp: gối trung vị ${Math.round(n.knee_deg)}°, sẵn sàng với bóng thấp.`
+      : `Gối khá thẳng (trung vị ${Math.round(n.knee_deg)}°). Hạ trọng tâm thêm khoảng ${Math.round(n.knee_deg - 155)}° để phản ứng nhanh hơn.`);
+    if (n.wrist_torso != null) (n.wrist_torso >= 0.45 ? good : work).push(n.wrist_torso >= 0.45
+      ? `Giữ vợt cao: cổ tay cao hơn hông ${num(n.wrist_torso, 2)} lần chiều dài thân (mốc chuẩn 0,625).`
+      : `Vợt thấp: cổ tay chỉ cao hơn hông ${num(n.wrist_torso, 2)} lần chiều dài thân. Nâng vợt lên trước ngực (khoảng 0,6).`);
+    if (mg != null) (mg >= 1 ? good : work).push(mg >= 1 ? `Sau cú đánh của mình tiến trung bình ${num(mg)} m về vạch kitchen trong 1 giây.`
+      : `Sau cú đánh chỉ tiến trung bình ${num(mg)} m về vạch kitchen trong 1 giây. Bước lên ngay sau mỗi cú.`);
+    if (mp != null) (mp >= 1 ? good : work).push(mp >= 1 ? `Cú đánh kéo đối thủ lệch ngang trung bình ${num(mp)} m.`
+      : `Cú đánh chỉ kéo đối thủ lệch ngang trung bình ${num(mp)} m. Đặt bóng ra góc rộng hơn 1 m.`);
+    if (fast && fast.kmh >= 30) good.push(`Cú nhanh nhất ${Math.round(fast.kmh)} km/h (${TYPE_VI[fast.type]}${fast.dir ? ", " + DIR_VI[fast.dir] : ""}).`);
+    if (n.mean_speed_ms != null && n.mean_speed_ms < 0.6) work.push(`Di chuyển trung bình ${num(n.mean_speed_ms, 2)} m/s. Nhún chân bước nhỏ giữa các cú để phản ứng nhanh hơn.`);
+    p.good = good.slice(0, 3); p.work = work.slice(0, 3);
+    if (!p.good.length) p.good.push("Chưa có điểm nổi bật trong đoạn này.");
+    if (!p.work.length) p.work.push("Không thấy điểm yếu rõ trong đoạn này; cần đoạn dài hơn để nhận xét.");
+  }
+  const bi = +best.id[1] - 1;
+  D_.report = Object.assign(D_.report, {
+    title: D_.meta.name,
+    headline: `<em>${best.id}</em> chơi chuyên nghiệp nhất đoạn này: ${Math.round(best.total)}/100`,
+    verdict: `${best.id} (${PN[bi]}) dẫn đầu với vị trí ${Math.round(best.parts.positioning ?? 0)}, cú đánh ${Math.round(best.parts.shots ?? 0)}, tư thế ${Math.round(best.parts.stance ?? 0)} và di chuyển ${Math.round(best.parts.movement ?? 0)} điểm. Kết quả tự động, chưa kiểm tra lại bằng mắt.`,
+    intro: "Chờ cú giao bóng.",
+    limits: `Phân tích tự động ngay trong trình duyệt, chưa kiểm tra lại bằng mắt: có thể sót hoặc nhận nhầm cú đánh, nhất là khi bóng bị người che. Mẫu: ${D_.strikes.length} cú đánh trong ${num(D_.report.sample.seconds)} giây. Tốc độ bóng = khoảng cách giữa chân hai người đánh liên tiếp ÷ thời gian bay (tốc độ trung bình, không phải đầu vợt). Khung xương dùng mô hình MediaPipe bản full; người ở xa và người quay lưng về camera được đo kém chính xác hơn.`,
+    advice: "Lần quay sau: camera cố định phía sau đường biên cuối, thấy trọn sân, 60 fps nếu được, và không có đồ họa của người khác trên video.",
+  });
+  for (const s_ of D_.strikes) s_.line = `${s_.player} ${TYPE_VI[s_.type]}${s_.dir ? " " + DIR_VI[s_.dir] : ""}${s_.kmh != null ? `, khoảng ${Math.round(s_.kmh)} km/h` : ""}; đứng cách lưới ${num(s_.d_net)} m.`;
+}
+
+// ------------------------------------------------------------------ "Viết lại nhận xét bằng Claude"
+let sampleFn = null;
+window.claude?.use?.("sample")?.then(s => { sampleFn = s; if (window.onReportBuilt) window.onReportBuilt(); }).catch(() => {});
+window.onReportBuilt = () => {
+  const box = $("aiBox"); if (!box || !D || !D.meta.auto) return;
+  if (!sampleFn) { box.innerHTML = ""; return; }
+  box.innerHTML = `<h2>Nhận xét</h2><p class="muted">Các câu nhận xét ở trên được ghép tự động từ số đo. Bạn có thể nhờ Claude viết lại cho tự nhiên và sát trận hơn (dùng lượt Claude của bạn).</p>
+    <div class="row" style="display:flex;gap:10px;flex-wrap:wrap"><button id="aiGo" type="button" class="primary" style="height:38px;padding:0 16px;background:var(--amber);border:1px solid var(--amber);color:#04080F;font:700 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Viết lại nhận xét bằng Claude</button>
+    <button id="aiStop" type="button" hidden style="height:38px;padding:0 16px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Dừng</button></div>
+    <p id="aiMsg" class="muted"></p>`;
+  let ctl = null;
+  $("aiStop").onclick = () => ctl?.abort();
+  $("aiGo").onclick = async () => {
+    const facts = {players: D.players.map(p => ({id: p.id, total: p.total, parts: p.parts, notes: p.notes, strikes: p.strikes, types: p.types, mean_kmh: p.mean_kmh})),
+      strikes: D.strikes.map(s_ => ({n: s_.n, t: s_.t, player: s_.player, type: s_.type, dir: s_.dir, kmh: s_.kmh, d_net: s_.d_net, from: s_.from, to: s_.to, recv_depth_m: s_.recv_depth_m, recv_pull_m: s_.recv_pull_m, outcome: s_.outcome})),
+      bounces: D.bounces.map(b => ({frame: b.frame, court: b.court, in: b.in})), seconds: D.report.sample.seconds};
+    const prompt = `Bạn là huấn luyện viên pickleball. Dưới đây là số đo tự động của một đoạn rally đôi (P1 gần bên phải, P2 gần bên trái, P3 xa bên trái, P4 xa bên phải; toạ độ sân tính bằng mét, x ngang 0–6,1, y dọc 0–13,41 từ cuối sân xa; lưới ở y = 6,705; kitchen 2,134 m mỗi bên).
+Điểm: vị trí 35% (khoảng cách trung bình sau vạch kitchen), cú đánh 25% (đối thủ phải đỡ xa lưới và bị kéo ngang bao nhiêu), tư thế 20% (góc gối, độ cao cổ tay), di chuyển 20%.
+Hãy viết bằng tiếng Việt, ngắn gọn. Mỗi câu "làm tốt" và "cần sửa" phải có một con số lấy đúng từ dữ liệu và một hành động cụ thể người chơi có thể làm. Không bịa số, không đoán tên, danh tính hay giới tính; chỉ gọi P1–P4.
+Trả về DUY NHẤT một JSON: {"headline": "<em>Px</em> ... : NN/100", "verdict": "1–2 câu", "players": {"P1": {"good": ["..",".."], "work": ["..",".."]}, "P2": {...}, "P3": {...}, "P4": {...}}, "strike_lines": {"1": "một câu cho cú 1", ...}}
+
+Dữ liệu:
+${JSON.stringify(facts)}`;
+    ctl = new AbortController(); $("aiGo").disabled = true; $("aiStop").hidden = false; $("aiMsg").textContent = "Claude đang viết…";
+    try {
+      const out = await sampleFn.json(prompt, {signal: ctl.signal, onText: () => { $("aiMsg").textContent = "Claude đang viết…"; }});
+      if (out && typeof out === "object") {
+        if (typeof out.headline === "string") D.report.headline = out.headline;
+        if (typeof out.verdict === "string") D.report.verdict = out.verdict;
+        for (const p of D.players) { const o = out.players && out.players[p.id]; if (o) { if (Array.isArray(o.good) && o.good.length) p.good = o.good.map(String).slice(0, 3); if (Array.isArray(o.work) && o.work.length) p.work = o.work.map(String).slice(0, 3); } }
+        for (const s_ of D.strikes) { const l = out.strike_lines && out.strike_lines[String(s_.n)]; if (typeof l === "string" && l.trim()) s_.line = l; }
+        buildEnd(); buildReport(); draw(lastT);
+        $("aiMsg").textContent = "Đã cập nhật nhận xét.";
+      }
+    } catch (e) {
+      const msg = {not_granted: "Bạn chưa cho phép trang này dùng Claude.", sampling_disabled: "Tài khoản này không dùng được Claude từ trang.", rate_limited: "Đã gọi Claude quá nhiều, thử lại sau ít phút.", cancelled: "Đã dừng."};
+      if ($("aiMsg")) $("aiMsg").textContent = msg[e && e.code] || "Claude chưa trả lời được. Thử lại sau.";
+      if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) $("aiGo").hidden = true;
+    } finally { if ($("aiGo")) $("aiGo").disabled = false; if ($("aiStop")) $("aiStop").hidden = true; }
+  };
+};
+
+// ------------------------------------------------------------------ the job
+async function run(file) {
+  if (job) job.cancel = true;
+  const my = job = {cancel: false};
+  const url = URL.createObjectURL(file);
+  const av = document.createElement("video"); av.muted = true; av.playsInline = true; av.preload = "auto"; av.src = url;
+  showOnly("proc"); $("procTitle").textContent = `Đang mở ${file.name}`; prog(0); say("Đang mở video", "");
+  $("btnStop").onclick = () => { my.cancel = true; };
+  try {
+    await waitMeta(av);
+    const dur = av.duration; if (!isFinite(dur) || dur <= 0) throw new Error("Không đọc được độ dài video. Hãy xuất lại thành MP4 rồi thử lại.");
+    const sc = Math.min(1, 1280 / av.videoWidth), aw = Math.round(av.videoWidth * sc / 2) * 2, ah = Math.round(av.videoHeight * sc / 2) * 2;
+    const pre = await sampleBackground(av, 0, dur, aw, ah);
+    check(); say("Đang tìm sân");
+    const auto = detectCourt(pre.bg, aw, ah);
+    const pick = await runSetup(av, pre.bg, auto, aw, ah, dur);
+    if (!pick) throw new Cancelled("cancelled");
+    showOnly("proc"); $("procTitle").textContent = `Đang phân tích ${file.name}`;
+    const cm = courtModel(pick.corners, aw, ah); if (!cm) throw new Error("4 góc sân chưa hợp lệ. Hãy đặt lại 4 chấm.");
+    // background of the chosen part only (the camera may move between rallies)
+    const pre2 = (pick.t0 > 0.5 || pick.t1 < dur - 0.5) ? await sampleBackground(av, pick.t0, pick.t1, aw, ah) : pre;
+    const audioP = audioPeaks(file, pick.t0, pick.t1);
+    await loadPose(); check();
+    const ctx = {aw, ah, corners: pick.corners, cm, t0: pick.t0, t1: pick.t1, bg: pre2.bg, ref: pre2.ref, name: file.name.replace(/\.[^.]+$/, ""), fileDur: dur};
+    const pass = await framePass(av, ctx);
+    say("Đang ghép đường bóng, cú đánh và điểm số"); prog(0.93); await tick();
+    const peaks = await audioP;
+    const data = analyse(ctx, pass, peaks);
+    prog(1);
+    showOnly(null);
+    $("bsample").hidden = !SAMPLE;
+    await applyData(data, url);
+  } catch (e) {
+    av.pause();
+    if (e instanceof Cancelled) { showOnly(null); if (D) draw(lastT); return; }
+    console.error(e);
+    showOnly("proc"); $("procTitle").textContent = "Chưa phân tích được video này"; say(e.message || String(e), "Bấm Đóng để quay lại.");
+    $("btnStop").textContent = "Đóng"; $("btnStop").onclick = () => { $("btnStop").textContent = "Dừng"; showOnly(null); if (D) draw(lastT); };
+  } finally { if (job === my) job = null; }
+}
+$("file").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) run(f); });
+window.__analyse = run;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RallyScope</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+/* RallyScope: a fixed 1920x1080 "screen" (stage + telemetry panel + timeline) that the recorder
+   captures frame by frame, followed by the written report for the interactive page.
+   Single dark theme by design: it is a broadcast HUD laid over footage. */
+:root{
+  color-scheme: dark;
+  --bg:#04080F; --panel:#07111D; --panel-2:#0A1828; --line:#14283D; --line-2:#21405E;
+  --ink:#E2EEF8; --ink-2:#9DB4C9; --ink-3:#6C869F;
+  --cyan:#4DE3FF; --amber:#FFC857; --white:#FFFFFF;
+  --p1:#FF7A3D; --p2:#9CFF57; --p3:#FF5FD2; --p4:#4DE3FF;
+  --f-display:"Chakra Petch",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --f-body:"Noto Sans","Noto Sans TC",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body)}
+body.rec{overflow:hidden;width:1920px;height:1080px}
+.cut{clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- the 1920x1080 screen ---------- */
+#wrap{position:relative;width:100%;overflow:hidden}
+#screen{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:var(--bg);overflow:hidden;
+  background-image:linear-gradient(rgba(77,227,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(77,227,255,.028) 1px,transparent 1px);background-size:40px 40px}
+body.rec #wrap{width:1920px;height:1080px}
+
+#hdr{position:absolute;left:32px;right:36px;top:0;height:76px;display:flex;align-items:center;gap:28px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand b{font:700 30px/1 var(--f-display);letter-spacing:.14em;color:var(--cyan);text-shadow:0 0 14px rgba(77,227,255,.55)}
+.brand small{display:block;font:500 12px/1 var(--f-mono);letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase;margin-top:6px}
+.rname{border-left:1px solid var(--line-2);padding-left:22px;font:600 18px/1.2 var(--f-display);color:var(--ink);letter-spacing:.04em;max-width:640px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rname span{display:block;font:400 12px/1.4 var(--f-mono);color:var(--ink-3);letter-spacing:.06em}
+.lights{display:flex;gap:18px;margin-left:auto}
+.light{display:flex;align-items:center;gap:7px;font:600 12px/1 var(--f-display);letter-spacing:.14em;color:var(--ink-3)}
+.light i{width:8px;height:8px;background:var(--line-2);transform:rotate(45deg)}
+.light.on{color:var(--ink-2)} .light.on i{background:#57FFA8;box-shadow:0 0 10px #57FFA8}
+.light.warn i{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.tc{text-align:right;min-width:230px}
+.tc b{display:block;font:600 34px/1 var(--f-display);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.tc span{display:block;margin-top:5px;font:400 12px/1 var(--f-mono);color:var(--ink-3);letter-spacing:.08em}
+
+#stagebox{position:absolute;left:32px;top:92px;width:1360px;height:765px;border:1px solid var(--line-2);background:#000}
+#stagebox:before,#stagebox:after{content:"";position:absolute;width:26px;height:26px;border:2px solid var(--cyan);z-index:3;pointer-events:none}
+#stagebox:before{left:-6px;top:-6px;border-right:0;border-bottom:0}
+#stagebox:after{right:-6px;bottom:-6px;border-left:0;border-top:0}
+#stage{position:absolute;inset:0;width:1360px;height:765px;z-index:2}
+#vid{position:absolute;inset:0;width:1360px;height:765px;object-fit:contain;z-index:1}
+
+#panel{position:absolute;left:1424px;top:92px;width:460px;height:765px;display:flex;flex-direction:column;gap:12px}
+.box{position:relative;background:var(--panel);border:1px solid var(--line-2);padding:12px 14px}
+.box h3{margin:0 0 8px;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3);display:flex;justify-content:space-between}
+.box h3 em{font-style:normal;color:var(--cyan)}
+#spd{height:128px}
+#spd .val{display:flex;align-items:baseline;gap:8px}
+#spd .val b{font:700 46px/1 var(--f-display);color:var(--white);text-shadow:0 0 18px rgba(95,184,255,.6);font-variant-numeric:tabular-nums;min-width:94px}
+#spd .val span{font:500 14px/1 var(--f-mono);color:var(--ink-2)}
+#spd .val small{margin-left:auto;font:500 12px/1.3 var(--f-mono);color:var(--ink-3);text-align:right}
+#spark{position:absolute;left:14px;right:14px;bottom:10px;width:430px;height:34px}
+#radarbox{height:222px}
+#radar{display:block;width:430px;height:178px}
+#listbox{flex:1;min-height:0;overflow:hidden}
+#slist{position:relative;overflow:hidden;height:calc(100% - 20px)}
+#slist .in{position:absolute;left:0;right:0;top:0}
+.srow{display:grid;grid-template-columns:34px 34px 1fr 96px 62px;align-items:center;height:26px;font:500 13px/1 var(--f-mono);color:var(--ink-3);border-left:2px solid transparent;padding-left:6px}
+.srow .pl{font-weight:600}
+.srow .ty{font:600 13px/1 var(--f-display);letter-spacing:.06em}
+.srow .kmh{text-align:right}
+.srow.done{color:var(--ink-2)}
+.srow.cur{color:var(--white);background:linear-gradient(90deg,rgba(77,227,255,.16),transparent);border-left-color:var(--cyan)}
+#prows{height:178px;padding:10px 14px}
+.prow{display:grid;grid-template-columns:44px 104px 1fr 1fr 40px;align-items:center;height:38px;border-bottom:1px solid var(--line);font:500 13px/1 var(--f-mono);color:var(--ink-2)}
+.prow:last-child{border-bottom:0}
+.prow .id{font:700 18px/1 var(--f-display)}
+.prow .zn{font:600 12px/1 var(--f-display);letter-spacing:.12em}
+.prow .zn.k{color:var(--cyan)} .prow .zn.t{color:var(--amber)} .prow .zn.b{color:var(--ink-3)}
+.prow .ct{text-align:right;color:var(--ink-3)}
+
+#tl{position:absolute;left:32px;top:874px;width:1852px;height:66px}
+#tl .lab{position:absolute;left:0;top:0;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3)}
+#tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2)}
+#tl .fill{position:absolute;left:0;top:38px;height:4px;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+#tl .mk{position:absolute;top:18px;transform:translateX(-50%);font:600 11px/1 var(--f-mono);color:#04080F;padding:3px 4px 2px;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);opacity:.45}
+#tl .mk.done{opacity:1}
+#tl .mk:after{content:"";position:absolute}
+#tl .tick{position:absolute;top:44px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--amber);transform:translateX(-50%);opacity:.5}
+#tl .tick.done{opacity:1}
+#tl .ph{position:absolute;top:12px;width:2px;height:46px;background:var(--white);box-shadow:0 0 10px var(--cyan)}
+#tl .t0,#tl .t1{position:absolute;top:52px;font:400 11px/1 var(--f-mono);color:var(--ink-3)}
+#tl .t1{right:0}
+
+#line{position:absolute;left:32px;top:956px;width:1852px;height:96px;display:flex;align-items:center;gap:24px;background:var(--panel);border:1px solid var(--line-2);padding:0 26px}
+#line .chip{flex:none;min-width:250px}
+#line .chip b{display:block;font:700 24px/1 var(--f-display);color:var(--amber);letter-spacing:.06em}
+#line .chip span{display:block;margin-top:7px;font:500 13px/1 var(--f-mono);color:var(--ink-2);letter-spacing:.1em}
+#line p{margin:0;font:500 23px/1.4 var(--f-body);color:var(--ink)}
+
+/* ---------- end cards ---------- */
+#end{position:absolute;left:0;top:77px;width:1920px;height:1003px;background:rgba(4,8,15,.93);opacity:0;pointer-events:none;padding:30px 32px 0;z-index:5}
+#end .hl{font:700 38px/1.15 var(--f-display);color:var(--white);letter-spacing:.02em}
+#end .hl em{font-style:normal;color:var(--amber)}
+#end .vd{margin-top:10px;font:400 20px/1.45 var(--f-body);color:var(--ink-2);max-width:1600px}
+#cards{margin-top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--panel);border:1px solid var(--line-2);padding:18px 20px 20px;position:relative;min-height:640px}
+.card .top{display:flex;align-items:center;gap:12px}
+.card .top .id{font:700 30px/1 var(--f-display)}
+.card .top .pos{font:500 12px/1.3 var(--f-mono);color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+.card .top .tot{margin-left:auto;text-align:right}
+.card .top .tot b{font:700 48px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.card .top .tot span{display:block;font:500 11px/1 var(--f-mono);color:var(--ink-3);letter-spacing:.14em;margin-top:4px}
+.card .badge{display:inline-block;margin:0 0 12px;font:700 12px/1 var(--f-display);letter-spacing:.16em;color:#04080F;background:var(--amber);padding:6px 10px 5px}
+.bars{margin-top:16px;display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:150px 1fr 38px;align-items:center;gap:10px;font:500 12px/1 var(--f-mono);color:var(--ink-2);letter-spacing:.04em;white-space:nowrap}
+.bar .tr{height:8px;background:var(--line)}
+.bar .tr i{display:block;height:100%}
+.bar b{text-align:right;color:var(--ink);font-weight:600}
+.card h4{margin:18px 0 8px;font:600 12px/1 var(--f-display);letter-spacing:.2em}
+.card h4.g{color:#57FFA8} .card h4.w{color:var(--amber)}
+.card ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.card li{font:400 15px/1.42 var(--f-body);color:var(--ink);padding-left:16px;position:relative}
+.card li:before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;transform:rotate(45deg)}
+.card .gl li:before{background:#57FFA8} .card .wl li:before{background:var(--amber)}
+
+/* ---------- interactive page ---------- */
+#ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+#ctrl button,#ctrl select{height:34px;padding:0 14px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#ctrl button:hover{border-color:var(--cyan);color:var(--cyan)}
+#ctrl input[type=range]{flex:1 1 240px;accent-color:var(--cyan)}
+#ctrl .tm{font:500 13px/1 var(--f-mono);color:var(--ink-2);min-width:120px}
+body.rec #ctrl, body.rec #report{display:none}
+#report{max-width:1100px;margin:0 auto;padding:28px 16px 64px}
+#report h2{font:700 26px/1.2 var(--f-display);letter-spacing:.04em;color:var(--white);margin:28px 0 10px}
+#report h2:first-child{margin-top:0}
+#report p,#report li{font:400 16px/1.6 var(--f-body);color:var(--ink)}
+#report .muted{color:var(--ink-2)}
+.tbl{width:100%;border-collapse:collapse;font:400 14px/1.4 var(--f-body)}
+.tblw{overflow-x:auto}
+.tbl th{font:600 11px/1 var(--f-display);letter-spacing:.14em;color:var(--ink-3);text-align:left;padding:10px 8px;border-bottom:1px solid var(--line-2);text-transform:uppercase}
+.tbl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pchip{display:inline-block;font:700 14px/1 var(--f-display);padding:4px 7px 3px;color:#04080F}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.pcard{background:var(--panel);border:1px solid var(--line-2);padding:14px 16px}
+.pcard h3{margin:0 0 6px;font:700 20px/1 var(--f-display);display:flex;justify-content:space-between}
+.pcard ul{padding-left:18px;margin:6px 0}
+.pcard li{font-size:15px}
+.pcard h4{margin:12px 0 0;font:600 11px/1 var(--f-display);letter-spacing:.18em}
+</style>
+</head>
+<body>
+<div id="ctrl" hidden>
+  <button id="bplay" type="button">Play</button>
+  <button id="bback" type="button" aria-label="Previous frame">−1f</button>
+  <button id="bfwd" type="button" aria-label="Next frame">+1f</button>
+  <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+  <span class="tm num" id="tmtxt">0.00 s</span>
+  <select id="rate" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
+  <button id="bsnd" type="button">Sound off</button>
+</div>
+<div id="wrap">
+ <div id="screen">
+  <header id="hdr">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14" fill="none" stroke="#4DE3FF" stroke-width="2"/><circle cx="17" cy="17" r="6" fill="none" stroke="#FFC857" stroke-width="2"/><path d="M17 0v8M17 26v8M0 17h8M26 17h8" stroke="#4DE3FF" stroke-width="2"/></svg>
+      <div><b>RALLYSCOPE</b><small>rally analysis · fixed camera</small></div>
+    </div>
+    <div class="rname" id="rname">—<span id="rsub"></span></div>
+    <div class="lights" id="lights">
+      <div class="light" data-k="vid"><i></i>VIDEO</div>
+      <div class="light" data-k="court"><i></i>COURT</div>
+      <div class="light" data-k="pose"><i></i><span>POSE 0/4</span></div>
+      <div class="light" data-k="ball"><i></i>BALL</div>
+      <div class="light" data-k="sync"><i></i>AUDIO SYNC</div>
+    </div>
+    <div class="tc"><b id="tc" class="num">00:00.00</b><span id="fc" class="num">FRAME 0000</span></div>
+  </header>
+
+  <div id="stagebox">
+    <video id="vid" muted playsinline preload="auto">
+      <source src="rally.mp4" type='video/mp4; codecs="avc1.640028"'>
+      <source src="rally.webm" type='video/webm; codecs="vp9"'>
+    </video>
+    <canvas id="stage" width="1360" height="765"></canvas>
+  </div>
+
+  <aside id="panel">
+    <div class="box cut" id="spd">
+      <h3>BALL SPEED <em id="spdlab">—</em></h3>
+      <div class="val"><b id="spdv" class="num">—</b><span>km/h</span><small id="spdsub"></small></div>
+      <canvas id="spark" width="430" height="34"></canvas>
+    </div>
+    <div class="box cut" id="radarbox">
+      <h3>TOP-DOWN RADAR <em>13.41 × 6.10 m</em></h3>
+      <canvas id="radar" width="430" height="178"></canvas>
+    </div>
+    <div class="box cut" id="listbox">
+      <h3>STRIKES <em id="scount">0 / 0</em></h3>
+      <div id="slist"><div class="in" id="slistin"></div></div>
+    </div>
+    <div class="box cut" id="prows"></div>
+  </aside>
+
+  <div id="tl">
+    <div class="lab">RALLY TIMELINE</div>
+    <div class="rail"></div><div class="fill" id="tlfill"></div>
+    <div id="tlmk"></div>
+    <div class="ph" id="tlph"></div>
+    <div class="t0 num">0.0 s</div><div class="t1 num" id="tlend"></div>
+  </div>
+
+  <div id="line" class="cut">
+    <div class="chip"><b id="lnchip">READY</b><span id="lnsub">WAITING FOR SERVE</span></div>
+    <p id="lntext"></p>
+  </div>
+
+  <section id="end">
+    <div class="hl" id="endhl"></div>
+    <div class="vd" id="endvd"></div>
+    <div id="cards"></div>
+  </section>
+ </div>
+</div>
+<main id="report" hidden></main>
+
+<script>
+"use strict";
+const REC = new URLSearchParams(location.search).has("record");
+if (REC) document.body.classList.add("rec");
+const PCOL = ["#FF7A3D", "#9CFF57", "#FF5FD2", "#4DE3FF"];
+const PPOS = ["near right", "near left", "far left", "far right"];
+const TYPE_EN = {serve:"SERVE", return:"RETURN", third_drop:"3RD SHOT DROP", third_drive:"3RD SHOT DRIVE",
+  volley:"VOLLEY", dink:"DINK", get:"GET", drive:"DRIVE", rally:"RALLY BALL"};
+const DIR_EN = {cross:"CROSS-COURT", line:"DOWN THE LINE", middle:"MIDDLE"};
+const PART = [["positioning","POSITIONING",35],["shots","SHOTS",25],["stance","STANCE",20],["movement","MOVEMENT",20]];
+// local indices into series.pose (nose, shoulders, elbows, wrists, hips, knees, ankles, heels, toes)
+const EDGES = [[1,2],[1,3],[3,5],[2,4],[4,6],[1,7],[2,8],[7,8],[7,9],[9,11],[8,10],[10,12],[11,13],[13,15],[11,15],[12,14],[14,16],[12,16]];
+const TRAIL = 34, BLUE = [95,184,255], PINK = [255,95,210];
+
+const $ = id => document.getElementById(id);
+const vid = $("vid"), cv = $("stage"), g = cv.getContext("2d");
+const SW = 1360, SH = 765;
+let D, FPS, DUR, NF, S, OX, OY, Hinv, H, CW, CL, CK, NET;
+let courtPaths, scanPat, vignette, lastF = -1;
+
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ease = k => 1 - Math.pow(1 - clamp(k), 3);
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const pad = (n, w = 2) => String(n).padStart(w, "0");
+function hom(M, p) { const x = p[0], y = p[1]; const w = M[2][0]*x + M[2][1]*y + M[2][2];
+  return [(M[0][0]*x + M[0][1]*y + M[0][2]) / w, (M[1][0]*x + M[1][1]*y + M[1][2]) / w]; }
+const st = p => [OX + p[0] * S, OY + p[1] * S];               // source px -> stage px
+const c2s = p => st(hom(Hinv, p));                              // court metres -> stage px
+function fmtT(t) { const m = Math.floor(t / 60), s = t - m * 60; return `${pad(m)}:${s.toFixed(2).padStart(5, "0")}`; }
+
+function cutPath(x, y, w, h, c = 8) {
+  g.beginPath(); g.moveTo(x + c, y); g.lineTo(x + w, y); g.lineTo(x + w, y + h - c);
+  g.lineTo(x + w - c, y + h); g.lineTo(x, y + h); g.lineTo(x, y + c); g.closePath();
+}
+
+// ------------------------------------------------------------------ setup
+async function init() {
+  D = await (await fetch("data.json")).json();
+  FPS = D.meta.fps; NF = D.range.frames;
+  ({W: CW, L: CL, K: CK} = D.court); NET = CL / 2;
+  Hinv = D.court.Hinv; H = D.court.H;
+  await new Promise(r => vid.readyState >= 1 ? r() : vid.addEventListener("loadedmetadata", r, {once: true}));
+  DUR = Math.min(vid.duration, NF / FPS);
+  const vw = vid.videoWidth || D.meta.width, vh = vid.videoHeight || D.meta.height;
+  S = Math.min(SW / vw, SH / vh); OX = (SW - vw * S) / 2; OY = (SH - vh * S) / 2;
+  // pose/ball coordinates are in the working file's pixels
+  S = S * vw / D.meta.width;
+  await Promise.all(["600 14px 'Chakra Petch'", "700 14px 'Chakra Petch'", "500 12px 'IBM Plex Mono'",
+    "400 16px 'Noto Sans'", "500 16px 'Noto Sans'"].map(f => document.fonts.load(f, "Aăâđêôơư ẠẾỘỮ0123")));
+  await document.fonts.ready;
+  buildStatic();
+  if (!REC) setupInteractive();
+  await new Promise(r => vid.readyState >= 2 ? r() : vid.addEventListener("loadeddata", r, {once: true}));
+  draw(0);
+}
+
+function buildStatic() {
+  $("rname").firstChild.textContent = D.meta.name;
+  $("rsub").textContent = `${D.strikes.length} STRIKES · ${D.report.sample.seconds.toFixed(1)} S · ${D.meta.width}×${D.meta.height} @ ${FPS} FPS`;
+  // court paths in stage px
+  const P = (a, b) => { const p = new Path2D(), u = c2s(a), v = c2s(b); p.moveTo(...u); p.lineTo(...v); return p; };
+  const grid = new Path2D();
+  for (let x = 1; x < CW; x += 1) { const u = c2s([x, 0]), v = c2s([x, CL]); grid.moveTo(...u); grid.lineTo(...v); }
+  for (let y = 1; y < CL; y += 1) { const u = c2s([0, y]), v = c2s([CW, y]); grid.moveTo(...u); grid.lineTo(...v); }
+  const lines = new Path2D();
+  [[[0,0],[CW,0]],[[CW,0],[CW,CL]],[[CW,CL],[0,CL]],[[0,CL],[0,0]],[[0,NET-CK],[CW,NET-CK]],[[0,NET+CK],[CW,NET+CK]],
+   [[CW/2,0],[CW/2,NET-CK]],[[CW/2,NET+CK],[CW/2,CL]]].forEach(([a, b]) => lines.addPath(P(a, b)));
+  const kz = new Path2D();
+  [[NET - CK, NET], [NET, NET + CK]].forEach(([y0, y1]) => {
+    const q = [[0, y0], [CW, y0], [CW, y1], [0, y1]].map(c2s);
+    kz.moveTo(...q[0]); q.slice(1).forEach(p => kz.lineTo(...p)); kz.closePath(); });
+  // the net stood up with the perspective scale measured from the players (0.88 m tall)
+  const sr = D.court.stature_ratio || 0.45, hz = D.court.horizon_y;
+  const netTop = x => { const b = hom(Hinv, [x, NET]); const hpx = 0.88 / 1.5 * sr * (b[1] - hz); return st([b[0], b[1] - hpx]); };
+  const net = {a: c2s([-0.3, NET]), b: c2s([CW + 0.3, NET]), ta: netTop(-0.3), tb: netTop(CW + 0.3)};
+  courtPaths = {grid, lines, kz, net};
+  // scanlines + vignette
+  const sc = document.createElement("canvas"); sc.width = 4; sc.height = 3;
+  const sg = sc.getContext("2d"); sg.fillStyle = "rgba(0,0,0,.32)"; sg.fillRect(0, 0, 4, 1);
+  scanPat = g.createPattern(sc, "repeat");
+  vignette = g.createRadialGradient(SW / 2, SH / 2, SH * 0.35, SW / 2, SH / 2, SW * 0.62);
+  vignette.addColorStop(0, "rgba(4,8,15,0)"); vignette.addColorStop(1, "rgba(4,8,15,.78)");
+
+  // strike list
+  $("slistin").innerHTML = D.strikes.map(s => `<div class="srow" data-f="${s.frame}"><span>${pad(s.n)}</span>
+    <span class="pl" style="color:${PCOL[s.pi]}">${s.player}</span><span class="ty">${TYPE_EN[s.type]}</span>
+    <span>${s.dir ? DIR_EN[s.dir].replace("DOWN THE LINE", "LINE").replace("CROSS-COURT", "CROSS") : "—"}</span>
+    <span class="kmh num">${s.kmh == null ? "—" : s.kmh.toFixed(0) + " km/h"}</span></div>`).join("");
+  // player rows
+  $("prows").innerHTML = D.players.map((p, i) => `<div class="prow" id="pr${i}">
+    <span class="id" style="color:${PCOL[i]}">${p.id}</span><span class="zn"></span>
+    <span class="nd num"></span><span class="kn num"></span><span class="ct num"></span></div>`).join("");
+  // timeline
+  const x = t => (t / DUR * 100).toFixed(3) + "%";
+  $("tlmk").innerHTML = D.strikes.map(s => `<div class="mk" data-f="${s.frame}" style="left:${x(s.frame / FPS)};background:${PCOL[s.pi]}">${pad(s.n)}</div>`).join("")
+    + D.bounces.map(b => `<div class="tick" data-f="${b.frame}" style="left:${x(b.frame / FPS)}"></div>`).join("");
+  $("tlend").textContent = DUR.toFixed(1) + " s";
+  buildEnd();
+  drawSparkBase();
+}
+
+function buildEnd() {
+  const best = D.players.reduce((a, b) => (b.total > a.total ? b : a));
+  $("endhl").innerHTML = D.report.headline;
+  $("endvd").textContent = D.report.verdict;
+  $("cards").innerHTML = D.players.map((p, i) => `<div class="card cut" data-at="${0.5 + i * 0.35}" style="border-top:3px solid ${PCOL[i]}">
+    <div class="badge" style="visibility:${p.id === best.id ? "visible" : "hidden"}">MOST PROFESSIONAL</div>
+    <div class="top"><span class="id" style="color:${PCOL[i]}">${p.id}</span><span class="pos">${PPOS[i]}<br>${p.strikes} strikes</span>
+      <span class="tot"><b style="color:${PCOL[i]}">${Math.round(p.total)}</b><span>TOTAL / 100</span></span></div>
+    <div class="bars">${PART.map(([k, lab, w]) => `<div class="bar"><span>${lab} ${w}%</span><span class="tr"><i data-w="${p.parts[k] ?? 0}" style="background:${PCOL[i]};width:0"></i></span><b class="num">${p.parts[k] == null ? "—" : Math.round(p.parts[k])}</b></div>`).join("")}</div>
+    <h4 class="g">DONE WELL</h4><ul class="gl" data-at="${2.0 + i * 0.25}">${p.good.map(t => `<li>${t}</li>`).join("")}</ul>
+    <h4 class="w">WORK ON</h4><ul class="wl" data-at="${2.6 + i * 0.25}">${p.work.map(t => `<li>${t}</li>`).join("")}</ul>
+  </div>`).join("");
+}
+
+// ------------------------------------------------------------------ stage
+function drawStage(f) {
+  g.save();
+  g.fillStyle = "#04080F"; g.fillRect(0, 0, SW, SH);
+  g.filter = "saturate(.62) contrast(1.1) brightness(.9)";
+  if (vid.readyState >= 2) g.drawImage(vid, OX, OY, SW - 2 * OX, SH - 2 * OY);
+  g.filter = "none";
+  g.globalCompositeOperation = "multiply"; g.fillStyle = "#93BEE6"; g.fillRect(0, 0, SW, SH);
+  g.globalCompositeOperation = "screen"; g.fillStyle = "rgba(10,40,70,.22)"; g.fillRect(0, 0, SW, SH);
+  g.globalCompositeOperation = "source-over";
+  g.restore();
+
+  drawCourt(f);
+  drawBounces(f);
+  const tags = drawPlayers(f);
+  drawBall(f);
+  drawStrikeFx(f, tags);
+  drawTags(tags);
+
+  g.fillStyle = vignette; g.fillRect(0, 0, SW, SH);
+  g.fillStyle = scanPat; g.globalAlpha = 0.5; g.fillRect(0, 0, SW, SH); g.globalAlpha = 1;
+  // bottom edge fades to dark (covers any old progress bar)
+  const bh = D.meta.cover?.bottom ? D.meta.cover.bottom * S + 40 : 110;
+  const bg = g.createLinearGradient(0, SH - bh, 0, SH);
+  bg.addColorStop(0, "rgba(4,8,15,0)"); bg.addColorStop(0.55, "rgba(4,8,15,.82)"); bg.addColorStop(1, "rgba(4,8,15,.97)");
+  g.fillStyle = bg; g.fillRect(0, SH - bh, SW, bh);
+  drawTopLeft(f);
+  drawTopRight(f);
+}
+
+function drawCourt(f) {
+  const {grid, lines, kz, net} = courtPaths;
+  g.save();
+  g.fillStyle = "rgba(77,227,255,.075)"; g.fill(kz);
+  g.strokeStyle = "rgba(77,227,255,.10)"; g.lineWidth = 1; g.stroke(grid);
+  g.globalCompositeOperation = "lighter";
+  g.shadowColor = "#4DE3FF"; g.shadowBlur = 14;
+  g.strokeStyle = "rgba(77,227,255,.45)"; g.lineWidth = 4; g.stroke(lines);
+  g.shadowBlur = 0; g.strokeStyle = "rgba(190,245,255,.85)"; g.lineWidth = 1.4; g.stroke(lines);
+  // amber net
+  const ng = g.createLinearGradient(0, net.a[1], 0, Math.min(net.ta[1], net.tb[1]));
+  ng.addColorStop(0, "rgba(255,200,87,.02)"); ng.addColorStop(1, "rgba(255,200,87,.11)");
+  g.fillStyle = ng; g.beginPath(); g.moveTo(...net.a); g.lineTo(...net.b); g.lineTo(...net.tb); g.lineTo(...net.ta); g.closePath(); g.fill();
+  g.shadowColor = "#FFC857"; g.shadowBlur = 12; g.strokeStyle = "rgba(255,200,87,.95)"; g.lineWidth = 2.2;
+  g.beginPath(); g.moveTo(...net.ta); g.lineTo(...net.tb); g.stroke();
+  g.lineWidth = 1.2; g.strokeStyle = "rgba(255,200,87,.6)";
+  g.beginPath(); g.moveTo(...net.a); g.lineTo(...net.b); g.moveTo(...net.a); g.lineTo(...net.ta); g.moveTo(...net.b); g.lineTo(...net.tb); g.stroke();
+  g.restore();
+}
+
+function ringPts(c, r, n = 40) {
+  const out = [];
+  for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2; out.push(c2s([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)])); }
+  return out;
+}
+function strokePts(pts) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); }
+
+function drawBounces(f) {
+  for (const b of D.bounces) {
+    const k = f - b.frame;
+    if (k < 0 || k >= 45) continue;
+    g.save(); g.globalCompositeOperation = "lighter";
+    for (const off of [0, 10]) {
+      const kk = (k - off) / 45; if (kk < 0) continue;
+      strokePts(ringPts(b.court, 0.12 + 0.95 * ease(kk)));
+      g.strokeStyle = `rgba(255,200,87,${0.9 * (1 - kk)})`; g.lineWidth = 2.2 * (1 - kk) + 0.6;
+      g.shadowColor = "#FFC857"; g.shadowBlur = 10; g.stroke();
+    }
+    if (k < 8) { const p = c2s(b.court); g.fillStyle = `rgba(255,230,160,${1 - k / 8})`; g.beginPath(); g.arc(p[0], p[1], 3, 0, 7); g.fill(); }
+    g.restore();
+  }
+}
+
+function drawPlayers(f) {
+  const tags = [];
+  for (let i = 0; i < D.players.length; i++) {
+    const pose = D.series.pose[i][f]; if (!pose) continue;
+    const col = PCOL[i], rgb = hex2rgb(col);
+    // a pose that was not found for a while is not drawn: only the ring at the estimated feet
+    let gone = 0; for (let j = f - 8; j <= f + 8; j++) if (j >= 0 && j < NF && !D.series.det[i][j]) gone++;
+    const lost = !D.series.det[i][f] && gone >= 10;
+    const feet = D.series.feet[i][f];
+    // floor ring
+    g.save(); g.globalCompositeOperation = "lighter";
+    strokePts(ringPts(feet, 0.55)); g.fillStyle = rgba(rgb, 0.10); g.fill();
+    g.strokeStyle = rgba(rgb, 0.85); g.lineWidth = 1.6; g.shadowColor = col; g.shadowBlur = 10; g.stroke();
+    const rp = ringPts(feet, 0.72, 48), rot = Math.floor(f / 3) % 12;
+    g.lineWidth = 2.4; g.strokeStyle = rgba(rgb, 0.6);
+    for (let k = 0; k < 48; k += 12) { const a = (k + rot * 1) % 48; g.beginPath(); g.moveTo(...rp[a]); g.lineTo(...rp[Math.min(a + 4, 48)]); g.stroke(); }
+    g.restore();
+    // skeleton
+    const P = pose.map(p => p && st(p));
+    if (lost) {
+      const fp = c2s(feet), hh = Math.hypot(P[1][0] - P[11][0], P[1][1] - P[11][1]) || 120;
+      tags.push({i, col, rgb, ax: fp[0], ay: fp[1] - hh, w: 168, h: 44, x: fp[0] - 84, y: fp[1] - hh - 56,
+        l1: `${D.players[i].id}  POSE LOST`, l2: `NET ${D.series.dnet[i][f].toFixed(1)} m · estimated`});
+      continue;
+    }
+    g.save(); g.lineCap = "round"; g.lineJoin = "round";
+    g.shadowColor = col; g.shadowBlur = 12; g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 3.4;
+    g.beginPath(); for (const [a, b] of EDGES) if (P[a] && P[b]) { g.moveTo(...P[a]); g.lineTo(...P[b]); }
+    if (P[0] && P[1] && P[2]) { const nk = [(P[1][0] + P[2][0]) / 2, (P[1][1] + P[2][1]) / 2]; g.moveTo(...nk); g.lineTo(...P[0]); }
+    g.stroke();
+    g.shadowBlur = 0; g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1; g.stroke();
+    g.fillStyle = "#fff";
+    for (const k of [0, 5, 6, 9, 10, 11, 12]) if (P[k]) { g.beginPath(); g.arc(P[k][0], P[k][1], k === 0 ? 3.2 : 2.2, 0, 7); g.fill(); }
+    if (P[0]) { const hr = Math.max(5, Math.hypot(P[1][0] - P[2][0], P[1][1] - P[2][1]) * 0.42);
+      g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 1.6; g.shadowColor = col; g.shadowBlur = 8; g.beginPath(); g.arc(P[0][0], P[0][1], hr, 0, 7); g.stroke(); }
+    g.restore();
+    const ys = P.filter(Boolean).map(p => p[1]), xs = P.filter(Boolean).map(p => p[0]);
+    const top = Math.min(...ys), cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const z = D.series.zone[i][f], dn = D.series.dnet[i][f], kn = D.series.knee[i][f];
+    tags.push({i, col, rgb, ax: cx, ay: top - 6, w: 168, h: 44, x: cx - 84, y: top - 62,
+      l1: `${D.players[i].id}  ${z}`, l2: `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`});
+  }
+  return tags;
+}
+
+function resolveTags(tags, fixed) {
+  const inter = (a, b) => a.x < b.x + b.w + 6 && b.x < a.x + a.w + 6 && a.y < b.y + b.h + 6 && b.y < a.y + a.h + 6;
+  for (const t of tags) { t.x = clamp(t.x, 8, SW - t.w - 8); t.y = clamp(t.y, 8, SH - t.h - 8); }
+  for (let it = 0; it < 12; it++) {
+    let moved = false;
+    const all = [...fixed, ...tags];
+    for (const t of tags) for (const o of all) {
+      if (o === t || !inter(t, o)) continue;
+      const tu = t.y + t.h / 2 <= o.y + o.h / 2;
+      if (fixed.includes(o) || tu) {   // move t away from o, vertically first
+        const up = o.y - t.h - 8, down = o.y + o.h + 8;
+        t.y = (up >= 8 && (tu || down + t.h > SH - 8)) ? up : down;
+        moved = true;
+      }
+    }
+    for (const t of tags) { t.x = clamp(t.x, 8, SW - t.w - 8); t.y = clamp(t.y, 8, SH - t.h - 8); }
+    if (!moved) break;
+  }
+}
+
+function drawTags(tags) {
+  for (const t of tags) {
+    g.save();
+    g.strokeStyle = rgba(t.rgb, 0.7); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(t.ax, t.ay); g.lineTo(t.x + t.w / 2, t.y + t.h); g.stroke();
+    cutPath(t.x, t.y, t.w, t.h, 8); g.fillStyle = "rgba(4,8,15,.8)"; g.fill();
+    g.strokeStyle = t.col; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = t.col; g.fillRect(t.x, t.y + 8, 3, t.h - 16);
+    g.font = "600 14px 'Chakra Petch'"; g.fillStyle = t.col; g.textBaseline = "top";
+    g.fillText(t.l1, t.x + 11, t.y + 7);
+    g.font = "500 11.5px 'IBM Plex Mono'"; g.fillStyle = "#DCEAF6"; g.fillText(t.l2, t.x + 11, t.y + 26);
+    g.restore();
+  }
+}
+
+function drawBall(f) {
+  const B = D.series.ball;
+  if (!B[f]) return;
+  g.save(); g.globalCompositeOperation = "lighter"; g.lineCap = "round";
+  for (let k = TRAIL - 1; k >= 1; k--) {
+    const a = B[f - k], b = B[f - k + 1];
+    if (!a || !b || f - k < 0) continue;
+    const u = (k - 0.5) / TRAIL;                       // 0 at the ball, 1 at the tail end
+    const c = [0, 1, 2].map(j => Math.round(lerp(BLUE[j], PINK[j], u)));
+    const pa = st(a), pb = st(b);
+    g.strokeStyle = rgba(c, 0.85 * Math.pow(1 - u, 1.25)); g.lineWidth = 1 + 8 * Math.pow(1 - u, 0.9);
+    g.shadowColor = rgba(c, 0.9); g.shadowBlur = 10 * (1 - u);
+    g.beginPath(); g.moveTo(...pa); g.lineTo(...pb); g.stroke();
+  }
+  g.shadowBlur = 0;
+  for (let k = 5; k >= 1; k--) {                     // thin white core on the newest frames
+    const a = B[f - k], b = B[f - k + 1]; if (!a || !b) continue;
+    g.strokeStyle = `rgba(255,255,255,${0.75 * (1 - k / 6)})`; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(...st(a)); g.lineTo(...st(b)); g.stroke();
+  }
+  const p = st(B[f]);
+  const glow = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], 16);
+  glow.addColorStop(0, "rgba(95,184,255,.55)"); glow.addColorStop(1, "rgba(95,184,255,0)");
+  g.fillStyle = glow; g.beginPath(); g.arc(p[0], p[1], 16, 0, 7); g.fill();
+  g.globalCompositeOperation = "source-over";
+  g.fillStyle = "#fff"; g.beginPath(); g.arc(p[0], p[1], 3.6, 0, 7); g.fill();
+  g.restore();
+}
+
+function curStrike(f) { let c = null; for (const s of D.strikes) if (s.frame <= f) c = s; return c; }
+
+function drawStrikeFx(f, tags) {
+  const fixed = [];
+  for (const s of D.strikes) {
+    const k = f - s.frame;
+    if (k < 0 || k >= 80 || !s.ball_img) continue;
+    const p = st(s.ball_img);
+    if (k < 14) {
+      g.save(); g.globalCompositeOperation = "lighter";
+      if (k < 7) { g.fillStyle = `rgba(255,255,255,${0.16 * (1 - k / 7)})`; g.fillRect(0, 0, SW, SH);
+        const fl = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], 90);
+        fl.addColorStop(0, `rgba(255,255,255,${0.9 * (1 - k / 7)})`); fl.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = fl; g.beginPath(); g.arc(p[0], p[1], 90, 0, 7); g.fill(); }
+      for (const [d, col] of [[0, "255,255,255"], [4, "77,227,255"]]) {
+        const kk = (k - d) / 12; if (kk < 0 || kk > 1) continue;
+        g.strokeStyle = `rgba(${col},${0.95 * (1 - kk)})`; g.lineWidth = 3 * (1 - kk) + 0.8;
+        g.shadowColor = `rgb(${col})`; g.shadowBlur = 14;
+        g.beginPath(); g.arc(p[0], p[1], 8 + ease(kk) * 70, 0, 7); g.stroke();
+      }
+      g.restore();
+    }
+    // callout (only the latest strike keeps one, so close strikes never stack)
+    const next = D.strikes.find(o => o.frame > s.frame);
+    if (next && f >= next.frame) continue;
+    const a = Math.min(1, k / 6) * Math.min(1, (80 - k) / 12);
+    const w = 236, h = 74;
+    const right = p[0] < SW / 2;
+    const c = {x: right ? p[0] + 40 : p[0] - 40 - w, y: p[1] - h - 30, w, h};
+    c.x = clamp(c.x, 330, SW - w - 340 > 330 ? SW - w - 340 : SW - w - 8);
+    c.y = clamp(c.y, 130, SH - h - 120);
+    fixed.push(c);
+    g.save(); g.globalAlpha = a;
+    const col = PCOL[s.pi];
+    g.strokeStyle = col; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(right ? c.x : c.x + w, c.y + h / 2); g.stroke();
+    cutPath(c.x, c.y, w, h, 10); g.fillStyle = "rgba(4,8,15,.86)"; g.fill();
+    g.strokeStyle = "#FFC857"; g.lineWidth = 1.4; g.stroke();
+    g.textBaseline = "top";
+    g.font = "700 13px 'Chakra Petch'"; g.fillStyle = "#FFC857"; g.fillText(`STRIKE ${pad(s.n)} / ${pad(D.strikes.length)}`, c.x + 12, c.y + 9);
+    g.font = "700 20px 'Chakra Petch'"; g.fillStyle = col; g.fillText(s.player, c.x + 12, c.y + 27);
+    g.fillStyle = "#fff"; g.fillText(TYPE_EN[s.type], c.x + 50, c.y + 27);
+    g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = "#BFD3E6";
+    g.fillText(`${s.dir ? DIR_EN[s.dir] : "—"} · ${s.kmh == null ? "— km/h" : s.kmh.toFixed(0) + " km/h"}`, c.x + 12, c.y + 53);
+    g.restore();
+  }
+  resolveTags(tags, fixed);
+}
+
+function drawTopLeft(f) {
+  const cv0 = D.meta.cover?.topleft;
+  const x = 14, y = 14, w = cv0 ? Math.max(300, cv0[2] * S + 20) : 300, h = cv0 ? Math.max(104, cv0[3] * S + 20) : 104;
+  const s = curStrike(f);
+  g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
+  g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
+  const on = Math.floor(f / 20) % 2 === 0;
+  g.fillStyle = on ? "#FF4D6A" : "rgba(255,77,106,.35)"; g.beginPath(); g.arc(x + 18, y + 19, 5, 0, 7); g.fill();
+  g.textBaseline = "top"; g.font = "600 13px 'Chakra Petch'"; g.fillStyle = "#4DE3FF";
+  g.fillText("LIVE TRACKING", x + 30, y + 12);
+  g.font = "500 11px 'IBM Plex Mono'"; g.fillStyle = "#6C869F"; g.textAlign = "right";
+  g.fillText(`4 PLAYERS · BALL`, x + w - 12, y + 13); g.textAlign = "left";
+  g.font = "700 30px 'Chakra Petch'"; g.fillStyle = "#fff";
+  g.fillText(s ? `STRIKE ${pad(s.n)}` : "PRE-SERVE", x + 14, y + 36);
+  g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = s ? PCOL[s.pi] : "#9DB4C9";
+  g.fillText(s ? `${s.player} · ${TYPE_EN[s.type]} · ${s.kmh == null ? "—" : s.kmh.toFixed(0)} km/h` : "waiting for the serve", x + 14, y + 76);
+  g.restore();
+}
+
+function drawTopRight(f) {
+  const cv0 = D.meta.cover?.topright;
+  const w = cv0 ? Math.max(320, cv0[2] * S + 20) : 320, h = cv0 ? Math.max(124, cv0[3] * S + 20) : 124;
+  const x = SW - 14 - w, y = 14;
+  g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
+  g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
+  g.textBaseline = "top"; g.font = "600 13px 'Chakra Petch'"; g.fillStyle = "#4DE3FF"; g.fillText("STRIKE SPEED", x + 14, y + 12);
+  g.font = "500 11px 'IBM Plex Mono'"; g.fillStyle = "#6C869F"; g.textAlign = "right"; g.fillText("km/h", x + w - 12, y + 13); g.textAlign = "left";
+  const ss = D.strikes, n = ss.length, top = Math.max(50, ...ss.map(s => s.kmh || 0));
+  const bx = x + 14, bw = (w - 28) / Math.max(n, 1), base = y + h - 14, bhmax = h - 52;
+  const cur = curStrike(f);
+  ss.forEach((s, i) => {
+    const v = s.kmh || 0, hh = Math.max(2, v / top * bhmax), done = s.frame <= f;
+    const xx = bx + i * bw + bw * 0.18, ww = bw * 0.64;
+    g.fillStyle = done ? PCOL[s.pi] : "rgba(108,134,159,.25)";
+    if (cur && s.n === cur.n) { g.shadowColor = PCOL[s.pi]; g.shadowBlur = 14; }
+    g.fillRect(xx, base - hh, ww, hh); g.shadowBlur = 0;
+    if (cur && s.n === cur.n && s.kmh) { g.font = "600 11px 'IBM Plex Mono'"; g.fillStyle = "#fff"; g.textAlign = "center";
+      g.fillText(s.kmh.toFixed(0), xx + ww / 2, base - hh - 14); g.textAlign = "left"; }
+  });
+  g.strokeStyle = "rgba(77,227,255,.35)"; g.beginPath(); g.moveTo(bx, base + 0.5); g.lineTo(x + w - 14, base + 0.5); g.stroke();
+  g.restore();
+}
+
+// ------------------------------------------------------------------ panel
+let sparkBase;
+function drawSparkBase() {
+  const c = document.createElement("canvas"); c.width = 430; c.height = 34; const s = c.getContext("2d");
+  const sp = D.series.speed, top = Math.max(50, ...sp.filter(v => v != null));
+  s.strokeStyle = "rgba(95,184,255,.85)"; s.lineWidth = 1.4; s.beginPath();
+  let pen = false;
+  for (let i = 0; i < NF; i++) { const v = sp[i]; const x = i / (NF - 1) * 430;
+    if (v == null) { pen = false; continue; } const y = 32 - v / top * 30;
+    pen ? s.lineTo(x, y) : s.moveTo(x, y); pen = true; }
+  s.stroke();
+  sparkBase = {c, top};
+}
+function drawSpark(f) {
+  const s = $("spark").getContext("2d"); s.clearRect(0, 0, 430, 34); s.drawImage(sparkBase.c, 0, 0);
+  const x = f / (NF - 1) * 430; s.fillStyle = "rgba(4,8,15,.6)"; s.fillRect(x, 0, 430 - x, 34);
+  s.strokeStyle = "#fff"; s.lineWidth = 1; s.beginPath(); s.moveTo(x, 0); s.lineTo(x, 34); s.stroke();
+}
+
+function drawRadar(f) {
+  const r = $("radar").getContext("2d"), RW = 430, RH = 178, m = 12;
+  const k = Math.min((RW - 2 * m) / CL, (RH - 2 * m) / CW);
+  const ox = (RW - CL * k) / 2, oy = (RH - CW * k) / 2;
+  const R = p => [ox + p[1] * k, oy + (CW - p[0]) * k];
+  r.clearRect(0, 0, RW, RH);
+  r.fillStyle = "rgba(77,227,255,.06)"; r.fillRect(...R([CW, 0]), CL * k, CW * k);
+  r.fillStyle = "rgba(77,227,255,.12)"; r.fillRect(R([CW, NET - CK])[0], oy, 2 * CK * k, CW * k);
+  r.strokeStyle = "rgba(77,227,255,.8)"; r.lineWidth = 1.2; r.strokeRect(ox, oy, CL * k, CW * k);
+  r.beginPath();
+  for (const y of [NET - CK, NET + CK]) { r.moveTo(R([0, y])[0], oy); r.lineTo(R([0, y])[0], oy + CW * k); }
+  r.moveTo(ox, R([CW / 2, 0])[1]); r.lineTo(R([0, NET - CK])[0], R([CW / 2, 0])[1]);
+  r.moveTo(R([0, NET + CK])[0], R([CW / 2, 0])[1]); r.lineTo(ox + CL * k, R([CW / 2, 0])[1]); r.stroke();
+  r.strokeStyle = "#FFC857"; r.lineWidth = 2.4; r.shadowColor = "#FFC857"; r.shadowBlur = 8;
+  r.beginPath(); r.moveTo(R([0, NET])[0], oy - 4); r.lineTo(R([0, NET])[0], oy + CW * k + 4); r.stroke(); r.shadowBlur = 0;
+  // strike points so far
+  for (const s of D.strikes) if (s.frame <= f) { const p = R(s.from); r.strokeStyle = PCOL[s.pi]; r.lineWidth = 1.2;
+    r.beginPath(); r.moveTo(p[0] - 3, p[1] - 3); r.lineTo(p[0] + 3, p[1] + 3); r.moveTo(p[0] + 3, p[1] - 3); r.lineTo(p[0] - 3, p[1] + 3); r.stroke(); }
+  for (const b of D.bounces) if (b.frame <= f) { const p = R(b.court); r.strokeStyle = "rgba(255,200,87,.9)"; r.beginPath(); r.arc(p[0], p[1], 3.5, 0, 7); r.stroke(); }
+  // ball ground trail
+  const BG = D.series.ball_ground;
+  for (let j = TRAIL; j >= 0; j--) { const q = BG[f - j]; if (!q || f - j < 0) continue;
+    const u = j / TRAIL, c = [0, 1, 2].map(i => Math.round(lerp(BLUE[i], PINK[i], u)));
+    const p = R(q); r.fillStyle = rgba(c, 0.8 * (1 - u)); r.beginPath(); r.arc(p[0], p[1], 2.4 * (1 - u) + 0.6, 0, 7); r.fill(); }
+  // players with trails
+  for (let i = 0; i < D.players.length; i++) {
+    const F = D.series.feet[i], rgb = hex2rgb(PCOL[i]);
+    r.strokeStyle = rgba(rgb, 0.45); r.lineWidth = 1.4; r.beginPath();
+    for (let j = Math.max(0, f - 90); j <= f; j++) { const p = R(F[j]); j === Math.max(0, f - 90) ? r.moveTo(...p) : r.lineTo(...p); }
+    r.stroke();
+    const p = R(F[f]); r.fillStyle = PCOL[i]; r.shadowColor = PCOL[i]; r.shadowBlur = 10;
+    r.beginPath(); r.arc(p[0], p[1], 5.5, 0, 7); r.fill(); r.shadowBlur = 0;
+    r.font = "700 10px 'Chakra Petch'"; r.fillStyle = "#fff"; r.textAlign = "center"; r.textBaseline = "middle";
+    r.fillText(String(i + 1), p[0], p[1] + 0.5);
+  }
+  r.textAlign = "left";
+}
+
+function updatePanel(f) {
+  const v = D.series.speed[f];
+  let shown = v, sub = "";
+  const s = curStrike(f);
+  if (v == null && s && s.kmh != null && f - s.frame < 90) shown = null;
+  $("spdv").textContent = shown == null ? "—" : Math.round(shown);
+  $("spdlab").textContent = s ? `${s.player} · ${TYPE_EN[s.type]}` : "—";
+  $("spdsub").innerHTML = s && s.kmh != null ? `SHOT AVG ${s.kmh.toFixed(0)}<br>${s.dist_m.toFixed(1)} m / ${s.flight_s.toFixed(2)} s` : "";
+  drawSpark(f);
+  drawRadar(f);
+  // strike list
+  let ci = -1;
+  document.querySelectorAll("#slistin .srow").forEach((row, i) => {
+    const fr = +row.dataset.f; row.classList.toggle("done", fr <= f); row.classList.toggle("cur", s && D.strikes[i].n === s.n);
+    if (s && D.strikes[i].n === s.n) ci = i; });
+  const vis = Math.floor(($("slist").clientHeight || 200) / 26);
+  const off = Math.max(0, Math.min(ci - Math.floor(vis / 2), D.strikes.length - vis));
+  $("slistin").style.transform = `translateY(${-off * 26}px)`;
+  $("scount").textContent = `${s ? s.n : 0} / ${D.strikes.length}`;
+  // players
+  for (let i = 0; i < D.players.length; i++) {
+    const row = $("pr" + i), z = D.series.zone[i][f];
+    const zn = row.querySelector(".zn"); zn.textContent = z; zn.className = "zn " + z[0].toLowerCase();
+    row.querySelector(".nd").textContent = `NET ${D.series.dnet[i][f].toFixed(1)} m`;
+    row.querySelector(".kn").textContent = `KNEE ${D.series.knee[i][f] ?? "—"}°`;
+    row.querySelector(".ct").textContent = `×${D.strikes.filter(x => x.pi === i && x.frame <= f).length}`;
+  }
+}
+
+function updateChrome(t, f) {
+  $("tc").textContent = fmtT(Math.min(t, DUR));
+  $("fc").textContent = t > DUR ? "REPORT" : `FRAME ${pad(f, 4)} / ${pad(NF - 1, 4)} · ${FPS} FPS`;
+  const det = D.series.det.reduce((a, d) => a + (d[f] ? 1 : 0), 0);
+  const L = k => document.querySelector(`.light[data-k="${k}"]`);
+  L("vid").classList.toggle("on", vid.readyState >= 2);
+  L("court").classList.add("on");
+  L("pose").classList.toggle("on", det === 4); L("pose").classList.toggle("warn", det < 4);
+  L("pose").querySelector("span").textContent = `POSE ${det}/4`;
+  L("ball").classList.toggle("on", !!D.series.ball[f]);
+  L("sync").classList.toggle("on", D.strikes.length > 0);
+  // timeline
+  const pct = clamp(t / DUR) * 100;
+  $("tlph").style.left = pct + "%"; $("tlfill").style.width = pct + "%";
+  document.querySelectorAll("#tlmk > div").forEach(el => el.classList.toggle("done", +el.dataset.f <= f));
+  // plain-language line
+  const s = curStrike(f);
+  $("lnchip").textContent = s ? `STRIKE ${pad(s.n)} / ${pad(D.strikes.length)}` : "READY";
+  $("lnsub").textContent = s ? `${s.player} · ${TYPE_EN[s.type]}` : "WAITING FOR SERVE";
+  $("lntext").textContent = s ? s.line : (D.report.intro || "");
+}
+
+function updateEnd(ph) {
+  const end = $("end");
+  end.style.opacity = ph <= 0 ? 0 : clamp(ph / 0.4);
+  if (ph <= 0) return;
+  const rev = (el, at) => { const k = ease((ph - at) / 0.45); el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 16}px)`; };
+  rev($("endhl"), 0.05); rev($("endvd"), 0.25);
+  document.querySelectorAll("#cards .card").forEach(c => {
+    const at = +c.dataset.at; rev(c, at);
+    c.querySelectorAll(".bar i").forEach(b => { b.style.width = (ease((ph - at - 0.3) / 0.8) * (+b.dataset.w)) + "%"; });
+    c.querySelectorAll("ul").forEach(u => rev(u, +u.dataset.at));
+  });
+}
+
+function draw(t) {
+  const f = Math.max(0, Math.min(NF - 1, t >= DUR ? NF - 1 : Math.floor(t * FPS + 1e-6)));
+  drawStage(f);
+  updatePanel(f);
+  updateChrome(t, f);
+  updateEnd(t - DUR);
+  lastF = f;
+}
+
+// ------------------------------------------------------------------ recorder hooks
+window.__ready = init();
+window.__duration = () => DUR + D.meta.endcard;
+window.__seekTo = t => new Promise(res => {
+  const target = Math.min(t, DUR - 0.5 / FPS) + 0.5 / FPS;   // middle of the frame
+  const tt = Math.min(target, vid.duration - 1e-3);
+  if (Math.abs(vid.currentTime - tt) < 1e-4) return res();
+  const done = () => { if (vid.requestVideoFrameCallback) { let ok = false; vid.requestVideoFrameCallback(() => { ok = true; res(); }); setTimeout(() => ok || res(), 120); } else res(); };
+  vid.addEventListener("seeked", done, {once: true});
+  vid.currentTime = tt;
+});
+window.__draw = t => draw(t);
+
+// ------------------------------------------------------------------ interactive page
+function fit() {
+  const w = document.documentElement.clientWidth, k = Math.min(1, w / 1920);
+  $("screen").style.transform = `scale(${k})`; $("wrap").style.height = (1080 * k) + "px";
+}
+function setupInteractive() {
+  $("ctrl").hidden = false; $("report").hidden = false;
+  fit(); addEventListener("resize", fit);
+  let playing = false, tEnd = null, last = 0;
+  const total = DUR + D.meta.endcard;
+  const show = t => { draw(t); $("scrub").value = Math.round(t / total * 1000); $("tmtxt").textContent = `${Math.min(t, total).toFixed(2)} s`; };
+  const loop = now => {
+    if (!playing) return;
+    let t;
+    if (tEnd == null && !vid.ended && vid.currentTime < DUR - 1 / FPS) t = vid.currentTime;
+    else { if (tEnd == null) { tEnd = now; vid.pause(); } t = DUR + (now - tEnd) / 1000; }
+    if (t >= total) { t = total; playing = false; $("bplay").textContent = "Replay"; }
+    show(t); requestAnimationFrame(loop);
+  };
+  const play = () => { if ($("bplay").textContent === "Replay") { vid.currentTime = 0; tEnd = null; }
+    playing = true; $("bplay").textContent = "Pause"; vid.playbackRate = +$("rate").value;
+    if (tEnd == null) vid.play(); requestAnimationFrame(loop); };
+  const pause = () => { playing = false; vid.pause(); $("bplay").textContent = "Play"; };
+  const seek = t => { pause(); t = clamp(t, 0, total);
+    if (t < DUR) { tEnd = null; vid.currentTime = Math.min(t, DUR - 1e-3); vid.addEventListener("seeked", () => show(t), {once: true}); }
+    else { tEnd = performance.now() - (t - DUR) * 1000; vid.currentTime = DUR - 0.5 / FPS; show(t); } last = t; };
+  $("bplay").onclick = () => playing ? pause() : play();
+  $("scrub").oninput = e => seek(e.target.value / 1000 * total);
+  $("bback").onclick = () => seek(Math.max(0, (Math.round(vid.currentTime * FPS) - 1) / FPS));
+  $("bfwd").onclick = () => seek((Math.round(vid.currentTime * FPS) + 1) / FPS);
+  $("rate").onchange = e => { vid.playbackRate = +e.target.value; };
+  $("bsnd").onclick = () => { vid.muted = !vid.muted; $("bsnd").textContent = vid.muted ? "Sound off" : "Sound on"; };
+  addEventListener("keydown", e => { if (e.code === "Space") { e.preventDefault(); playing ? pause() : play(); }
+    if (e.code === "ArrowRight") $("bfwd").click(); if (e.code === "ArrowLeft") $("bback").click(); });
+  buildReport();
+}
+
+function buildReport() {
+  const R = D.report, best = D.players.reduce((a, b) => (b.total > a.total ? b : a));
+  const fmt = v => v == null ? "—" : Math.round(v);
+  $("report").innerHTML = `
+    <h2>${R.title}</h2>
+    <p>${R.headline}</p><p class="muted">${R.verdict}</p>
+    <h2>Điểm từng người</h2>
+    <div class="tblw"><table class="tbl"><thead><tr><th>Người</th><th>Tổng</th><th>Vị trí 35%</th><th>Cú đánh 25%</th><th>Tư thế 20%</th><th>Di chuyển 20%</th><th>Số cú</th></tr></thead><tbody>
+    ${D.players.map((p, i) => `<tr><td><span class="pchip" style="background:${PCOL[i]}">${p.id}</span> <span class="muted">${PPOS[i]}</span></td>
+      <td class="n"><b>${fmt(p.total)}</b>${p.id === best.id ? " ★" : ""}</td>${PART.map(([k]) => `<td class="n">${fmt(p.parts[k])}</td>`).join("")}<td class="n">${p.strikes}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="pgrid" style="margin-top:16px">${D.players.map((p, i) => `<div class="pcard" style="border-top:3px solid ${PCOL[i]}">
+      <h3><span style="color:${PCOL[i]}">${p.id}</span><span>${fmt(p.total)}</span></h3>
+      <h4 style="color:#57FFA8">LÀM TỐT</h4><ul>${p.good.map(t => `<li>${t}</li>`).join("")}</ul>
+      <h4 style="color:var(--amber)">CẦN SỬA</h4><ul>${p.work.map(t => `<li>${t}</li>`).join("")}</ul></div>`).join("")}</div>
+    <h2>Danh sách cú đánh</h2>
+    <div class="tblw"><table class="tbl"><thead><tr><th>#</th><th>Thời điểm</th><th>Người</th><th>Loại</th><th>Hướng</th><th>Tốc độ</th><th>Diễn giải</th></tr></thead><tbody>
+    ${D.strikes.map(s => `<tr><td class="n">${s.n}</td><td class="n">${s.t.toFixed(2)} s</td><td><span class="pchip" style="background:${PCOL[s.pi]}">${s.player}</span></td>
+      <td>${TYPE_EN[s.type]}</td><td>${s.dir ? DIR_EN[s.dir] : "—"}</td><td class="n">${s.kmh == null ? "—" : s.kmh.toFixed(0) + " km/h"}</td><td>${s.line}</td></tr>`).join("")}
+    </tbody></table></div>
+    <h2>Cỡ mẫu và giới hạn đo</h2><p>${R.limits}</p>
+    ${R.advice ? `<h2>Lần quay sau</h2><p>${R.advice}</p>` : ""}`;
+}
+</script>
+</body>
+</html>

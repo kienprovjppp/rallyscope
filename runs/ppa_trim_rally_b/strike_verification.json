@@ -1,0 +1,567 @@
+{
+ "judges": [
+  {
+   "events": [
+    {
+     "frame": 2,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "low",
+     "evidence": "Frames 0-5 show only the empty net and kitchen with no ball and no players. This is before the serve: P3 still holds the ball at 18-24 and serves at 28, so no ball is in play."
+    },
+    {
+     "frame": 10,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "medium",
+     "evidence": "Frames 7-13 show the red-shirt P3 standing still in a pre-serve stance with no swing and no ball visible. The serve only comes at frame 28, so the audio spike here is not a rally strike."
+    },
+    {
+     "frame": 21,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In frames 18-24 the ball stays still in the red-shirt P3's left hand beside the paddle while he gets ready to serve. Nothing hits it."
+    },
+    {
+     "frame": 28,
+     "verdict": "strike",
+     "contact_frame": 28,
+     "hitter_shirt": "red",
+     "hitter_label": "P3",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "In 25-27 the ball drops slowly next to P3's paddle. At 28 the paddle face is on the ball, and from 29 to 31 the ball moves sideways at a steady speed while P3 follows through across his body: an underhand serve."
+    },
+    {
+     "frame": 37,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In frames 34-40 the served ball travels smoothly right and down toward the near court, with no change of direction. P3 already has his paddle overhead in follow-through and P4 (white) is far from the ball."
+    },
+    {
+     "frame": 45,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In frames 42-48 the ball crosses the net and moves on a steady straight path into the near side (about 30px right and 35-45px down per frame). There is no turn, no paddle and no ground contact."
+    },
+    {
+     "frame": 57,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "medium",
+     "evidence": "In 54-57 the ball flies toward P1 (blue), and frame 57 repeats frame 56. At 58 the ball reaches P1's left hand and then disappears, so he catches it. His paddle stays low on his right side in 58-60 and never touches the ball."
+    }
+   ]
+  },
+  {
+   "events": [
+    {
+     "frame": 65,
+     "verdict": "strike",
+     "contact_frame": 63,
+     "hitter_shirt": "blue-right",
+     "hitter_label": "P1",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "The near player at the bottom right in blue (orange P1 skeleton) swings the paddle up. At 63 the ball is hidden at the paddle behind his head, and from 64 to 68 it climbs away toward the net. This is the return of serve."
+    },
+    {
+     "frame": 81,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "The ball drifts slowly left at an almost constant height on screen near the far baseline. This is the apex of the return's flight. P4 stands still in a ready stance and no paddle comes near the ball."
+    },
+    {
+     "frame": 92,
+     "verdict": "bounce",
+     "contact_frame": 93,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In the far court the ball falls about 14 px per frame from 88 to 93, then turns sharply and rises about 24 px per frame from 94 on. It keeps the same sideways drift and no player is near it, so it bounced in the far court. P2's head is only close in the picture."
+    },
+    {
+     "frame": 101,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "medium",
+     "evidence": "The ball rises after its bounce toward P4's low forehand paddle. At 104 it is still just under the paddle edge. Native frames show the contact at about 106, after this strip, and it is the same hit as event 113."
+    },
+    {
+     "frame": 113,
+     "verdict": "strike",
+     "contact_frame": 106,
+     "hitter_shirt": "white",
+     "hitter_label": "P4",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "At 110 the ball is still on P4's paddle face and at 111 it leaves as he follows through upward. Native frames 103 to 111 show the ball reaching the paddle and its sideways motion reversing at about 106. This is P4's third shot (white shirt, cyan P4 label)."
+    },
+    {
+     "frame": 124,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "After P4's shot the ball moves smoothly down the picture toward the near court and does not change direction. P4 and P3 are running forward and nothing touches the ball."
+    },
+    {
+     "frame": 135,
+     "verdict": "bounce",
+     "contact_frame": 137,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "The ball drops steeply into the near kitchen in front of P1 (about 30 px per frame), reverses at 137 at ground level just past the kitchen line, then rises slowly. P1's lowered paddle stays to the side and below the ball and never touches it."
+    }
+   ]
+  },
+  {
+   "events": [
+    {
+     "frame": 143,
+     "verdict": "strike",
+     "contact_frame": 145,
+     "hitter_shirt": "blue-left",
+     "hitter_label": "P1",
+     "label_on_right_body": true,
+     "confidence": "medium",
+     "evidence": "Ball holds still at knee height in front of the left blue player (140-144) while his low paddle swings up; at 145 the paddle sits exactly where the ball was and the ball is gone afterwards."
+    },
+    {
+     "frame": 154,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "From 151 to 157 the ball moves in an even straight line up-right over the net toward P4 (white), with no bend and no paddle contact."
+    },
+    {
+     "frame": 174,
+     "verdict": "bounce",
+     "contact_frame": 173,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "medium",
+     "evidence": "Ball drops through the far-side net zone (171-172), is hidden behind the Rate sign (173-174), then comes back rising (175-177) on the same x path toward P4's paddle, which is well above it: a far-kitchen bounce."
+    },
+    {
+     "frame": 185,
+     "verdict": "strike",
+     "contact_frame": 182,
+     "hitter_shirt": "white",
+     "hitter_label": "P4",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "Ball is centred on P4's red paddle face at 182, at its edge at 183, then leaves leftward at a steady ~25 px/frame (184-188) while the paddle follows through."
+    },
+    {
+     "frame": 215,
+     "verdict": "unclear",
+     "contact_frame": -1,
+     "hitter_shirt": "blue-left",
+     "hitter_label": "P1",
+     "label_on_right_body": true,
+     "confidence": "low",
+     "evidence": "Ball is not visible in 212-217 (likely hidden by P1's body, seen from behind); P1's paddle goes from low-left out of view, and the ball only shows at 218 beside his right hip, so no contact can be seen."
+    },
+    {
+     "frame": 246,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "Ball moves slowly in a straight line up-right on the far side (244-248) and reaches the underside of P4's paddle only at 249; nothing happens at 246."
+    },
+    {
+     "frame": 254,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "white",
+     "hitter_label": "P4",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "Ball stays on P4's paddle face in all 7 frames (251-257) while the paddle lifts slowly: P4 is catching or cradling a dead ball, not striking it."
+    }
+   ]
+  },
+  {
+   "events": [
+    {
+     "frame": 381,
+     "verdict": "strike",
+     "contact_frame": 382,
+     "hitter_shirt": "red",
+     "hitter_label": "P3",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "Ball travels left at court level from 376 to 381 toward P3's low paddle. It sits on the paddle face at 382-383 and leaves up and to the right at 384, a scoop dink by the red-shirt player."
+    },
+    {
+     "frame": 386,
+     "verdict": "strike",
+     "contact_frame": 382,
+     "hitter_shirt": "red",
+     "hitter_label": "P3",
+     "label_on_right_body": true,
+     "confidence": "medium",
+     "evidence": "This is the same P3 dink as event 381, not a new hit: the ball is still on P3's paddle at 383, then flies freely to the right from 384 to 389. At 386 the ball is only in flight, so the audio peak is a delayed echo of the 382 contact."
+    },
+    {
+     "frame": 402,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "Ball descends steadily, about 25 px per frame, past P4's legs and over the net toward the near court from 399 to 405. P4's paddle stays at his waist and no bounce or contact happens."
+    },
+    {
+     "frame": 411,
+     "verdict": "bounce",
+     "contact_frame": 411,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "medium",
+     "evidence": "Ball moves down from 410 to 411, then back up at 412, at ground level just in front of and between P2's feet. P2's paddle is well off to his right, so this is a bounce on the near court."
+    },
+    {
+     "frame": 417,
+     "verdict": "unclear",
+     "contact_frame": -1,
+     "hitter_shirt": "blue-right",
+     "hitter_label": "P2",
+     "label_on_right_body": true,
+     "confidence": "medium",
+     "evidence": "Ball is hidden behind P2's body in every crop from 413 to 423 while his backhand paddle swings forward from 414 to 418. The ball reappears flying over the net around 425, so P2 (blue-right) probably hit it around 414-416, but the contact is not visible."
+    },
+    {
+     "frame": 428,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "Ball rises smoothly from the net toward P4's left side from 425 to 431, passing left of his paddle without touching it. There is no bounce or contact in the strip."
+    },
+    {
+     "frame": 443,
+     "verdict": "strike",
+     "contact_frame": 440,
+     "hitter_shirt": "red",
+     "hitter_label": "P3",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "Native frames show the ball moving left and down into P3's low paddle from 435 to 439. The ball is hidden by the paddle at 440 and leaves it up and to the right from 441 to 446, a P3 dink with audio lagging about 3 frames."
+    }
+   ]
+  },
+  {
+   "events": [
+    {
+     "frame": 262,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "The ball drifts away from P4's (white) raised paddle and falls along a smooth arc through 259-265; he scooped and lifted it at about 250-256, before this strip, and nothing touches it inside the strip.",
+     "frame_note_unused": null
+    },
+    {
+     "frame": 279,
+     "verdict": "strike",
+     "contact_frame": 276,
+     "hitter_shirt": "blue-right",
+     "hitter_label": "P2",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "The ball comes down onto P2, is hidden by his body at 275-276, then leaves his left side at 277 going up-left toward the far court, with his paddle follow-through visible above his head at 280-282."
+    },
+    {
+     "frame": 289,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "The ball is mid-flight near the top of its arc in front of P3 (red), drifting smoothly left. P3 stays in ready stance with his paddle low and never touches it."
+    },
+    {
+     "frame": 321,
+     "verdict": "strike",
+     "contact_frame": 320,
+     "hitter_shirt": "red",
+     "hitter_label": "P3",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "The ball comes in low at P3's (red) feet, sits on his low paddle at 320, is covered by the paddle at 321, then flies up-right at 322-324 as the paddle follows through."
+    },
+    {
+     "frame": 336,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "The ball travels steadily right and downward (toward the camera) past P4's legs with no change of direction. P4's paddle stays at his waist."
+    },
+    {
+     "frame": 349,
+     "verdict": "bounce",
+     "contact_frame": 346,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "medium",
+     "evidence": "The ball falls fast to P2's left shin by 346, then rises slowly along his leg at 347-351 (half hidden). This is a bounce in front of him; his paddle is held low between his legs, away from the ball."
+    },
+    {
+     "frame": 358,
+     "verdict": "strike",
+     "contact_frame": 355,
+     "hitter_shirt": "blue-right",
+     "hitter_label": "P2",
+     "label_on_right_body": true,
+     "confidence": "medium",
+     "evidence": "The ball is hidden behind P2 at 352-355, comes out at his left hip at 356 heading up-left at speed, and his paddle follows through above his head at 359-361. Contact is about 355 but blocked from view."
+    }
+   ]
+  },
+  {
+   "events": [
+    {
+     "frame": 564,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In all 7 crops (561-567) the ball drifts slowly and smoothly across the dark surround outside the far court. No player or paddle is anywhere in the crops, so the audio spike is not a strike here; this is a dead ball rolling."
+    },
+    {
+     "frame": 578,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In crops 575-581 the ball rolls slowly along the floor toward the side barrier with no sharp change of direction. No player or paddle is in view."
+    },
+    {
+     "frame": 589,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In crops 586-592 the ball sits almost still on the floor next to the side barrier, far from any player. The 176-degree turn is just jitter from a ball that has nearly stopped, not a paddle hit or a court bounce."
+    },
+    {
+     "frame": 597,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": false,
+     "confidence": "high",
+     "evidence": "In crops 594-600 the ball creeps slowly along the floor beside the side barrier. No paddle or player is near it, so this is a dead ball after the rally."
+    }
+   ]
+  },
+  {
+   "events": [
+    {
+     "frame": 464,
+     "verdict": "bounce",
+     "contact_frame": 464,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "Ball drops between P2's legs (blue-right) to its lowest point at 464 and rises at 465-466, a bounce in the kitchen in front of him while his paddle is held away on his right side."
+    },
+    {
+     "frame": 474,
+     "verdict": "strike",
+     "contact_frame": 472,
+     "hitter_shirt": "blue-right",
+     "hitter_label": "P2",
+     "label_on_right_body": true,
+     "confidence": "medium",
+     "evidence": "After the 464 bounce the ball is hidden behind P2's body (blue-right) for 467-472, then comes out at 473 heading up-left toward the far court, with his paddle following through high at 476-477; the contact itself is hidden."
+    },
+    {
+     "frame": 488,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "In 485-491 the ball flies smoothly left toward P3 (red) with no sharp turn, and his low paddle never reaches it; his hit comes later, at about 506."
+    },
+    {
+     "frame": 506,
+     "verdict": "strike",
+     "contact_frame": 506,
+     "hitter_shirt": "red",
+     "hitter_label": "P3",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "P3 (red) lunges with his paddle low; the ball moves left into the paddle face at 506 and reverses to rise and move right from 507."
+    },
+    {
+     "frame": 532,
+     "verdict": "strike",
+     "contact_frame": 529,
+     "hitter_shirt": "blue-left",
+     "hitter_label": "P1",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "The ball comes down toward P1 (blue-left) at the net, meets his swinging paddle at 529, then climbs up-right toward P4 in 530-535."
+    },
+    {
+     "frame": 541,
+     "verdict": "none",
+     "contact_frame": -1,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": true,
+     "confidence": "medium",
+     "evidence": "P4 (white) swings a forehand at 539-540, but his paddle passes just over the ball, which keeps the same path and speed to the right and later bounces deep on his side: a swing and miss."
+    },
+    {
+     "frame": 551,
+     "verdict": "bounce",
+     "contact_frame": 550,
+     "hitter_shirt": "none",
+     "hitter_label": "none",
+     "label_on_right_body": true,
+     "confidence": "high",
+     "evidence": "Deep on the far court near the right sideline, the ball hits its lowest point at 550 and rises in 551-554 with no paddle nearby; P4 has his back turned, the near team relaxes and the rally ends."
+    }
+   ]
+  }
+ ],
+ "second_look": {
+  "events": [
+   {
+    "frame": 2,
+    "verdict": "none",
+    "contact_frame": -1,
+    "hitter_shirt": "none",
+    "hitter_label": "none",
+    "label_on_right_body": false,
+    "confidence": "high",
+    "evidence": "Crops 0-5 show only the empty net and kitchen with no ball and no player near it. This is before the serve, so I agree with the first reviewer."
+   },
+   {
+    "frame": 57,
+    "verdict": "strike",
+    "contact_frame": 61,
+    "hitter_shirt": "blue-right",
+    "hitter_label": "P1",
+    "label_on_right_body": true,
+    "confidence": "medium",
+    "evidence": "This refutes the catch. The full-res frames after the strip show the ball moving past P1's left hand at 58 down to his forehand paddle on the right at 61. He swings up through 62-64, and the ball flies back toward the far court at 64-66. P1 is the near-right receiver here. Frame 57 is a duplicate of 56."
+   },
+   {
+    "frame": 215,
+    "verdict": "strike",
+    "contact_frame": 216,
+    "hitter_shirt": "blue-left",
+    "hitter_label": "P1",
+    "label_on_right_body": true,
+    "confidence": "medium",
+    "evidence": "In the full-res frames the dink lands between P1's feet around 209. His low backhand paddle sweeps from his left knee (214-215) across his body, and the ball comes out at his right side at 218. It then rises back toward the net with a high follow-through (219-223) and crosses to P4. The contact itself is hidden by his body."
+   },
+   {
+    "frame": 254,
+    "verdict": "strike",
+    "contact_frame": 251,
+    "hitter_shirt": "white",
+    "hitter_label": "P4",
+    "label_on_right_body": true,
+    "confidence": "high",
+    "evidence": "This refutes the cradle verdict. The ball bounces near P4 at about 245 and rises up and to the right onto his paddle at 249-251. At 252 it turns and moves left and up as he lifts it. The ball only seems to stay on the paddle because it is travelling toward the camera. It then crosses the net to P2 by 272-274, so the rally continues."
+   },
+   {
+    "frame": 349,
+    "verdict": "bounce",
+    "contact_frame": 346,
+    "hitter_shirt": "none",
+    "hitter_label": "none",
+    "label_on_right_body": false,
+    "confidence": "medium",
+    "evidence": "The ball comes down to its lowest point by P2's left shin at 346, then rises slowly beside his left leg at 347-351. P2 then hits it with a hidden backhand at about 353, just outside this window: his paddle is between his legs at 350-353, and the ball comes out at his left hip at 356 heading for the net. That strike belongs to event 358."
+   },
+   {
+    "frame": 417,
+    "verdict": "strike",
+    "contact_frame": 421,
+    "hitter_shirt": "blue-right",
+    "hitter_label": "P2",
+    "label_on_right_body": true,
+    "confidence": "medium",
+    "evidence": "The ball bounces between P2's feet at about 411, and his paddle waits low at his right knee from 412 to 418. It comes up past his hip at 419-420, is hidden in front of his body at 421-422, and is high by his right shoulder at 423-425. The ball comes out by his head at 424 heading over the net. Working back from its path puts contact at about 421, not 414-416."
+   },
+   {
+    "frame": 428,
+    "verdict": "none",
+    "contact_frame": -1,
+    "hitter_shirt": "none",
+    "hitter_label": "none",
+    "label_on_right_body": false,
+    "confidence": "high",
+    "evidence": "In the full-res zoom, P2's shot passes at knee height on P4's right side (image left) at 430-432. His paddle stays still and points down in front of his body, about 40 px away, and he never swings. The ball keeps drifting left toward P3, who plays it at about 441."
+   }
+  ]
+ }
+}
