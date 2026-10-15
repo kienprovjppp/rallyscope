@@ -3,9 +3,10 @@
 // Optional court.json: {width, height, corners}, ordered far-left, far-right, near-right, near-left.
 // PLAYWRIGHT_MODULE selects a local installation; BROWSER_CHANNEL=chrome uses installed Chrome.
 // BROWSER_GPU=1 uses the native renderer instead of SwiftShader.
-// The site folder holds index.html (from template/), data.json, rally.mp4/webm, mp/ (from the repo root) and
-// mpjs/ (vision_bundle.mjs + wasm/ from `npm pack @mediapipe/tasks-vision@0.10.21`); the page is pointed at the
-// local copies through window.__MP_BASE / window.__MP_DIR. Playwright Chromium has no H.264: test with VP9 webm.
+// RALLYSCOPE_URL can target the local launcher instead of the fixture server.
+// The site folder holds index.html (from template/), data.json, rally.mp4/webm and mp/ (from the repo root).
+// mp/ includes the checked-in JS runtime and wasm/ loader. Test the default paths,
+// without MediaPipe URL overrides. Playwright Chromium has no H.264: test with VP9 webm.
 import { createServer } from "node:http";
 import { createReadStream, statSync, existsSync, writeFileSync, readFileSync } from "node:fs";
 import assert from "node:assert/strict";
@@ -37,10 +38,12 @@ const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 
 try {
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const logs = [];
+const aiRequests = [];
+page.on("request", req => { if (/vision_bundle|vision_wasm|pose_model|cdn\.jsdelivr\.net/.test(req.url())) aiRequests.push(req.url()); });
+await page.route("https://cdn.jsdelivr.net/**", route => route.abort());
 page.on("console", m => { const t = `[${m.type()}] ${m.text()}`; logs.push(t); if (m.type() === "error" || m.type() === "warning") console.log(t.slice(0, 300)); });
 page.on("pageerror", e => { logs.push("[pageerror] " + e.message); console.log("[pageerror]", e.message); });
 await page.addInitScript(() => {
-  window.__MP_BASE = "/mpjs"; window.__MP_DIR = "/mp/";
   // Observe the four handles actually drawn by setup; auto-detection can move them.
   // Keep instrumentation in the test, without exposing analyser state in the product.
   const arc = CanvasRenderingContext2D.prototype.arc;
@@ -51,7 +54,7 @@ await page.addInitScript(() => {
     return arc.call(this, x, y, ...args);
   };
 });
-await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: "load" });
+await page.goto(process.env.RALLYSCOPE_URL || `http://127.0.0.1:${port}/index.html`, { waitUntil: "load" });
 await page.evaluate(() => window.__ready);
 await page.keyboard.press("Escape");
 await page.locator("#intro").waitFor({state: "detached"});
@@ -108,6 +111,10 @@ if (summary) {
 writeFileSync(`${outPrefix}_console.txt`, logs.join("\n"));
 assert(summary && summary.frames > 0 && summary.players.length === 4, "upload did not produce an analysis");
 assert(!logs.some(s => s.startsWith("[pageerror]")), "uncaught browser error");
+assert(!aiRequests.some(url => url.includes("cdn.jsdelivr.net")), "AI runtime must load without CDN access");
+for (const asset of ["/mp/vision_bundle.mjs", "/mp/wasm/vision_wasm_internal.js", "/mp/pose_model.wasm", "/mp/vision_wasm_internal.wasm"]) {
+  assert(aiRequests.some(url => new URL(url).pathname === asset), `default runtime did not request ${asset}`);
+}
 } finally {
   await browser.close();
   server.closeAllConnections();

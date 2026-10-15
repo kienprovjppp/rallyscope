@@ -2,6 +2,18 @@
 
 Nguồn: `VIETNAM vs AUSTRALIA - The World Cup Battle (1m26-2m26, khong tieng).mp4`, 1920×1080, 60 fps, 60 giây, không tiếng. Góc đo tại kích thước phân tích 1280×720 nằm trong `fixtures/vietnam_court.json`; không đưa góc riêng của video vào sản phẩm. Mô hình MediaPipe và hai file WASM giữ nguyên.
 
+## Sửa lỗi mở trực tiếp file / tải AI
+
+Sau lần kiểm chứng tracker, người dùng báo “Failed to fetch” khi mở `C:/Users/tamki/rallyscope/template/index.html`. Tái hiện bằng Chrome với `file://`: trang không thể tải tài nguyên AI bằng `fetch`; bản test cũ còn che một vấn đề khác vì đặt URL MediaPipe local thay cho cấu hình CDN của sản phẩm.
+
+- Thêm `node scripts/serve.mjs` để phục vụ template, rally mẫu và AI tại `http://127.0.0.1:8000/`; server chỉ cho đọc các tài nguyên công khai định trước, không mở toàn bộ repo.
+- Đóng gói hai file JS nguyên bản của MediaPipe 0.10.21 trong `mp/`, kiểm tra SHA-512 gói npm. Runtime WASM khớp SHA-256 với bản đã có, không thay mô hình hoặc WASM.
+- Mở bằng `file://` nay dừng trước khi xử lý video và hướng dẫn mở localhost. Lỗi tải mô hình qua HTTP nêu file thiếu và mã trạng thái.
+- Kiểm chứng Chrome đúng đường dẫn `file://` đã thấy thông báo mới, không gọi tải AI. Upload clip Việt Nam 5 giây qua launcher hoàn tất với **cấu hình mặc định, CDN bị chặn, không đặt `__MP_BASE`/`__MP_DIR`**. Cả bốn tài nguyên JS/mô hình/runtime được tải từ `/mp/` cùng origin. Log không có `pageerror`; vẫn có cảnh báo nội bộ MediaPipe.
+- Test thêm: `runtime_loading_test.mjs` (đường dẫn mặc định, hướng dẫn file://, lỗi mạng/404); `serve_test.mjs` (tài nguyên, range video, HEAD, chặn file ngoài danh sách và POST).
+
+Bằng chứng bổ sung nằm trong `out_vietnam/local_runtime_*` và `out_vietnam/file_protocol_fixed.png`. Lần này chỉ sửa cách mở/tải tài nguyên, không thay thuật toán tracking; số đo tracker ở dưới giữ nguyên phạm vi kiểm chứng trước đó.
+
 ## Lỗi đã tái hiện và sửa
 
 - Test kéo từ góc mặc định khi tự dò đã đổi vị trí; màn giới thiệu còn che thao tác đầu. Test nay đóng màn giới thiệu, đọc bốn tâm chấm thực sự được vẽ, kéo bằng chuột và xác nhận từng tọa độ.

@@ -12,6 +12,7 @@ Bộ **RallyScope** biến một rally pickleball (camera cố định) thành v
 - `template/index.html`: trang 1920×1080 (sân hologram, khung xương, vệt bóng, bảng bên phải, thẻ báo cáo). Trang này có thêm nút **Tải video lên** (phân tích ngay trong trình duyệt) và 4 nút bật/tắt lớp phủ.
 - `runs/ppa_trim_rally_b/`: lần chạy rally B (PPA Chicago Cup): dữ liệu đã đo, trang đã dựng, `runs/ppa_trim_rally_b/HANDOFF.md` (trạng thái và việc còn lại).
 - `tests/upload_test.mjs`: test headless cho luồng tải video lên.
+- Mở bản local bằng `node scripts/serve.mjs` rồi vào `http://127.0.0.1:8000/`; không mở trực tiếp `template/index.html` bằng `file://`. Thư viện JS MediaPipe đã có trong `mp/`; kiểm thử mặc định không đặt URL override và chặn CDN.
 - `mp/pose_model.wasm` và `mp/vision_wasm_internal.wasm`: mô hình MediaPipe cho nút **Tải video lên**. `pose_model.wasm` là pose landmarker bản *full* (file .task đổi đuôi), `vision_wasm_internal.wasm` là runtime WASM của `@mediapipe/tasks-vision@0.10.21`. Không sửa hai file này.
 
 ## Quy tắc khi phân tích
@@ -39,5 +40,5 @@ Bộ **RallyScope** biến một rally pickleball (camera cố định) thành v
 ## Trang công khai (Artifact)
 
 - Link: https://Codex.ai/artifact/5ewsNu7BQSqZeeTtQZLNvM (riêng tư; hiện là bản 1, chưa có nút tải video lên).
-- Khi đăng lại: bỏ `<!doctype>`, `<html>`, `<head>`, `<body>` khỏi file. Gửi kèm `data.json`, `rally.mp4`, `rally.webm` và **`mp/pose_model.wasm`, `mp/vision_wasm_internal.wasm`** (bắt buộc cho tính năng tải video). Khai báo `capabilities: {sample: {}}` cho nút "Viết lại nhận xét bằng Codex".
+- Khi đăng lại: bỏ `<!doctype>`, `<html>`, `<head>`, `<body>` khỏi file. Gửi kèm `data.json`, `rally.mp4`, `rally.webm` và **toàn bộ `mp/`**, gồm hai file WASM, `vision_bundle.mjs`, `wasm/vision_wasm_internal.js` và giấy phép (bắt buộc cho tính năng tải video). Khai báo `capabilities: {sample: {}}` cho nút "Viết lại nhận xét bằng Codex".
 - Commit vào branch được giao. Không tạo PR nếu Kien không yêu cầu.

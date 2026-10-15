@@ -1589,8 +1589,8 @@ function buildReport() {
 // =====================================================================================
 (() => {
 if (REC) return;
-const MP_BASE = window.__MP_BASE || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
 const MP_DIR = window.__MP_DIR || "mp/";
+const MP_BASE = window.__MP_BASE || new URL(MP_DIR, location.href).href.replace(/\/$/, "");
 const CWd = 6.10, CLd = 13.41, CKd = 2.134, NETd = CLd / 2;
 const KEEP = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 const TYPE_VI = {serve: "giao bóng", return: "trả giao", third_drop: "cú thứ ba (drop)", third_drive: "cú thứ ba (drive)",
@@ -1701,12 +1701,18 @@ function check() { if (job && job.cancel) throw new Cancelled("cancelled"); }
 
 // ------------------------------------------------------------------ pose model
 async function loadPose() {
-  if (!mpLib) { say("Đang tải thư viện AI (MediaPipe)"); mpLib = await import(`${MP_BASE}/vision_bundle.mjs`); }
+  if (!mpLib) {
+    say("Đang tải thư viện AI (MediaPipe)");
+    try { mpLib = await import(`${MP_BASE}/vision_bundle.mjs`); }
+    catch (e) { throw new Error("Không tải được thư viện AI. Kiểm tra mp/vision_bundle.mjs có được phục vụ cùng trang qua HTTP/HTTPS."); }
+  }
   if (!poseBuf) {
     say("Đang tải mô hình khung xương (khoảng 10 MB, chỉ lần đầu)");
-    const r = await fetch(MP_DIR + "pose_model.wasm");
-    if (!r.ok) throw new Error("Không tải được mô hình khung xương. Mở trang từ link claude.ai rồi thử lại.");
-    poseBuf = new Uint8Array(await r.arrayBuffer());
+    try {
+      const r = await fetch(MP_DIR + "pose_model.wasm");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      poseBuf = new Uint8Array(await r.arrayBuffer());
+    } catch (e) { throw new Error(`Không tải được mp/pose_model.wasm (${e.message}). Kiểm tra thư mục mp/ được phục vụ cùng trang.`); }
   }
   if (!LM) {
     const fileset = {wasmLoaderPath: `${MP_BASE}/wasm/vision_wasm_internal.js`,
@@ -1714,7 +1720,10 @@ async function loadPose() {
     const opt = delegate => ({baseOptions: {modelAssetBuffer: poseBuf.slice(), delegate}, runningMode: "IMAGE", numPoses: 3,
       minPoseDetectionConfidence: 0.3, minPosePresenceConfidence: 0.3, minTrackingConfidence: 0.3});
     try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("GPU")); }
-    catch (e) { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("CPU")); }
+    catch (e) {
+      try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("CPU")); }
+      catch (cpuError) { throw new Error(`Không khởi động được MediaPipe (${cpuError.message}). Kiểm tra mp/wasm/vision_wasm_internal.js và mp/vision_wasm_internal.wasm.`); }
+    }
   }
 }
 // detect poses in a square crop of the frame canvas; returns [{pts: Float32Array(99) in frame px, world}]
@@ -2597,6 +2606,7 @@ async function run(file) {
   showOnly("proc"); $("procTitle").textContent = `Đang mở ${file.name}`; prog(0); say("Đang mở video", "");
   $("btnStop").onclick = () => { my.cancel = true; };
   try {
+    if (location.protocol === "file:") throw new Error("Hãy mở RallyScope qua localhost: chạy node scripts/serve.mjs trong thư mục rallyscope, rồi mở http://127.0.0.1:8000/. Không mở trực tiếp file index.html.");
     await waitMeta(av);
     const dur = av.duration; if (!isFinite(dur) || dur <= 0) throw new Error("Không đọc được độ dài video. Hãy xuất lại thành MP4 rồi thử lại.");
     const sc = Math.min(1, 1280 / av.videoWidth), aw = Math.round(av.videoWidth * sc / 2) * 2, ah = Math.round(av.videoHeight * sc / 2) * 2;
