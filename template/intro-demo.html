@@ -1,0 +1,656 @@
+<title>RallyScope Intro Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap">
+<style>
+/* Demo of the new intro on a copy of the landing page. Single dark theme, same tokens as template/index.html. */
+:root{
+  color-scheme: dark;
+  --bg:#04080F; --panel:#07111D; --panel-2:#0A1828; --line:#14283D; --line-2:#21405E;
+  --ink:#E2EEF8; --ink-2:#9DB4C9; --ink-3:#6C869F;
+  --cyan:#4DE3FF; --amber:#FFC857; --white:#FFFFFF;
+  --f-display:"Chakra Petch",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --f-body:"Noto Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand b{font:700 30px/1 var(--f-display);letter-spacing:.14em;color:var(--cyan);text-shadow:0 0 14px rgba(77,227,255,.55)}
+.brand small{display:block;font:500 12px/1 var(--f-mono);letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase;margin-top:6px}
+
+/* ---------- landing (copied from template/index.html) ---------- */
+#landing{min-height:100vh;display:grid;place-items:center;padding:48px 16px;
+  background:radial-gradient(ellipse 70% 55% at 50% 38%,rgba(77,227,255,.09),transparent 70%),
+    linear-gradient(rgba(77,227,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(77,227,255,.028) 1px,transparent 1px);background-size:auto,40px 40px,40px 40px}
+#landing{position:relative;isolation:isolate;--dim-c:.45;--dim-e:.8}
+.bgv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:0;transition:opacity 1s ease;pointer-events:none}
+#landing.has-bg .bgv{opacity:1}
+#landing.has-bg:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 75% 65% at 50% 45%,rgba(4,8,15,var(--dim-c)),rgba(4,8,15,var(--dim-e))),
+    linear-gradient(rgba(77,227,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(77,227,255,.035) 1px,transparent 1px);background-size:auto,40px 40px,40px 40px}
+.land{width:100%;max-width:760px;display:grid;gap:28px;justify-items:center;text-align:center}
+.land .brand{text-align:left}
+.land h1{margin:0;font:700 clamp(28px,5vw,44px)/1.12 var(--f-display);letter-spacing:.02em;color:var(--white);text-wrap:balance}
+.land h1 em{font-style:normal;color:var(--cyan);text-shadow:0 0 18px rgba(77,227,255,.45)}
+.land .sub{margin:-12px 0 0;font:400 16px/1.55 var(--f-body);color:var(--ink-2);max-width:56ch}
+#drop{position:relative;width:100%;display:grid;gap:12px;justify-items:center;padding:56px 24px;cursor:pointer;border-radius:22px;
+  background:rgba(7,17,29,.82);border:1.5px dashed var(--line-2);transition:border-color .2s,background .2s,transform .2s}
+#drop:before,#drop:after{content:"";position:absolute;width:30px;height:30px;border:2px solid var(--amber)}
+#drop:before{left:-5px;top:-5px;border-right:0;border-bottom:0;border-top-left-radius:26px}
+#drop:after{right:-5px;bottom:-5px;border-left:0;border-top:0;border-bottom-right-radius:26px}
+#drop:hover,#drop.over{border-color:var(--amber);background:rgba(255,200,87,.06)}
+#drop svg{color:var(--amber);filter:drop-shadow(0 0 10px rgba(255,200,87,.45))}
+#drop b{font:700 22px/1.2 var(--f-display);letter-spacing:.04em;color:var(--white)}
+#drop span{font:400 15px/1.5 var(--f-body);color:var(--ink-2)}
+#drop .btn{margin-top:8px;border-radius:12px;display:inline-flex;align-items:center;height:42px;padding:0 22px;background:var(--amber);color:#04080F;font:700 13px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+#drop small{font:500 12px/1.4 var(--f-mono);color:var(--ink-3);letter-spacing:.04em}
+.land .or{display:flex;align-items:center;gap:14px;width:100%;font:600 11px/1 var(--f-display);letter-spacing:.24em;color:var(--ink-3)}
+.land .or:before,.land .or:after{content:"";flex:1;height:1px;background:var(--line-2)}
+#sampleTile{width:100%;border-radius:16px;display:flex;align-items:center;gap:18px;padding:16px 20px;text-align:left;cursor:pointer;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line-2);font:inherit;transition:border-color .2s,background .2s}
+#sampleTile:hover{border-color:var(--cyan);background:var(--panel-2)}
+#sampleTile .play{flex:none;border-radius:14px;width:52px;height:52px;display:grid;place-items:center;border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(77,227,255,.25) inset}
+#sampleTile b{display:block;font:700 16px/1.2 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+#sampleTile span span{display:block;margin-top:5px;font:400 14px/1.45 var(--f-body);color:var(--ink-2)}
+.land .priv{font:400 13px/1.5 var(--f-body);color:var(--ink-3);max-width:60ch;margin:0}
+
+/* ---------- intro: the eye opens, the camera dives through the pupil, balls spiral out of the vortex and become the page ---------- */
+html.intro-on{overflow:hidden}
+#intro{position:fixed;inset:0;z-index:1000;overflow:hidden;cursor:pointer;background:var(--bg)}
+#introCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#introSkip{position:absolute;right:max(18px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));
+  font:500 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+/* while the page loads: a thin line under the closed eye; a CSS animation, so it stays smooth while the page is busy */
+#introLoad{position:absolute;left:50%;top:calc(50% + 64px);width:140px;height:2px;margin-left:-70px;border-radius:1px;overflow:hidden;
+  background:rgba(77,227,255,.14);opacity:0;animation:introLoadIn .3s .4s ease-out forwards}
+#introLoad:after{content:"";position:absolute;inset:0;width:40%;background:linear-gradient(90deg,transparent,#4DE3FF,transparent);animation:introLoadRun 1.1s ease-in-out infinite}
+#intro.go #introLoad{display:none}
+@keyframes introLoadIn{to{opacity:1}}
+@keyframes introLoadRun{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+
+/* ---------- demo controls (not part of the intro) ---------- */
+#landing{padding-top:110px}
+@media (max-width:640px){#landing{padding-top:180px}}
+#demoBar{position:fixed;z-index:2000;left:50%;top:max(12px,env(safe-area-inset-top,0px));transform:translateX(-50%);width:min(760px,calc(100% - 24px));
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-radius:14px;
+  background:rgba(7,17,29,.92);border:1px solid var(--line-2);box-shadow:0 8px 30px rgba(0,0,0,.45)}
+#demoBar .lbl{font:600 11px/1 var(--f-display);letter-spacing:.2em;color:var(--amber);text-transform:uppercase;white-space:nowrap}
+#demoBar button,#demoBar select{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);
+  font:600 12px/1 var(--f-display);letter-spacing:.08em;cursor:pointer}
+#demoBar button:hover,#demoBar select:hover{border-color:var(--cyan);color:var(--cyan)}
+#demoBar input[type=range]{flex:1 1 180px;min-width:0;accent-color:var(--cyan)}
+#demoBar .tm{font:500 12px/1 var(--f-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:86px;text-align:right}
+</style>
+
+<div id="intro" aria-hidden="true"><canvas id="introCv"></canvas><i id="introLoad"></i><span id="introSkip">Bấm để bỏ qua</span></div>
+
+<div id="demoBar" role="group" aria-label="Điều khiển bản demo">
+  <span class="lbl">Intro mới · demo</span>
+  <button id="dReplay" type="button">Phát lại</button>
+  <button id="dPause" type="button">Tạm dừng</button>
+  <input id="dSeek" type="range" min="0" max="4.2" step="0.01" value="0" aria-label="Tua intro">
+  <span id="dTime" class="tm">0.00 s</span>
+  <select id="dRate" aria-label="Tốc độ">
+    <option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option><option value="0.1">0.1×</option>
+  </select>
+</div>
+
+<section id="landing"><video id="bgVid" class="bgv" muted loop playsinline preload="auto" aria-hidden="true"></video><div class="land">
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14" fill="none" stroke="#4DE3FF" stroke-width="2"/><circle cx="17" cy="17" r="6" fill="none" stroke="#FFC857" stroke-width="2"/><path d="M17 0v8M17 26v8M0 17h8M26 17h8" stroke="#4DE3FF" stroke-width="2"/></svg>
+    <div><b>RALLYSCOPE</b><small>rally analysis · fixed camera</small></div>
+  </div>
+  <h1>Play smarter <em>Not Harder</em></h1>
+  <p class="sub">Khung xương, đường bóng, tốc độ từng cú đánh và bảng điểm cho 4 người chơi.</p>
+  <label id="drop" for="file">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+    <b>Kéo thả video vào đây</b>
+    <span>hoặc</span>
+    <span class="btn">Chọn video</span>
+    <small>1 rally · camera đứng yên · thấy trọn sân</small>
+  </label>
+  <div class="or">HOẶC</div>
+  <button id="sampleTile" type="button">
+    <span class="play"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></span>
+    <span><b>Xem rally mẫu trước</b><span id="sampleSub">Một rally đã phân tích sẵn (PPA Chicago Cup), để xem kết quả trông như thế nào.</span></span>
+  </button>
+  <p class="priv">Video chỉ được xử lý ngay trong trình duyệt của bạn, không gửi đi đâu.</p>
+</div></section>
+<input id="file" type="file" accept="video/*" hidden>
+
+<script>
+"use strict";
+// Intro: the eye opens and glances aside, the camera dives through the pupil into a vortex, pickleballs spiral
+// towards the screen and each one turns into a part of the landing page (logo ring, button, box, text sweep).
+// Every pixel is a function of t (seek), so the demo can scrub it. Any click or key outside the demo bar skips it.
+(() => {
+const intro = document.getElementById("intro"), DEMO = !!document.getElementById("demoBar");
+if (!DEMO && (new URLSearchParams(location.search).has("record") || matchMedia("(prefers-reduced-motion: reduce)").matches)) { intro.remove(); return; }
+const cv = document.getElementById("introCv");
+let x = cv.getContext("2d");   // swapped for a hidden canvas while warming up
+const CY = [77, 227, 255], AM = [255, 200, 87], LID = [220, 248, 255], TAU = 2 * Math.PI;
+const rgb = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const mix = (a, b, k) => a + (b - a) * k;
+const mixC = (p, q, k) => [0, 1, 2, 3].map(i => mix(p[i] ?? 1, q[i] ?? 1, k));
+const rgba = c => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${c[3]})`;
+const outCubic = k => 1 - Math.pow(1 - cl(k), 3);
+const inOutCubic = k => (k = cl(k)) < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const outExpo = k => (k = cl(k)) >= 1 ? 1 : 1 - Math.pow(2, -10 * k);
+const spring = (s, w = 13, z = 0.8) => {   // damped spring, s in seconds: 0 -> 1 with a 1-2 % overshoot
+  if (s <= 0) return 0; const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * s) * (Math.cos(wd * s) + z * w / wd * Math.sin(wd * s));
+};
+const rnd = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+// seconds; the whole intro is T_END long
+const T_OPEN = 0.15, T_OPEN1 = 1.0, T_ZOOM = 1.0, T_ZOOM1 = 2.0, T_FADE = 2.75, T_END = 4.2;
+let W = 0, H = 0, dpr = 1, tg = null;
+const size = () => { dpr = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); tg = null; };
+size(); addEventListener("resize", size);
+
+// ---------- static geometry, built once in unit space ----------
+const IRIS = (() => {   // iris radius = 1
+  const fib = new Path2D(), inner = new Path2D(), coll = new Path2D(), crypt = new Path2D(), furrow = new Path2D();
+  for (let i = 0; i < 280; i++) {   // stroma fibres from the collarette to the rim, each slightly bent
+    const a = i / 280 * TAU + rnd(i) * 0.02, r0 = 0.47 + 0.05 * rnd(i + 3), r1 = 0.8 + 0.17 * rnd(i + 7), am = a + (rnd(i + 11) - 0.5) * 0.14, rm = (r0 + r1) / 2;
+    fib.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); fib.quadraticCurveTo(Math.cos(am) * rm, Math.sin(am) * rm, Math.cos(a) * r1, Math.sin(a) * r1);
+  }
+  for (let i = 0; i < 140; i++) {   // finer fibres between the pupil and the collarette
+    const a = i / 140 * TAU + rnd(i + 50) * 0.03, r0 = 0.27, r1 = 0.43 + 0.05 * rnd(i + 51);
+    inner.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); inner.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+  }
+  for (let j = 0; j <= 240; j++) {   // the collarette: a wavy ring
+    const a = j / 240 * TAU, r = 0.47 + 0.028 * Math.sin(11 * a + 1) + 0.013 * Math.sin(27 * a);
+    j ? coll.lineTo(Math.cos(a) * r, Math.sin(a) * r) : coll.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  coll.closePath();
+  for (let i = 0; i < 30; i++) {   // crypts: dark lens-shaped pits
+    const a = rnd(i + 90) * TAU, r = 0.52 + 0.24 * rnd(i + 91), ex = Math.cos(a) * r, ey = Math.sin(a) * r, rx = 0.03 + 0.03 * rnd(i + 92), ry = 0.014 + 0.01 * rnd(i + 93);
+    crypt.moveTo(ex + rx * Math.cos(a), ey + rx * Math.sin(a)); crypt.ellipse(ex, ey, rx, ry, a, 0, TAU);
+  }
+  for (const r of [0.79, 0.86, 0.92]) for (let s = 0; s < 5; s++) {   // contraction furrows near the rim
+    const a0 = s * TAU / 5 + rnd(r * 40 + s) * 0.9, len = 0.5 + 0.5 * rnd(r * 70 + s);
+    furrow.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); furrow.arc(0, 0, r, a0, a0 + len);
+  }
+  return {fib, inner, coll, crypt, furrow};
+})();
+const VEINS = (() => {   // sclera veins from both corners, eye half width = 1
+  const p = new Path2D();
+  for (let v = 0; v < 8; v++) {
+    const side = v % 2 ? 1 : -1; let px = side * 0.97, py = (rnd(v + 200) - 0.5) * 0.18;
+    p.moveTo(px, py);
+    for (let s = 0; s < 6; s++) { px -= side * (0.06 + 0.03 * rnd(v * 9 + s)); py += (rnd(v * 7 + s + 300) - 0.5) * 0.07; p.lineTo(px, py); }
+  }
+  return p;
+})();
+const HOLES = Array.from({length: 26}, (_, i) => {   // pickleball holes: evenly spread on the unit sphere
+  const y = 1 - 2 * (i + 0.5) / 26, r = Math.sqrt(1 - y * y), f = i * 2.39996;
+  return [Math.cos(f) * r, y, Math.sin(f) * r];
+});
+
+// ---------- the eye ----------
+const bz = (P, u) => { const v = 1 - u; return [0, 1].map(i => v * v * v * P[0][i] + 3 * v * v * u * P[1][i] + 3 * v * u * u * P[2][i] + u * u * u * P[3][i]); };
+const bzd = (P, u) => { const v = 1 - u; return [0, 1].map(i => 3 * v * v * (P[1][i] - P[0][i]) + 6 * v * u * (P[2][i] - P[1][i]) + 3 * u * u * (P[3][i] - P[2][i])); };
+function lids(ew, eh, b) {   // inner corner on the left, a little low; the upper lid peaks towards the nose
+  const I = [-ew, 0.06 * eh], O = [ew, -0.05 * eh];
+  return {I, O, up: [I, [-0.5 * ew, -1.36 * b], [0.38 * ew, -1.3 * b], O], lo: [O, [0.5 * ew, 1.08 * b], [-0.42 * ew, 1.16 * b], I]};
+}
+function eyePath(L, dy = 0) {
+  x.beginPath(); x.moveTo(L.I[0], L.I[1] + dy);
+  x.bezierCurveTo(L.up[1][0], L.up[1][1] + dy, L.up[2][0], L.up[2][1] + dy, L.O[0], L.O[1] + dy);
+  x.bezierCurveTo(L.lo[1][0], L.lo[1][1] + dy, L.lo[2][0], L.lo[2][1] + dy, L.I[0], L.I[1] + dy);
+  x.closePath();
+}
+function curve(P, dy = 0, move = true) {
+  if (move) x.moveTo(P[0][0], P[0][1] + dy);
+  x.bezierCurveTo(P[1][0], P[1][1] + dy, P[2][0], P[2][1] + dy, P[3][0], P[3][1] + dy);
+}
+function lashes(P, n, len, flare, seed) {   // n lashes along the lid curve P, curling out along its normal
+  x.beginPath();
+  for (let i = 0; i < n; i++) {
+    const u = 0.05 + 0.9 * (i + 0.5 * rnd(seed + i)) / n, p = bz(P, u), d = bzd(P, u), m = Math.hypot(d[0], d[1]) || 1;
+    const tx = d[0] / m, ty = d[1] / m, nx = ty, ny = -tx;   // normal pointing away from the eye
+    const L = len * (0.55 + 0.45 * Math.pow(Math.sin(Math.PI * u), 0.6)) * (0.8 + 0.4 * rnd(seed + i + 99));
+    const fl = (u - 0.42) * flare;   // lashes fan out towards the corners
+    x.moveTo(p[0], p[1]);
+    x.quadraticCurveTo(p[0] + nx * L * 0.6, p[1] + ny * L * 0.6, p[0] + (nx + tx * fl) * L, p[1] + (ny + ty * fl) * L - Math.abs(ny) * L * 0.08);
+  }
+}
+function drawEye(t, ew, eh, open, fade, pr, look, sc) {   // drawn around (0,0); sc = camera scale, for blur sizes
+  const b = eh * open, L = lids(ew, eh, b), ir = eh * 0.92;
+  // deep in the dive the lids are off screen: skip them and their shadow (the costliest parts of a frame)
+  const lidsOn = 0.8 * b * sc < H * 0.6, shA = 0.9 * cl((2 - sc) / 0.6);
+  // topographic contours of the face around the eye, rippling outwards as it opens
+  x.globalCompositeOperation = "lighter";
+  for (let k = 5; k >= 1 && lidsOn; k--) {
+    const ap = outCubic((t - T_OPEN - 0.07 * k) / 0.6) * fade; if (ap <= 0) continue;
+    const br = 1 + 0.01 * Math.sin(t * 2.4 + k);
+    eyePath(lids(ew * (1 + 0.1 * k) * br, eh, b * (1 + 0.24 * k) * br + eh * 0.16 * k));
+    x.strokeStyle = rgb(k % 2 ? CY : AM, 0.34 * Math.pow(1 - k / 6, 1.1) * ap); x.lineWidth = 1; x.stroke();
+  }
+  x.globalCompositeOperation = "source-over";
+  // upper lid volume between the crease and the lid margin, lower lid band under the eye
+  const cr = [[-0.93 * ew, 0.02 * eh], [-0.45 * ew, -eh * (1.0 + 0.55 * open)], [0.42 * ew, -eh * (0.95 + 0.55 * open)], [0.97 * ew, -0.08 * eh]];
+  x.globalAlpha = fade;
+  let g;
+  if (lidsOn) {
+  x.beginPath(); curve(cr); x.lineTo(L.O[0], L.O[1]); x.bezierCurveTo(L.up[2][0], L.up[2][1], L.up[1][0], L.up[1][1], L.I[0], L.I[1]); x.closePath();
+  g = x.createLinearGradient(0, -eh * 1.6, 0, b * -0.4);
+  g.addColorStop(0, "rgba(22,52,80,.55)"); g.addColorStop(0.55, "rgba(12,30,48,.8)"); g.addColorStop(1, "rgba(3,8,14,.95)");
+  x.fillStyle = g; x.fill();
+  g = x.createRadialGradient(-0.1 * ew, -eh * (0.75 + 0.4 * open), 0, -0.1 * ew, -eh * (0.75 + 0.4 * open), ew * 0.6);
+  g.addColorStop(0, "rgba(120,220,255,.14)"); g.addColorStop(1, "rgba(120,220,255,0)");
+  x.fillStyle = g; x.fill();
+  x.beginPath(); curve(cr); x.strokeStyle = rgb(CY, 0.38); x.lineWidth = 1.2; x.stroke();   // the crease
+  const lw = [[0.97 * ew, 0.0], [0.45 * ew, eh * (0.95 + 0.35 * open)], [-0.45 * ew, eh * (1.0 + 0.35 * open)], [-0.95 * ew, 0.14 * eh]];
+  x.beginPath(); curve(L.lo); curve(lw.slice().reverse(), 0, false); x.closePath();
+  g = x.createLinearGradient(0, 0, 0, eh * 1.3); g.addColorStop(0, "rgba(10,26,42,.85)"); g.addColorStop(1, "rgba(10,26,42,0)");
+  x.fillStyle = g; x.fill();
+  x.beginPath(); curve(lw); x.strokeStyle = rgb(CY, 0.14); x.lineWidth = 1; x.stroke();
+  }
+
+  // inside the opening (deep in the dive the opening covers the whole screen: no clip needed)
+  x.save(); if (lidsOn) { eyePath(L); x.clip(); }
+  const ring = (r0, r1) => { x.beginPath(); x.arc(0, 0, r1, 0, TAU); x.arc(0, 0, r0, 0, TAU, true); };   // fill only what shows
+  if (ir * sc < Math.hypot(W, H) / 2) {   // the white of the eye, until the iris covers the screen
+    g = x.createRadialGradient(look[0], look[1], 0, look[0], look[1], ew * 1.05);
+    g.addColorStop(0, "#1C3854"); g.addColorStop(0.45, "#122840"); g.addColorStop(1, "#050B14");
+    x.fillStyle = g; x.fillRect(-ew, -eh * 1.5, ew * 2, eh * 3);
+    x.save(); x.scale(ew, ew); x.strokeStyle = "rgba(255,170,120,.16)"; x.lineWidth = 1.1 / ew / Math.max(1, sc * 0.6); x.stroke(VEINS); x.restore();
+    g = x.createRadialGradient(-ew * 0.95, 0.05 * eh, 0, -ew * 0.95, 0.05 * eh, ew * 0.09);   // caruncle: a soft warm glow in the inner corner
+    g.addColorStop(0, "rgba(255,170,150,.22)"); g.addColorStop(1, "rgba(255,170,150,0)");
+    x.globalCompositeOperation = "lighter"; x.fillStyle = g; x.fillRect(-ew, -eh, ew * 0.2, eh * 2); x.globalCompositeOperation = "source-over";
+  }
+  // iris
+  x.save(); x.translate(look[0], look[1]);
+  g = x.createRadialGradient(0, 0, pr * 0.9, 0, 0, ir);
+  g.addColorStop(0, "#FFD27A"); g.addColorStop(0.2, "#E89A3C"); g.addColorStop(0.36, "#5C6E5A"); g.addColorStop(0.5, "#1C8BA6");
+  g.addColorStop(0.78, "#36C2E2"); g.addColorStop(0.92, "#145A70"); g.addColorStop(1, "#04101A");
+  x.fillStyle = g; ring(pr * 0.95, ir); x.fill();
+  x.save(); x.scale(ir, ir); const u1 = 1 / ir, lw = w => Math.min(w * sc, w * 2.2) / sc * u1;   // fibres get finer, not fatter, as the camera dives
+  x.globalCompositeOperation = "lighter";
+  x.strokeStyle = "rgba(200,246,255,.2)"; x.lineWidth = lw(1.1); x.stroke(IRIS.fib);
+  if (pr < ir * 0.46) { x.strokeStyle = "rgba(255,226,160,.22)"; x.lineWidth = lw(0.9); x.stroke(IRIS.inner); }   // under the pupil once it is wide
+  x.strokeStyle = "rgba(255,214,140,.5)"; x.lineWidth = lw(1.6); x.stroke(IRIS.coll);
+  x.globalCompositeOperation = "source-over";
+  x.fillStyle = "rgba(2,12,22,.32)"; x.fill(IRIS.crypt);
+  x.strokeStyle = "rgba(2,14,24,.55)"; x.lineWidth = lw(1.4); x.stroke(IRIS.furrow);
+  x.restore();
+  g = x.createRadialGradient(0, 0, ir * 0.8, 0, 0, ir);   // limbal ring: the dark rim that makes the iris a dome
+  g.addColorStop(0, "rgba(3,8,14,0)"); g.addColorStop(1, "rgba(3,8,14,.9)");
+  x.fillStyle = g; ring(ir * 0.8, ir); x.fill();
+  x.globalCompositeOperation = "lighter";   // light through the cornea brightens the far side of the iris
+  g = x.createRadialGradient(ir * 0.32, ir * 0.42, 0, ir * 0.32, ir * 0.42, ir * 0.6);
+  g.addColorStop(0, "rgba(120,235,255,.22)"); g.addColorStop(1, "rgba(120,235,255,0)");
+  x.fillStyle = g; ring(pr, ir); x.fill();
+  x.globalCompositeOperation = "source-over";
+  x.fillStyle = "#010307"; x.beginPath(); x.arc(0, 0, pr * 0.92, 0, TAU); x.fill();   // pupil, with a soft edge and a thin warm ruff
+  g = x.createRadialGradient(0, 0, pr * 0.9, 0, 0, pr * 1.06);
+  g.addColorStop(0, "#010307"); g.addColorStop(1, "rgba(1,3,7,0)");
+  x.fillStyle = g; ring(pr * 0.91, pr * 1.06); x.fill();
+  x.strokeStyle = "rgba(255,190,110,.45)"; x.lineWidth = Math.max(1, ir / 120); x.beginPath(); x.arc(0, 0, pr * 1.02, 0, TAU); x.stroke();
+  x.restore();
+  // shadow of the lids on the eyeball: an elliptical gradient centred low, so it is darkest under the upper lid
+  // (a gradient, not a shadow blur: blurs are the slowest thing a canvas can do)
+  if (shA > 0 && lidsOn) {
+    x.save(); x.translate(0, eh * 0.35); x.scale(ew / eh, 1);
+    g = x.createRadialGradient(0, 0, 0, 0, 0, eh * 1.4);
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.55, "rgba(0,0,0,0)"); g.addColorStop(0.85, `rgba(0,0,0,${0.55 * shA})`); g.addColorStop(1, `rgba(0,0,0,${shA})`);
+    x.fillStyle = g; x.fillRect(-eh * 1.5, -eh * 2, eh * 3, eh * 3);
+    x.restore();
+  }
+  // wet highlights on the cornea: a soft window, a small dot, a faint sheen on the rim; they slide away as the camera dives
+  const hA = cl(1 - (sc - 1) / 1.5);
+  if (hA > 0) {
+    x.save(); x.translate(look[0], look[1]); x.globalAlpha = hA;
+    x.save(); x.translate(-ir * 0.4, -ir * 0.38); x.rotate(-0.3);
+    g = x.createRadialGradient(-ir * 0.03, -ir * 0.02, 0, 0, 0, ir * 0.12);
+    g.addColorStop(0, "rgba(255,255,255,.9)"); g.addColorStop(0.6, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.beginPath(); x.roundRect(-ir * 0.1, -ir * 0.06, ir * 0.2, ir * 0.12, ir * 0.04); x.fill(); x.restore();
+    x.fillStyle = "rgba(255,255,255,.4)"; x.beginPath(); x.arc(ir * 0.3, ir * 0.36, ir * 0.03, 0, TAU); x.fill();
+    x.strokeStyle = "rgba(255,255,255,.09)"; x.lineWidth = ir * 0.07; x.beginPath(); x.arc(0, 0, ir * 0.86, 3.6, 4.6); x.stroke();
+    x.restore();
+  }
+  if (lidsOn) { x.beginPath(); curve(L.lo, -1.5); x.strokeStyle = "rgba(220,248,255,.3)"; x.lineWidth = 1.4; x.stroke(); }   // wet waterline
+  x.restore();
+  // lid margins: a dark thick edge with a lit rim, then the lashes
+  if (!lidsOn) return;
+  x.globalAlpha = fade;
+  x.beginPath(); curve(L.up, -eh * 0.02); x.strokeStyle = "#06121E"; x.lineWidth = eh * 0.07; x.stroke();
+  x.globalCompositeOperation = "lighter";
+  x.beginPath(); curve(L.up, -eh * 0.055); x.strokeStyle = rgb(LID, 0.16); x.lineWidth = 6; x.stroke(); x.strokeStyle = rgb(LID, 0.85); x.lineWidth = 1.5; x.stroke();
+  x.beginPath(); curve(L.lo, eh * 0.03); x.strokeStyle = rgb(LID, 0.42); x.lineWidth = 1.2; x.stroke();
+  lashes(L.up, 54, eh * 0.4, 1.3, 1); x.strokeStyle = rgb(LID, 0.6); x.lineWidth = 1.2; x.lineCap = "round"; x.stroke();
+  lashes(L.lo, 28, eh * 0.15, 1.1, 400); x.strokeStyle = rgb(LID, 0.3); x.lineWidth = 1; x.stroke();
+  x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
+}
+function drawReticle(t, R, a) {   // the scope ring around the eye, drawn on, closer to the camera than the eye
+  const dk = outCubic((t - 0.25) / 0.75); if (dk <= 0 || a <= 0) return;
+  x.globalCompositeOperation = "lighter";
+  x.lineWidth = 1.2; x.strokeStyle = rgb(CY, 0.32 * a);
+  x.beginPath(); x.arc(0, 0, R, -Math.PI / 2, -Math.PI / 2 + TAU * dk); x.stroke();
+  const rot = t * 0.12 - Math.PI / 2; x.beginPath();
+  for (let i = 0; i < 72 * dk; i++) { const ang = rot + i * TAU / 72, l = i % 6 ? R * 0.022 : R * 0.055, c = Math.cos(ang), s = Math.sin(ang);
+    x.moveTo(c * R, s * R); x.lineTo(c * (R - l), s * (R - l)); }
+  x.strokeStyle = rgb(CY, 0.42 * a); x.stroke();
+  x.setLineDash([R * 0.018, R * 0.03]); x.lineDashOffset = -t * R * 0.05;
+  x.beginPath(); x.arc(0, 0, R * 0.935, -Math.PI / 2, -Math.PI / 2 - TAU * dk, true); x.strokeStyle = rgb(AM, 0.3 * a); x.stroke(); x.setLineDash([]);
+  x.lineWidth = 1.8; x.strokeStyle = rgb(CY, 0.6 * a); x.beginPath();
+  for (let q = 0; q < 4; q++) { const c = Math.cos(q * Math.PI / 2), s = Math.sin(q * Math.PI / 2); x.moveTo(c * R * 1.03, s * R * 1.03); x.lineTo(c * R * (1.03 + 0.12 * dk), s * R * (1.03 + 0.12 * dk)); }
+  x.stroke();
+  x.globalCompositeOperation = "source-over";
+}
+
+// ---------- the vortex ----------
+function drawTunnel(t, cx, cy, alpha) {   // rings flying at the camera, each turned a little more: their arcs line up into a spiral
+  const zc = Math.max(0, t - T_ZOOM) * 5.5, F = 0.32 * Math.hypot(W, H);
+  x.globalCompositeOperation = "lighter";
+  for (let i = Math.floor(zc) + 16; i > Math.floor(zc); i--) {
+    const z = i - zc; if (z < 0.2) continue;
+    const a = alpha * cl((16 - z) / 6) * cl((z - 0.2) / 0.5); if (a <= 0.01) continue;
+    const spin = i * 0.38 + t * 1.5, w = cl(4 / z, 0.7, 7), c = i % 2 ? CY : AM;
+    for (let k = 0; k < 3; k++) {
+      const a0 = spin + k * TAU / 3; x.beginPath(); x.arc(cx, cy, F / z, a0, a0 + 1.2);
+      if (z < 5) { x.strokeStyle = rgb(c, 0.15 * a); x.lineWidth = w * 5; x.stroke(); }
+      x.strokeStyle = rgb(c, 0.7 * a); x.lineWidth = w; x.stroke();
+    }
+  }
+  x.globalCompositeOperation = "source-over";
+}
+
+// ---------- the balls and what each one becomes ----------
+// kind: ring = the logo's circle, then the brand is swept in; box/pill = the ball spreads into the element's shape;
+// wipe = the ball smears into a streak that sweeps across the text and reveals it. at = landing time.
+const SPEC = [
+  {sel: ".land .brand", anchor: ".land .brand svg", kind: "ring", at: 2.7},
+  {sel: ".land h1", kind: "wipe", at: 2.82},
+  {sel: ".land .sub", kind: "wipe", at: 2.94},
+  {sel: "#drop", kind: "box", at: 2.98, edge: AM},
+  {sel: ".land .or", kind: "wipe", at: 3.1, full: true},
+  {sel: "#sampleTile", kind: "box", at: 3.14, edge: CY},
+  {sel: "#drop .btn", kind: "pill", at: 3.3},
+  {sel: ".land .priv", kind: "wipe", at: 3.34},
+  {sel: "#sampleTile .play", kind: "box", at: 3.42, edge: CY},
+];
+const BALL = [[255, 246, 192, 1], [240, 210, 60, 1], [150, 118, 18, 1]];   // highlight, body, shade
+const parseC = s => { const m = /rgba?\(([^)]+)\)/.exec(s || ""); if (!m) return [0, 0, 0, 0]; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [v[0], v[1], v[2], v[3] ?? 1]; };
+function targets() {   // where each ball lands, read from the page once the landing is up (and again after a resize)
+  if (tg) return tg;
+  const land = document.getElementById("landing"), F = 0.5 * Math.min(W, H), cx = W / 2, cy = H / 2;
+  const visible = land && !land.hidden;
+  const T = SPEC.map((s, i) => {
+    const el = visible && document.querySelector(s.sel), b = {i, kind: s.kind, at: s.at, el, t0: 1.12 + 0.07 * i,
+      turns: 1.25 + 0.5 * rnd(i + 500), spin: (i % 2 ? 1 : -1) * (5 + 3 * rnd(i + 600)), tilt: 0.4 + 0.8 * rnd(i + 700)};
+    const r = el && el.getClientRects().length ? el.getBoundingClientRect() : null;
+    if (!r) return Object.assign(b, {kind: "none", px: cx + Math.cos(i * 2.4) * W, py: cy + Math.sin(i * 2.4) * H, r: 30, at: T_FADE + 0.4});
+    const cs = getComputedStyle(el);
+    if (s.kind === "wipe") {   // land at the left end of the text's underline (the text itself, not its box)
+      const rg = document.createRange(); rg.selectNodeContents(el); const q = s.full ? r : rg.getBoundingClientRect();
+      const rr = cl(parseFloat(cs.fontSize) * 0.42, 8, 20);
+      Object.assign(b, {px: q.left, py: s.full ? q.top + q.height / 2 : q.bottom + 3, r: rr, x0: q.left, x1: q.right, box: r});
+    } else if (s.kind === "ring") {
+      const a = el.querySelector("svg").getBoundingClientRect();
+      Object.assign(b, {px: a.left + a.width / 2, py: a.top + a.height / 2, r: a.width * 14 / 34, sw: a.width * 2 / 34, x0: r.left, x1: r.right, box: r});
+    } else {
+      const rad = parseFloat(cs.borderTopLeftRadius) || 0, pill = s.kind === "pill";
+      Object.assign(b, {px: r.left + r.width / 2, py: r.top + r.height / 2, w: r.width, h: r.height, rad,
+        r: pill ? r.height / 2 : cl(Math.min(r.width, r.height) * 0.32, 18, 60), fill: parseC(cs.backgroundColor), edge: s.edge});
+    }
+    const dx = b.px - cx, dy = b.py - cy;
+    return Object.assign(b, {phi: Math.atan2(dy, dx), Rend: Math.hypot(dx, dy) / F, F});
+  });
+  for (let j = 0; j < 10; j++) T.push({i: 100 + j, kind: "pass", el: null, F, t0: 1.15 + 0.1 * j, at: 2.15 + 0.08 * j,   // extra balls that fly past the camera
+    phi: j * 2.4 + 0.5, Rend: 1.1 + 0.5 * rnd(j + 800), turns: 1.1 + 0.6 * rnd(j + 810), r: 24 + 26 * rnd(j + 820),
+    spin: (j % 2 ? 1 : -1) * 6, tilt: 0.3 + rnd(j + 830)});
+  if (visible) tg = T;   // not up yet: fly the balls out of the frame, and look again next frame
+  return T;
+}
+function ballAt(b, t) {   // position on the spiral: angle winds down to the target, depth eases in, the orbit narrows to the target
+  const k = cl((t - b.t0) / (b.at - b.t0));
+  if (b.kind === "pass") {   // passers keep coming at the camera and leave the frame at the edges
+    const s = 1 / mix(16, 0.55, k), th = b.phi - b.turns * TAU * (1 - k), rho = b.F * s * mix(0.7, b.Rend, k * k);
+    return {x: W / 2 + Math.cos(th) * rho, y: H / 2 + Math.sin(th) * rho, r: b.r * s, s, k};
+  }
+  const z = 1 + 15 * Math.pow(1 - k, 2.2), s = 1 / z;
+  const th = b.phi - b.turns * TAU * Math.pow(1 - k, 1.6);
+  const R = mix(0.7, b.Rend, inOutCubic((k - 0.35) / 0.65)), rho = b.F * s * R;
+  return {x: W / 2 + Math.cos(th) * rho, y: H / 2 + Math.sin(th) * rho, r: b.r * s, s, k};
+}
+function drawBall(px, py, r, rot, tilt, a, holesA) {
+  if (r <= 0.3 || a <= 0) return;
+  x.globalAlpha = a;
+  const g = x.createRadialGradient(px - r * 0.35, py - r * 0.4, r * 0.08, px, py, r);
+  g.addColorStop(0, rgba(BALL[0])); g.addColorStop(0.55, rgba(BALL[1])); g.addColorStop(1, rgba(BALL[2]));
+  x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
+  if (holesA > 0 && r > 2.5) {   // holes on the sphere, turned and foreshortened
+    x.fillStyle = `rgba(92,62,0,${0.6 * holesA})`; x.beginPath();
+    const cr = Math.cos(rot), sr = Math.sin(rot), ct = Math.cos(tilt), st = Math.sin(tilt), hr = r * 0.13;
+    for (const [hx, hy, hz] of HOLES) {
+      const x1 = hx * cr + hz * sr, z1 = -hx * sr + hz * cr, y2 = hy * ct - z1 * st, z2 = hy * st + z1 * ct;
+      if (z2 < 0.12) continue;
+      const ex = px + x1 * r * 0.96, ey = py + y2 * r * 0.96, an = Math.atan2(y2, x1), rx = hr * z2;
+      x.moveTo(ex + rx * Math.cos(an), ey + rx * Math.sin(an)); x.ellipse(ex, ey, rx, hr, an, 0, TAU);
+    }
+    x.fill();
+  }
+  x.globalCompositeOperation = "lighter";   // rim light from the vortex
+  x.strokeStyle = "rgba(77,227,255,.35)"; x.lineWidth = Math.max(1, r * 0.1); x.beginPath(); x.arc(px, py, r * 0.93, 0.15, 1.9); x.stroke();
+  x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
+}
+function drawTrail(b, t, p) {   // motion blur: a tapered ribbon along the ball's own recent path, so it follows speed and direction
+  const P = [p]; for (let j = 1; j <= 12; j++) P.push(ballAt(b, t - j * 0.013));
+  const n = P.length - 1, tail = P[n]; if (Math.hypot(p.x - tail.x, p.y - tail.y) < p.r * 0.8) return;
+  const L = [], R = [];
+  for (let j = 0; j <= n; j++) {
+    const a = P[Math.max(0, j - 1)], c = P[Math.min(n, j + 1)], dx = a.x - c.x, dy = a.y - c.y, m = Math.hypot(dx, dy) || 1;
+    const w = P[j].r * 0.75 * (1 - j / (n + 1));
+    L.push([P[j].x - dy / m * w, P[j].y + dx / m * w]); R.push([P[j].x + dy / m * w, P[j].y - dx / m * w]);
+  }
+  const g = x.createLinearGradient(p.x, p.y, tail.x, tail.y);
+  g.addColorStop(0, "rgba(255,226,110,.26)"); g.addColorStop(1, "rgba(255,226,110,0)");
+  x.globalCompositeOperation = "lighter"; x.fillStyle = g; x.beginPath(); x.moveTo(L[0][0], L[0][1]);
+  for (const q of L) x.lineTo(q[0], q[1]); for (const q of R.reverse()) x.lineTo(q[0], q[1]);
+  x.closePath(); x.fill(); x.globalCompositeOperation = "source-over";
+}
+function shapeGrad(cx, cy, r, k, fill) {   // ball shading melting into the element's flat fill
+  const g = x.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.08, cx, cy, r * 1.1);
+  g.addColorStop(0, rgba(mixC(BALL[0], fill, k))); g.addColorStop(0.55, rgba(mixC(BALL[1], fill, k))); g.addColorStop(1, rgba(mixC(BALL[2], fill, k)));
+  return g;
+}
+// what a landed ball looks like s seconds after landing; returns how far the real element is revealed (0..1)
+function drawLanded(b, s) {
+  if (b.kind === "box" || b.kind === "pill") {
+    const kw = spring(s), kh = b.kind === "pill" ? 0 : spring(s - 0.07);   // width leads height: the ball spreads like a drop
+    const w = mix(2 * b.r, b.w, kw), h = b.kind === "pill" ? b.h : mix(2 * b.r, b.h, kh);
+    const rad = cl(mix(b.r, b.rad, outCubic(s / 0.35)), 0, Math.min(w, h) / 2), rev = outCubic((s - 0.36) / 0.26);
+    if (rev < 1) {
+      x.globalAlpha = 1 - rev;
+      x.beginPath(); x.roundRect(b.px - w / 2, b.py - h / 2, w, h, rad);
+      x.fillStyle = shapeGrad(b.px, b.py, Math.max(w, h) / 2, b.kind === "pill" ? outCubic(s / 0.3) : outCubic(s / 0.14), b.fill); x.fill();
+      const ea = cl((s - 0.02) / 0.12);   // the ball's colour drains into the glowing edge
+      if (b.edge && ea > 0) {
+        x.shadowColor = rgb(b.edge, 0.6); x.shadowBlur = 14 * dpr;
+        x.strokeStyle = rgb(b.edge, 0.9 * ea); x.lineWidth = 1.5; x.stroke(); x.shadowBlur = 0;
+      }
+      x.globalAlpha = 1;
+    }
+    return rev;
+  }
+  if (b.kind === "ring") {   // the ball empties into the logo's ring, then the brand is swept in from the left
+    const k = outCubic(s / 0.3), rev = cl((s - 0.18) / 0.45), head = mix(b.x0, b.x1, outCubic(rev));
+    const ra = 1 - outCubic((s - 0.3) / 0.2);
+    if (ra > 0) {
+      x.globalAlpha = ra;
+      x.fillStyle = shapeGrad(b.px, b.py, b.r, k, [10, 24, 40, 0]); x.beginPath(); x.arc(b.px, b.py, b.r, 0, TAU); x.fill();
+      x.shadowColor = rgb(CY, 0.7); x.shadowBlur = 12 * dpr; x.strokeStyle = rgb(CY, k); x.lineWidth = b.sw; x.stroke(); x.shadowBlur = 0;
+      x.globalAlpha = 1;
+    }
+    if (rev > 0 && rev < 1) sweep(head, b.py, b.x0, Math.max(2, b.box.height * 0.04), 1 - rev);
+    return {head};
+  }
+  if (b.kind === "wipe") {   // the ball smears into a streak; its head writes the text in
+    const p = outCubic(s / 0.5), q = inOutCubic((s - 0.1) / 0.5), head = mix(b.x0, b.x1, p), tail = mix(b.x0, b.x1, q);
+    const th = mix(2 * b.r, 2.5, outCubic(s / 0.22));
+    if (q < 1) sweep(head, b.py, tail, th, 1 - cl((s - 0.45) / 0.15));
+    return {head};
+  }
+  return 0;
+}
+function sweep(head, y, tail, th, a) {   // a streak from tail to head, brightest at the head
+  if (a <= 0) return;
+  const g = x.createLinearGradient(tail, 0, head + 1, 0);
+  g.addColorStop(0, rgb(CY, 0)); g.addColorStop(0.8, rgb(CY, 0.55 * a)); g.addColorStop(1, rgb(LID, a));
+  x.globalCompositeOperation = "lighter"; x.lineCap = "round";
+  x.strokeStyle = g; x.lineWidth = th; x.beginPath(); x.moveTo(tail, y); x.lineTo(head, y); x.stroke();
+  x.fillStyle = rgb(LID, 0.9 * a); x.beginPath(); x.arc(head, y, th * 0.6 + 1.5, 0, TAU); x.fill();
+  x.globalCompositeOperation = "source-over";
+}
+function reveal(b, v) {   // the real element: opacity for shapes, a clip that follows the streak's head for text
+  if (!b.el) return;
+  if (b.kind === "box" || b.kind === "pill") { b.el.style.opacity = v; return; }
+  if (v.head == null) { b.el.style.clipPath = "inset(0 100% 0 0)"; return; }
+  b.el.style.clipPath = `inset(-30px ${Math.max(0, b.box.right - v.head)}px -30px -30px)`;
+}
+
+// ---------- one frame ----------
+function draw(t) {
+  const cx = W / 2, cy = H / 2;
+  x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const bgA = 1 - inOutCubic((t - T_FADE) / 0.7);   // the dark ground lifts and the landing page shows through
+  if (bgA > 0) { x.fillStyle = `rgba(4,8,15,${bgA})`; x.fillRect(0, 0, W, H); }
+  const ew = Math.min(W * (W < 700 ? 0.4 : 0.27), H * 0.62), eh = ew * 0.46;
+  const open = 0.025 + 0.975 * inOutCubic((t - T_OPEN) / (T_OPEN1 - T_OPEN));
+  const pr = eh * 0.92 * (0.36 + 0.1 * inOutCubic((t - 0.72) / 0.32));   // the pupil widens just before the dive
+  const gl = outExpo((t - 0.5) / 0.09) - outExpo((t - 0.8) / 0.09), look = [ew * 0.075 * gl, -eh * 0.04 * gl];   // a glance aside and back
+  const zk = cl((t - T_ZOOM) / (T_ZOOM1 - T_ZOOM)), half = Math.hypot(W, H) / 2;
+  const s = mix(0.9, 1, outCubic(t / 1.1)) * Math.exp(Math.log(half / pr * 1.4) * inOutCubic(zk));   // slow push-in, then the dive on a log scale
+  const fade = cl((1.05 - pr * s / half) / 0.5);
+  if (fade > 0) {
+    x.save(); x.setTransform(dpr * s, 0, 0, dpr * s, dpr * cx, dpr * cy); drawEye(t, ew, eh, open, fade, pr, look, s); x.restore();
+    const sr = Math.pow(s, 1.35);   // the scope ring is nearer the camera, so it flies past faster
+    x.save(); x.setTransform(dpr * sr, 0, 0, dpr * sr, dpr * cx, dpr * cy); drawReticle(t, ew * 1.2, fade * (1 - cl((sr - 2) / 2))); x.restore();
+  }
+  const T = targets(), clipR = zk < 1 ? pr * s : 0;
+  if (zk > 0) {   // the vortex is seen through the pupil, which grows until it is the whole screen
+    x.save(); if (clipR) { x.beginPath(); x.arc(cx, cy, clipR, 0, TAU); x.clip(); }
+    drawTunnel(t, cx, cy, cl(zk * 2.5) * bgA);
+    const fl = T.filter(b => t >= b.t0 && t < b.at).map(b => ({b, p: ballAt(b, t)})).sort((p, q) => p.p.s - q.p.s);
+    for (const {b, p} of fl) {
+      drawTrail(b, t, p);
+      const spun = b.spin * (1 - Math.pow(1 - p.k, 2)) * 2.2;   // spins fast in flight, settles as it lands
+      drawBall(p.x, p.y, p.r, spun, b.tilt, cl((p.k - 0.02) / 0.08), b.kind === "pass" ? 1 : 1 - cl((p.k - 0.86) / 0.12));
+    }
+    x.restore();
+  }
+  for (const b of T) {
+    if (b.kind === "none" || b.kind === "pass") continue;
+    reveal(b, t < b.at ? (b.kind === "box" || b.kind === "pill" ? 0 : {}) : drawLanded(b, t - b.at));
+  }
+}
+
+// ---------- playback ----------
+let tNow = 0, playing = false, last = null, raf = 0, rate = 1, shown = false;
+const hooks = {onTime: null};
+function show(on) {
+  if (on === shown) return; shown = on;
+  intro.style.display = on ? "" : "none"; intro.style.opacity = "";
+  intro.style.background = on ? "none" : "";   // the canvas paints the ground from now on (and lifts it at the end)
+  document.documentElement.classList.toggle("intro-on", on);
+  if (!on) for (const b of tg || []) if (b.el) { b.el.style.opacity = ""; b.el.style.clipPath = ""; }
+}
+function seek(t) {
+  tNow = cl(t, 0, T_END);
+  if (tNow >= T_END) show(false); else { show(true); draw(tNow); }
+  hooks.onTime && hooks.onTime(tNow, playing);
+}
+function loop(now) {
+  raf = 0; if (!playing) return;
+  if (last != null) tNow += (now - last) / 1000 * rate;
+  last = now; seek(tNow);
+  if (tNow >= T_END) { playing = false; hooks.onTime && hooks.onTime(tNow, false); if (!DEMO) finish(); return; }
+  raf = requestAnimationFrame(loop);
+}
+function play() { if (tNow >= T_END) tNow = 0; intro.classList.add("go"); playing = true; last = null; if (!raf) raf = requestAnimationFrame(loop); hooks.onTime && hooks.onTime(tNow, true); }
+function pause() { playing = false; last = null; hooks.onTime && hooks.onTime(tNow, false); }
+function finish() {   // the real page only: tear the intro down for good
+  show(false); cancelAnimationFrame(raf); removeEventListener("resize", size);
+  for (const ev of ["pointerdown", "keydown"]) removeEventListener(ev, skip, true);
+  intro.remove();
+}
+function skip(e) {
+  if (!shown || (DEMO && e.target.closest && e.target.closest("#demoBar"))) return;
+  e.preventDefault();
+  if (DEMO) { pause(); seek(T_END); return; }
+  if (skip.on) return; skip.on = true; playing = false;
+  intro.animate([{opacity: 1}, {opacity: 0}], {duration: 220, easing: "ease-out", fill: "forwards"}).finished.then(finish, finish);
+}
+for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, skip, true);
+addEventListener("resize", () => { if (shown && !playing) draw(tNow); });
+window.__intro = {seek, play, pause, hooks, T_END, get t() { return tNow; }, get playing() { return playing; }, set rate(v) { rate = v; }};
+
+// ---------- start once the page is ready ----------
+// Until then the closed eye holds still with a loading line under it. Waits for the page load, the fonts (they move the
+// targets), the landing, the background video and a few smooth frames, after drawing every phase once off screen to warm up.
+// Capped at 8 s: a slow network delays the intro, never blocks it.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const when = (ok, el, evs) => new Promise(r => { if (ok()) return r(); for (const e of evs) el.addEventListener(e, r, {once: true}); });
+const poll = ok => new Promise(r => { const f = () => ok() ? r() : setTimeout(f, 50); f(); });
+const calm = () => new Promise(r => { let last = 0, n = 0, k = 0;   // 3 frames in a row under 24 ms, or 1 s
+  const f = now => { n = last && now - last < 24 ? n + 1 : 0; last = now; n >= 3 || ++k > 60 ? r() : requestAnimationFrame(f); };
+  requestAnimationFrame(f); });
+async function ready() {
+  await when(() => document.readyState === "complete", window, ["load"]);
+  if (document.fonts) await document.fonts.ready;
+  const land = () => document.getElementById("landing");
+  await Promise.race([poll(() => land() && !land().hidden), sleep(2000)]);
+  const v = document.getElementById("bgVid");
+  // the video's first frames hitch the page: let it get going before the intro does (3 s at most, e.g. autoplay blocked)
+  if (v && v.src) await Promise.race([when(() => (!v.paused && v.readyState >= 3) || !!v.error, v, ["playing", "error"]), sleep(3000)]);
+  await warm();
+  await calm();
+}
+async function warm() {   // draw every phase once, one per frame, on a canvas hidden under the real one: the GPU prepares
+  // its shaders now instead of stalling mid-intro (draws thrown away in the same frame would never reach it)
+  if (!shown || playing) return;
+  const w = document.createElement("canvas"), keep = x;
+  w.width = cv.width; w.height = cv.height; w.style.cssText = "position:absolute;inset:0;width:100%;height:100%";
+  intro.insertBefore(w, cv); x = w.getContext("2d");
+  for (const t of [0.45, 0.7, 1.1, 1.3, 1.5, 1.65, 1.9, 2.4, 2.85, 3.05, 3.3, 3.6]) {
+    if (!shown || playing) break;
+    draw(t); await new Promise(r => requestAnimationFrame(r));
+  }
+  x = keep; w.remove();
+  if (shown && !playing) seek(0);   // puts the page's parts back to hidden
+}
+seek(0);
+Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow === 0) play(); });
+})();
+
+// landing background video, as on the real page
+(() => {
+  const bg = document.getElementById("bgVid");
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  bg.addEventListener("playing", () => document.getElementById("landing").classList.add("has-bg"), {once: true});
+  bg.muted = true; bg.src = "bg.mp4"; bg.play().catch(() => {});
+})();
+
+// demo controls
+(() => {
+  const I = window.__intro, $ = id => document.getElementById(id);
+  const seekEl = $("dSeek"), tm = $("dTime"), pz = $("dPause");
+  seekEl.max = I.T_END;
+  I.hooks.onTime = (t, playing) => {
+    seekEl.value = t; tm.textContent = `${t.toFixed(2)} / ${I.T_END.toFixed(1)} s`;
+    pz.textContent = playing ? "Tạm dừng" : "Tiếp tục"; pz.disabled = !playing && t >= I.T_END;
+  };
+  $("dReplay").addEventListener("click", () => { I.seek(0); I.play(); });
+  pz.addEventListener("click", () => I.playing ? I.pause() : I.play());
+  seekEl.addEventListener("input", () => { I.pause(); I.seek(+seekEl.value); });
+  $("dRate").addEventListener("change", e => { I.rate = +e.target.value; });
+  I.hooks.onTime(I.t, I.playing);
+})();
+</script>

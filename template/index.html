@@ -190,18 +190,19 @@ body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc, body.rec #lan
 .land .priv{font:400 13px/1.5 var(--f-body);color:var(--ink-3);max-width:60ch;margin:0}
 .land .mob{font:400 13px/1.45 var(--f-body);color:var(--amber);max-width:60ch;margin:0}
 
-/* ---------- intro: the eye opens, the camera dives through the pupil, the page's parts fly out to their places ---------- */
+/* ---------- intro: the eye opens, the camera dives through the pupil, balls spiral out of the vortex and become the page ---------- */
 html.intro-on{overflow:hidden}
-#intro{position:fixed;inset:0;z-index:1000;background:var(--bg);overflow:hidden;cursor:pointer}
+#intro{position:fixed;inset:0;z-index:1000;overflow:hidden;cursor:pointer;background:var(--bg)}
 #introCv{position:absolute;inset:0;width:100%;height:100%;display:block}
-#introFly{position:absolute;inset:0;perspective:1100px;pointer-events:none}
-.ghost{position:absolute;left:0;top:0;border:1.5px solid rgba(77,227,255,.75);background:rgba(10,24,40,.6);
-  box-shadow:0 0 22px rgba(77,227,255,.35),inset 0 0 18px rgba(77,227,255,.14);will-change:transform,opacity}
-.ghost.amber{border-color:rgba(255,200,87,.9);box-shadow:0 0 24px rgba(255,200,87,.35),inset 0 0 18px rgba(255,200,87,.14)}
-.ghost.text{background:rgba(77,227,255,.07);border-color:rgba(77,227,255,.4)}
 #introSkip{position:absolute;right:max(18px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));
-  font:500 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);opacity:0;animation:skipIn .5s .5s ease-out forwards}
-@keyframes skipIn{to{opacity:1}}
+  font:500 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+/* while the page loads: a thin line under the closed eye; a CSS animation, so it stays smooth while the page is busy */
+#introLoad{position:absolute;left:50%;top:calc(50% + 64px);width:140px;height:2px;margin-left:-70px;border-radius:1px;overflow:hidden;
+  background:rgba(77,227,255,.14);opacity:0;animation:introLoadIn .3s .4s ease-out forwards}
+#introLoad:after{content:"";position:absolute;inset:0;width:40%;background:linear-gradient(90deg,transparent,#4DE3FF,transparent);animation:introLoadRun 1.1s ease-in-out infinite}
+#intro.go #introLoad{display:none}
+@keyframes introLoadIn{to{opacity:1}}
+@keyframes introLoadRun{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
 body.rec #intro{display:none}
 
 /* ---------- player names (step after the upload) ---------- */
@@ -252,177 +253,514 @@ body.rec #intro{display:none}
 </style>
 </head>
 <body>
-<div id="intro" aria-hidden="true"><canvas id="introCv"></canvas><div id="introFly"></div><span id="introSkip">Bấm để bỏ qua</span></div>
+<div id="intro" aria-hidden="true"><canvas id="introCv"></canvas><i id="introLoad"></i><span id="introSkip">Bấm để bỏ qua</span></div>
 <script>
 "use strict";
-// Intro, on every load: the eye opens, the camera dives through the pupil into a tunnel of rings and balls,
-// then the landing page's parts fly out of the tunnel, turning as they go, and settle where they belong.
-// Any click or key skips it. Not shown to the recorder (?record) or with reduced motion.
+// Intro: the eye opens and glances aside, the camera dives through the pupil into a vortex, pickleballs spiral
+// towards the screen and each one turns into a part of the landing page (logo ring, button, box, text sweep).
+// Every pixel is a function of t (seek), so the demo can scrub it. Any click or key outside the demo bar skips it.
 (() => {
-const intro = document.getElementById("intro");
-if (new URLSearchParams(location.search).has("record") || matchMedia("(prefers-reduced-motion: reduce)").matches) { intro.remove(); return; }
-document.documentElement.classList.add("intro-on");
-const cv = document.getElementById("introCv"), x = cv.getContext("2d"), fly = document.getElementById("introFly");
-const CY = [77, 227, 255], AM = [255, 200, 87], LID = [220, 248, 255];
+const intro = document.getElementById("intro"), DEMO = !!document.getElementById("demoBar");
+if (!DEMO && (new URLSearchParams(location.search).has("record") || matchMedia("(prefers-reduced-motion: reduce)").matches)) { intro.remove(); return; }
+const cv = document.getElementById("introCv");
+let x = cv.getContext("2d");   // swapped for a hidden canvas while warming up
+const CY = [77, 227, 255], AM = [255, 200, 87], LID = [220, 248, 255], TAU = 2 * Math.PI;
 const rgb = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const mix = (a, b, k) => a + (b - a) * k;
+const mixC = (p, q, k) => [0, 1, 2, 3].map(i => mix(p[i] ?? 1, q[i] ?? 1, k));
+const rgba = c => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${c[3]})`;
 const outCubic = k => 1 - Math.pow(1 - cl(k), 3);
 const inOutCubic = k => (k = cl(k)) < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-const T_OPEN = 0.2, T_OPEN1 = 1.05, T_ZOOM = 1.0, T_ZOOM1 = 2.0, T_LAUNCH = 1.9;   // seconds; the whole intro is about 3.5 s
-let W = 0, H = 0, dpr = 1;
-const size = () => { dpr = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
+const outExpo = k => (k = cl(k)) >= 1 ? 1 : 1 - Math.pow(2, -10 * k);
+const spring = (s, w = 13, z = 0.8) => {   // damped spring, s in seconds: 0 -> 1 with a 1-2 % overshoot
+  if (s <= 0) return 0; const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * s) * (Math.cos(wd * s) + z * w / wd * Math.sin(wd * s));
+};
+const rnd = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+// seconds; the whole intro is T_END long
+const T_OPEN = 0.15, T_OPEN1 = 1.0, T_ZOOM = 1.0, T_ZOOM1 = 2.0, T_FADE = 2.75, T_END = 4.2;
+let W = 0, H = 0, dpr = 1, tg = null;
+const size = () => { dpr = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); tg = null; };
 size(); addEventListener("resize", size);
-// pickleballs in the tunnel: angle and distance from the axis (ring radius = 1), depth, spin
-const BALLS = Array.from({length: 8}, (_, i) => ({a: i * 2.4, r: 0.32 + 0.5 * ((i * 7) % 5) / 4, z: 1.5 + i * 1.7, spin: (i % 2 ? 1 : -1) * (1.6 + i * 0.25)}));
 
-function almond(cx, cy, a, b) {   // eye outline: half width a, half height b
-  x.beginPath(); x.moveTo(cx - a, cy);
-  x.bezierCurveTo(cx - a * 0.45, cy - b * 1.33, cx + a * 0.45, cy - b * 1.33, cx + a, cy);
-  x.bezierCurveTo(cx + a * 0.45, cy + b * 1.33, cx - a * 0.45, cy + b * 1.33, cx - a, cy);
+// ---------- static geometry, built once in unit space ----------
+const IRIS = (() => {   // iris radius = 1
+  const fib = new Path2D(), inner = new Path2D(), coll = new Path2D(), crypt = new Path2D(), furrow = new Path2D();
+  for (let i = 0; i < 280; i++) {   // stroma fibres from the collarette to the rim, each slightly bent
+    const a = i / 280 * TAU + rnd(i) * 0.02, r0 = 0.47 + 0.05 * rnd(i + 3), r1 = 0.8 + 0.17 * rnd(i + 7), am = a + (rnd(i + 11) - 0.5) * 0.14, rm = (r0 + r1) / 2;
+    fib.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); fib.quadraticCurveTo(Math.cos(am) * rm, Math.sin(am) * rm, Math.cos(a) * r1, Math.sin(a) * r1);
+  }
+  for (let i = 0; i < 140; i++) {   // finer fibres between the pupil and the collarette
+    const a = i / 140 * TAU + rnd(i + 50) * 0.03, r0 = 0.27, r1 = 0.43 + 0.05 * rnd(i + 51);
+    inner.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); inner.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+  }
+  for (let j = 0; j <= 240; j++) {   // the collarette: a wavy ring
+    const a = j / 240 * TAU, r = 0.47 + 0.028 * Math.sin(11 * a + 1) + 0.013 * Math.sin(27 * a);
+    j ? coll.lineTo(Math.cos(a) * r, Math.sin(a) * r) : coll.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  coll.closePath();
+  for (let i = 0; i < 30; i++) {   // crypts: dark lens-shaped pits
+    const a = rnd(i + 90) * TAU, r = 0.52 + 0.24 * rnd(i + 91), ex = Math.cos(a) * r, ey = Math.sin(a) * r, rx = 0.03 + 0.03 * rnd(i + 92), ry = 0.014 + 0.01 * rnd(i + 93);
+    crypt.moveTo(ex + rx * Math.cos(a), ey + rx * Math.sin(a)); crypt.ellipse(ex, ey, rx, ry, a, 0, TAU);
+  }
+  for (const r of [0.79, 0.86, 0.92]) for (let s = 0; s < 5; s++) {   // contraction furrows near the rim
+    const a0 = s * TAU / 5 + rnd(r * 40 + s) * 0.9, len = 0.5 + 0.5 * rnd(r * 70 + s);
+    furrow.moveTo(Math.cos(a0) * r, Math.sin(a0) * r); furrow.arc(0, 0, r, a0, a0 + len);
+  }
+  return {fib, inner, coll, crypt, furrow};
+})();
+const VEINS = (() => {   // sclera veins from both corners, eye half width = 1
+  const p = new Path2D();
+  for (let v = 0; v < 8; v++) {
+    const side = v % 2 ? 1 : -1; let px = side * 0.97, py = (rnd(v + 200) - 0.5) * 0.18;
+    p.moveTo(px, py);
+    for (let s = 0; s < 6; s++) { px -= side * (0.06 + 0.03 * rnd(v * 9 + s)); py += (rnd(v * 7 + s + 300) - 0.5) * 0.07; p.lineTo(px, py); }
+  }
+  return p;
+})();
+const HOLES = Array.from({length: 26}, (_, i) => {   // pickleball holes: evenly spread on the unit sphere
+  const y = 1 - 2 * (i + 0.5) / 26, r = Math.sqrt(1 - y * y), f = i * 2.39996;
+  return [Math.cos(f) * r, y, Math.sin(f) * r];
+});
+
+// ---------- the eye ----------
+const bz = (P, u) => { const v = 1 - u; return [0, 1].map(i => v * v * v * P[0][i] + 3 * v * v * u * P[1][i] + 3 * v * u * u * P[2][i] + u * u * u * P[3][i]); };
+const bzd = (P, u) => { const v = 1 - u; return [0, 1].map(i => 3 * v * v * (P[1][i] - P[0][i]) + 6 * v * u * (P[2][i] - P[1][i]) + 3 * u * u * (P[3][i] - P[2][i])); };
+function lids(ew, eh, b) {   // inner corner on the left, a little low; the upper lid peaks towards the nose
+  const I = [-ew, 0.06 * eh], O = [ew, -0.05 * eh];
+  return {I, O, up: [I, [-0.5 * ew, -1.36 * b], [0.38 * ew, -1.3 * b], O], lo: [O, [0.5 * ew, 1.08 * b], [-0.42 * ew, 1.16 * b], I]};
+}
+function eyePath(L, dy = 0) {
+  x.beginPath(); x.moveTo(L.I[0], L.I[1] + dy);
+  x.bezierCurveTo(L.up[1][0], L.up[1][1] + dy, L.up[2][0], L.up[2][1] + dy, L.O[0], L.O[1] + dy);
+  x.bezierCurveTo(L.lo[1][0], L.lo[1][1] + dy, L.lo[2][0], L.lo[2][1] + dy, L.I[0], L.I[1] + dy);
   x.closePath();
 }
-function glow(c, a, w) {   // the current path: a wide faint stroke under a thin bright one
-  x.strokeStyle = rgb(c, a * 0.2); x.lineWidth = w * 5; x.stroke();
-  x.strokeStyle = rgb(c, a); x.lineWidth = w; x.stroke();
+function curve(P, dy = 0, move = true) {
+  if (move) x.moveTo(P[0][0], P[0][1] + dy);
+  x.bezierCurveTo(P[1][0], P[1][1] + dy, P[2][0], P[2][1] + dy, P[3][0], P[3][1] + dy);
 }
-function drawEye(t, cx, cy, ew, eh, open, fade, pr) {
+function lashes(P, n, len, flare, seed) {   // n lashes along the lid curve P, curling out along its normal
+  x.beginPath();
+  for (let i = 0; i < n; i++) {
+    const u = 0.05 + 0.9 * (i + 0.5 * rnd(seed + i)) / n, p = bz(P, u), d = bzd(P, u), m = Math.hypot(d[0], d[1]) || 1;
+    const tx = d[0] / m, ty = d[1] / m, nx = ty, ny = -tx;   // normal pointing away from the eye
+    const L = len * (0.55 + 0.45 * Math.pow(Math.sin(Math.PI * u), 0.6)) * (0.8 + 0.4 * rnd(seed + i + 99));
+    const fl = (u - 0.42) * flare;   // lashes fan out towards the corners
+    x.moveTo(p[0], p[1]);
+    x.quadraticCurveTo(p[0] + nx * L * 0.6, p[1] + ny * L * 0.6, p[0] + (nx + tx * fl) * L, p[1] + (ny + ty * fl) * L - Math.abs(ny) * L * 0.08);
+  }
+}
+function drawEye(t, ew, eh, open, fade, pr, look, sc) {   // drawn around (0,0); sc = camera scale, for blur sizes
+  const b = eh * open, L = lids(ew, eh, b), ir = eh * 0.92;
+  // deep in the dive the lids are off screen: skip them and their shadow (the costliest parts of a frame)
+  const lidsOn = 0.8 * b * sc < H * 0.6, shA = 0.9 * cl((2 - sc) / 0.6);
+  // topographic contours of the face around the eye, rippling outwards as it opens
   x.globalCompositeOperation = "lighter";
-  for (let k = 10; k >= 1; k--) {   // contour lines rippling outwards as the eye opens
-    const ap = outCubic((t - T_OPEN - 0.05 * k) / 0.6) * fade; if (ap <= 0) continue;
-    const br = 1 + 0.012 * Math.sin(t * 2.4 + k);
-    almond(cx, cy, ew * (1 + 0.1 * k) * br, eh * open * (1 + 0.26 * k) * br + 1);
-    glow(k % 2 ? CY : AM, 0.6 * Math.pow(1 - k / 11, 1.2) * ap, 1.1);
+  for (let k = 5; k >= 1 && lidsOn; k--) {
+    const ap = outCubic((t - T_OPEN - 0.07 * k) / 0.6) * fade; if (ap <= 0) continue;
+    const br = 1 + 0.01 * Math.sin(t * 2.4 + k);
+    eyePath(lids(ew * (1 + 0.1 * k) * br, eh, b * (1 + 0.24 * k) * br + eh * 0.16 * k));
+    x.strokeStyle = rgb(k % 2 ? CY : AM, 0.34 * Math.pow(1 - k / 6, 1.1) * ap); x.lineWidth = 1; x.stroke();
   }
   x.globalCompositeOperation = "source-over";
-  const b = eh * open, ir = eh * 0.9;
-  x.save(); almond(cx, cy, ew, b); x.clip();
+  // upper lid volume between the crease and the lid margin, lower lid band under the eye
+  const cr = [[-0.93 * ew, 0.02 * eh], [-0.45 * ew, -eh * (1.0 + 0.55 * open)], [0.42 * ew, -eh * (0.95 + 0.55 * open)], [0.97 * ew, -0.08 * eh]];
   x.globalAlpha = fade;
-  const sc = x.createRadialGradient(cx, cy, 0, cx, cy, ew); sc.addColorStop(0, "#0E2236"); sc.addColorStop(1, "#04080F");
-  x.fillStyle = sc; x.fillRect(cx - ew, cy - b * 1.2 - 2, ew * 2, b * 2.4 + 4);
-  const ig = x.createRadialGradient(cx, cy, pr * 0.9, cx, cy, ir);
-  ig.addColorStop(0, "#FFC857"); ig.addColorStop(0.28, "#E8963A"); ig.addColorStop(0.55, "#1E9DB8"); ig.addColorStop(0.88, "#4DE3FF"); ig.addColorStop(1, "#06121F");
-  x.fillStyle = ig; x.beginPath(); x.arc(cx, cy, ir, 0, 7); x.fill();
+  let g;
+  if (lidsOn) {
+  x.beginPath(); curve(cr); x.lineTo(L.O[0], L.O[1]); x.bezierCurveTo(L.up[2][0], L.up[2][1], L.up[1][0], L.up[1][1], L.I[0], L.I[1]); x.closePath();
+  g = x.createLinearGradient(0, -eh * 1.6, 0, b * -0.4);
+  g.addColorStop(0, "rgba(22,52,80,.55)"); g.addColorStop(0.55, "rgba(12,30,48,.8)"); g.addColorStop(1, "rgba(3,8,14,.95)");
+  x.fillStyle = g; x.fill();
+  g = x.createRadialGradient(-0.1 * ew, -eh * (0.75 + 0.4 * open), 0, -0.1 * ew, -eh * (0.75 + 0.4 * open), ew * 0.6);
+  g.addColorStop(0, "rgba(120,220,255,.14)"); g.addColorStop(1, "rgba(120,220,255,0)");
+  x.fillStyle = g; x.fill();
+  x.beginPath(); curve(cr); x.strokeStyle = rgb(CY, 0.38); x.lineWidth = 1.2; x.stroke();   // the crease
+  const lw = [[0.97 * ew, 0.0], [0.45 * ew, eh * (0.95 + 0.35 * open)], [-0.45 * ew, eh * (1.0 + 0.35 * open)], [-0.95 * ew, 0.14 * eh]];
+  x.beginPath(); curve(L.lo); curve(lw.slice().reverse(), 0, false); x.closePath();
+  g = x.createLinearGradient(0, 0, 0, eh * 1.3); g.addColorStop(0, "rgba(10,26,42,.85)"); g.addColorStop(1, "rgba(10,26,42,0)");
+  x.fillStyle = g; x.fill();
+  x.beginPath(); curve(lw); x.strokeStyle = rgb(CY, 0.14); x.lineWidth = 1; x.stroke();
+  }
+
+  // inside the opening (deep in the dive the opening covers the whole screen: no clip needed)
+  x.save(); if (lidsOn) { eyePath(L); x.clip(); }
+  const ring = (r0, r1) => { x.beginPath(); x.arc(0, 0, r1, 0, TAU); x.arc(0, 0, r0, 0, TAU, true); };   // fill only what shows
+  if (ir * sc < Math.hypot(W, H) / 2) {   // the white of the eye, until the iris covers the screen
+    g = x.createRadialGradient(look[0], look[1], 0, look[0], look[1], ew * 1.05);
+    g.addColorStop(0, "#1C3854"); g.addColorStop(0.45, "#122840"); g.addColorStop(1, "#050B14");
+    x.fillStyle = g; x.fillRect(-ew, -eh * 1.5, ew * 2, eh * 3);
+    x.save(); x.scale(ew, ew); x.strokeStyle = "rgba(255,170,120,.16)"; x.lineWidth = 1.1 / ew / Math.max(1, sc * 0.6); x.stroke(VEINS); x.restore();
+    g = x.createRadialGradient(-ew * 0.95, 0.05 * eh, 0, -ew * 0.95, 0.05 * eh, ew * 0.09);   // caruncle: a soft warm glow in the inner corner
+    g.addColorStop(0, "rgba(255,170,150,.22)"); g.addColorStop(1, "rgba(255,170,150,0)");
+    x.globalCompositeOperation = "lighter"; x.fillStyle = g; x.fillRect(-ew, -eh, ew * 0.2, eh * 2); x.globalCompositeOperation = "source-over";
+  }
+  // iris
+  x.save(); x.translate(look[0], look[1]);
+  g = x.createRadialGradient(0, 0, pr * 0.9, 0, 0, ir);
+  g.addColorStop(0, "#FFD27A"); g.addColorStop(0.2, "#E89A3C"); g.addColorStop(0.36, "#5C6E5A"); g.addColorStop(0.5, "#1C8BA6");
+  g.addColorStop(0.78, "#36C2E2"); g.addColorStop(0.92, "#145A70"); g.addColorStop(1, "#04101A");
+  x.fillStyle = g; ring(pr * 0.95, ir); x.fill();
+  x.save(); x.scale(ir, ir); const u1 = 1 / ir, lw = w => Math.min(w * sc, w * 2.2) / sc * u1;   // fibres get finer, not fatter, as the camera dives
   x.globalCompositeOperation = "lighter";
-  const rot = t * 0.5; x.lineWidth = Math.max(1, ir / 140);
-  for (let i = 0; i < 72; i++) {   // iris fibres
-    const a = rot + i * Math.PI / 36, r0 = pr * 1.08, r1 = ir * (0.78 + 0.16 * ((i * 37) % 7) / 6);
-    x.strokeStyle = i % 3 ? "rgba(190,245,255,.16)" : "rgba(255,226,160,.24)";
-    x.beginPath(); x.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); x.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); x.stroke();
-  }
-  for (let i = 0; i < 24; i++) {   // a ring of dots turning the other way
-    const a = -rot * 1.6 + i * Math.PI / 12, r = ir * 0.66;
-    x.fillStyle = i % 2 ? "rgba(255,200,87,.55)" : "rgba(77,227,255,.5)";
-    x.beginPath(); x.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, ir * 0.028, 0, 7); x.fill();
-  }
+  x.strokeStyle = "rgba(200,246,255,.2)"; x.lineWidth = lw(1.1); x.stroke(IRIS.fib);
+  if (pr < ir * 0.46) { x.strokeStyle = "rgba(255,226,160,.22)"; x.lineWidth = lw(0.9); x.stroke(IRIS.inner); }   // under the pupil once it is wide
+  x.strokeStyle = "rgba(255,214,140,.5)"; x.lineWidth = lw(1.6); x.stroke(IRIS.coll);
   x.globalCompositeOperation = "source-over";
-  x.fillStyle = "#010307"; x.beginPath(); x.arc(cx, cy, pr, 0, 7); x.fill();
-  x.strokeStyle = "rgba(77,227,255,.45)"; x.lineWidth = Math.max(1, ir / 90); x.stroke();
-  x.strokeStyle = "rgba(255,255,255,.75)"; x.lineWidth = Math.max(1.5, ir / 60);
-  x.beginPath(); x.arc(cx - ir * 0.36, cy - ir * 0.38, ir * 0.13, 0, 7); x.stroke();
+  x.fillStyle = "rgba(2,12,22,.32)"; x.fill(IRIS.crypt);
+  x.strokeStyle = "rgba(2,14,24,.55)"; x.lineWidth = lw(1.4); x.stroke(IRIS.furrow);
   x.restore();
-  x.globalCompositeOperation = "lighter"; almond(cx, cy, ew, b); glow(LID, 0.85 * fade, 1.6); x.globalCompositeOperation = "source-over";
-}
-function drawBall(px, py, r, spin, a) {
-  x.globalAlpha = a;
-  const g_ = x.createRadialGradient(px - r * 0.35, py - r * 0.4, r * 0.1, px, py, r);
-  g_.addColorStop(0, "#FFF6B8"); g_.addColorStop(0.55, "#F2D43A"); g_.addColorStop(1, "#8A6F10");
-  x.fillStyle = g_; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
-  x.fillStyle = "rgba(70,48,0,.55)";
-  for (let j = 0; j < 10; j++) {   // holes on two rows, foreshortened as the ball turns
-    const th = spin + j * 1.257 + (j % 2) * 0.63, c = Math.cos(th); if (c < 0.08) continue;
-    x.beginPath(); x.ellipse(px + Math.sin(th) * r * 0.86, py + (j % 2 ? -0.34 : 0.34) * r, r * 0.1 * c, r * 0.12, 0, 0, 7); x.fill();
+  g = x.createRadialGradient(0, 0, ir * 0.8, 0, 0, ir);   // limbal ring: the dark rim that makes the iris a dome
+  g.addColorStop(0, "rgba(3,8,14,0)"); g.addColorStop(1, "rgba(3,8,14,.9)");
+  x.fillStyle = g; ring(ir * 0.8, ir); x.fill();
+  x.globalCompositeOperation = "lighter";   // light through the cornea brightens the far side of the iris
+  g = x.createRadialGradient(ir * 0.32, ir * 0.42, 0, ir * 0.32, ir * 0.42, ir * 0.6);
+  g.addColorStop(0, "rgba(120,235,255,.22)"); g.addColorStop(1, "rgba(120,235,255,0)");
+  x.fillStyle = g; ring(pr, ir); x.fill();
+  x.globalCompositeOperation = "source-over";
+  x.fillStyle = "#010307"; x.beginPath(); x.arc(0, 0, pr * 0.92, 0, TAU); x.fill();   // pupil, with a soft edge and a thin warm ruff
+  g = x.createRadialGradient(0, 0, pr * 0.9, 0, 0, pr * 1.06);
+  g.addColorStop(0, "#010307"); g.addColorStop(1, "rgba(1,3,7,0)");
+  x.fillStyle = g; ring(pr * 0.91, pr * 1.06); x.fill();
+  x.strokeStyle = "rgba(255,190,110,.45)"; x.lineWidth = Math.max(1, ir / 120); x.beginPath(); x.arc(0, 0, pr * 1.02, 0, TAU); x.stroke();
+  x.restore();
+  // shadow of the lids on the eyeball: an elliptical gradient centred low, so it is darkest under the upper lid
+  // (a gradient, not a shadow blur: blurs are the slowest thing a canvas can do)
+  if (shA > 0 && lidsOn) {
+    x.save(); x.translate(0, eh * 0.35); x.scale(ew / eh, 1);
+    g = x.createRadialGradient(0, 0, 0, 0, 0, eh * 1.4);
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.55, "rgba(0,0,0,0)"); g.addColorStop(0.85, `rgba(0,0,0,${0.55 * shA})`); g.addColorStop(1, `rgba(0,0,0,${shA})`);
+    x.fillStyle = g; x.fillRect(-eh * 1.5, -eh * 2, eh * 3, eh * 3);
+    x.restore();
   }
-  x.globalAlpha = 1;
+  // wet highlights on the cornea: a soft window, a small dot, a faint sheen on the rim; they slide away as the camera dives
+  const hA = cl(1 - (sc - 1) / 1.5);
+  if (hA > 0) {
+    x.save(); x.translate(look[0], look[1]); x.globalAlpha = hA;
+    x.save(); x.translate(-ir * 0.4, -ir * 0.38); x.rotate(-0.3);
+    g = x.createRadialGradient(-ir * 0.03, -ir * 0.02, 0, 0, 0, ir * 0.12);
+    g.addColorStop(0, "rgba(255,255,255,.9)"); g.addColorStop(0.6, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.beginPath(); x.roundRect(-ir * 0.1, -ir * 0.06, ir * 0.2, ir * 0.12, ir * 0.04); x.fill(); x.restore();
+    x.fillStyle = "rgba(255,255,255,.4)"; x.beginPath(); x.arc(ir * 0.3, ir * 0.36, ir * 0.03, 0, TAU); x.fill();
+    x.strokeStyle = "rgba(255,255,255,.09)"; x.lineWidth = ir * 0.07; x.beginPath(); x.arc(0, 0, ir * 0.86, 3.6, 4.6); x.stroke();
+    x.restore();
+  }
+  if (lidsOn) { x.beginPath(); curve(L.lo, -1.5); x.strokeStyle = "rgba(220,248,255,.3)"; x.lineWidth = 1.4; x.stroke(); }   // wet waterline
+  x.restore();
+  // lid margins: a dark thick edge with a lit rim, then the lashes
+  if (!lidsOn) return;
+  x.globalAlpha = fade;
+  x.beginPath(); curve(L.up, -eh * 0.02); x.strokeStyle = "#06121E"; x.lineWidth = eh * 0.07; x.stroke();
+  x.globalCompositeOperation = "lighter";
+  x.beginPath(); curve(L.up, -eh * 0.055); x.strokeStyle = rgb(LID, 0.16); x.lineWidth = 6; x.stroke(); x.strokeStyle = rgb(LID, 0.85); x.lineWidth = 1.5; x.stroke();
+  x.beginPath(); curve(L.lo, eh * 0.03); x.strokeStyle = rgb(LID, 0.42); x.lineWidth = 1.2; x.stroke();
+  lashes(L.up, 54, eh * 0.4, 1.3, 1); x.strokeStyle = rgb(LID, 0.6); x.lineWidth = 1.2; x.lineCap = "round"; x.stroke();
+  lashes(L.lo, 28, eh * 0.15, 1.1, 400); x.strokeStyle = rgb(LID, 0.3); x.lineWidth = 1; x.stroke();
+  x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
 }
-function drawTunnel(t, cx, cy, alpha) {
-  const d = Math.max(0, t - T_ZOOM), zc = 3 * d + 3.2 * d * d, F = 0.32 * Math.hypot(W, H);
-  const ox = cx + Math.sin(t * 1.7) * W * 0.015, oy = cy + Math.cos(t * 1.3) * H * 0.015;
+function drawReticle(t, R, a) {   // the scope ring around the eye, drawn on, closer to the camera than the eye
+  const dk = outCubic((t - 0.25) / 0.75); if (dk <= 0 || a <= 0) return;
+  x.globalCompositeOperation = "lighter";
+  x.lineWidth = 1.2; x.strokeStyle = rgb(CY, 0.32 * a);
+  x.beginPath(); x.arc(0, 0, R, -Math.PI / 2, -Math.PI / 2 + TAU * dk); x.stroke();
+  const rot = t * 0.12 - Math.PI / 2; x.beginPath();
+  for (let i = 0; i < 72 * dk; i++) { const ang = rot + i * TAU / 72, l = i % 6 ? R * 0.022 : R * 0.055, c = Math.cos(ang), s = Math.sin(ang);
+    x.moveTo(c * R, s * R); x.lineTo(c * (R - l), s * (R - l)); }
+  x.strokeStyle = rgb(CY, 0.42 * a); x.stroke();
+  x.setLineDash([R * 0.018, R * 0.03]); x.lineDashOffset = -t * R * 0.05;
+  x.beginPath(); x.arc(0, 0, R * 0.935, -Math.PI / 2, -Math.PI / 2 - TAU * dk, true); x.strokeStyle = rgb(AM, 0.3 * a); x.stroke(); x.setLineDash([]);
+  x.lineWidth = 1.8; x.strokeStyle = rgb(CY, 0.6 * a); x.beginPath();
+  for (let q = 0; q < 4; q++) { const c = Math.cos(q * Math.PI / 2), s = Math.sin(q * Math.PI / 2); x.moveTo(c * R * 1.03, s * R * 1.03); x.lineTo(c * R * (1.03 + 0.12 * dk), s * R * (1.03 + 0.12 * dk)); }
+  x.stroke();
+  x.globalCompositeOperation = "source-over";
+}
+
+// ---------- the vortex ----------
+function drawTunnel(t, cx, cy, alpha) {   // rings flying at the camera, each turned a little more: their arcs line up into a spiral
+  const zc = Math.max(0, t - T_ZOOM) * 5.5, F = 0.32 * Math.hypot(W, H);
   x.globalCompositeOperation = "lighter";
   for (let i = Math.floor(zc) + 16; i > Math.floor(zc); i--) {
     const z = i - zc; if (z < 0.2) continue;
     const a = alpha * cl((16 - z) / 6) * cl((z - 0.2) / 0.5); if (a <= 0.01) continue;
-    const spin = (i % 2 ? 1 : -1) * t * 1.4 + i * 0.9, w = cl(4 / z, 0.7, 7);
-    for (let k = 0; k < 3; k++) { const a0 = spin + k * 2.094; x.beginPath(); x.arc(ox, oy, F / z, a0, a0 + 1.75);
-      if (z < 5) glow(i % 2 ? CY : AM, 0.75 * a, w); else { x.strokeStyle = rgb(i % 2 ? CY : AM, 0.75 * a); x.lineWidth = w; x.stroke(); } }   // far rings: no halo, so the centre stays clear
+    const spin = i * 0.38 + t * 1.5, w = cl(4 / z, 0.7, 7), c = i % 2 ? CY : AM;
+    for (let k = 0; k < 3; k++) {
+      const a0 = spin + k * TAU / 3; x.beginPath(); x.arc(cx, cy, F / z, a0, a0 + 1.2);
+      if (z < 5) { x.strokeStyle = rgb(c, 0.15 * a); x.lineWidth = w * 5; x.stroke(); }
+      x.strokeStyle = rgb(c, 0.7 * a); x.lineWidth = w; x.stroke();
+    }
   }
   x.globalCompositeOperation = "source-over";
-  const bs = BALLS.map(b => ({b, z: ((b.z - zc) % 14 + 14) % 14})).sort((p, q) => q.z - p.z);
-  for (const {b, z} of bs) {
-    if (z < 0.35) continue;
-    const a = alpha * cl((14 - z) / 5) * cl((z - 0.35) / 0.4), ang = b.a + t * 0.4;
-    drawBall(ox + Math.cos(ang) * b.r * F / z, oy + Math.sin(ang) * b.r * F / z, 0.09 * F / z, b.spin * t, a);
+}
+
+// ---------- the balls and what each one becomes ----------
+// kind: ring = the logo's circle, then the brand is swept in; box/pill = the ball spreads into the element's shape;
+// wipe = the ball smears into a streak that sweeps across the text and reveals it. at = landing time.
+const SPEC = [
+  {sel: ".land .brand", anchor: ".land .brand svg", kind: "ring", at: 2.7},
+  {sel: ".land h1", kind: "wipe", at: 2.82},
+  {sel: ".land .sub", kind: "wipe", at: 2.94},
+  {sel: "#drop", kind: "box", at: 2.98, edge: AM},
+  {sel: ".land .or", kind: "wipe", at: 3.1, full: true},
+  {sel: "#sampleTile", kind: "box", at: 3.14, edge: CY},
+  {sel: "#drop .btn", kind: "pill", at: 3.3},
+  {sel: ".land .priv", kind: "wipe", at: 3.34},
+  {sel: "#sampleTile .play", kind: "box", at: 3.42, edge: CY},
+];
+const BALL = [[255, 246, 192, 1], [240, 210, 60, 1], [150, 118, 18, 1]];   // highlight, body, shade
+const parseC = s => { const m = /rgba?\(([^)]+)\)/.exec(s || ""); if (!m) return [0, 0, 0, 0]; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [v[0], v[1], v[2], v[3] ?? 1]; };
+function targets() {   // where each ball lands, read from the page once the landing is up (and again after a resize)
+  if (tg) return tg;
+  const land = document.getElementById("landing"), F = 0.5 * Math.min(W, H), cx = W / 2, cy = H / 2;
+  const visible = land && !land.hidden;
+  const T = SPEC.map((s, i) => {
+    const el = visible && document.querySelector(s.sel), b = {i, kind: s.kind, at: s.at, el, t0: 1.12 + 0.07 * i,
+      turns: 1.25 + 0.5 * rnd(i + 500), spin: (i % 2 ? 1 : -1) * (5 + 3 * rnd(i + 600)), tilt: 0.4 + 0.8 * rnd(i + 700)};
+    const r = el && el.getClientRects().length ? el.getBoundingClientRect() : null;
+    if (!r) return Object.assign(b, {kind: "none", px: cx + Math.cos(i * 2.4) * W, py: cy + Math.sin(i * 2.4) * H, r: 30, at: T_FADE + 0.4});
+    const cs = getComputedStyle(el);
+    if (s.kind === "wipe") {   // land at the left end of the text's underline (the text itself, not its box)
+      const rg = document.createRange(); rg.selectNodeContents(el); const q = s.full ? r : rg.getBoundingClientRect();
+      const rr = cl(parseFloat(cs.fontSize) * 0.42, 8, 20);
+      Object.assign(b, {px: q.left, py: s.full ? q.top + q.height / 2 : q.bottom + 3, r: rr, x0: q.left, x1: q.right, box: r});
+    } else if (s.kind === "ring") {
+      const a = el.querySelector("svg").getBoundingClientRect();
+      Object.assign(b, {px: a.left + a.width / 2, py: a.top + a.height / 2, r: a.width * 14 / 34, sw: a.width * 2 / 34, x0: r.left, x1: r.right, box: r});
+    } else {
+      const rad = parseFloat(cs.borderTopLeftRadius) || 0, pill = s.kind === "pill";
+      Object.assign(b, {px: r.left + r.width / 2, py: r.top + r.height / 2, w: r.width, h: r.height, rad,
+        r: pill ? r.height / 2 : cl(Math.min(r.width, r.height) * 0.32, 18, 60), fill: parseC(cs.backgroundColor), edge: s.edge});
+    }
+    const dx = b.px - cx, dy = b.py - cy;
+    return Object.assign(b, {phi: Math.atan2(dy, dx), Rend: Math.hypot(dx, dy) / F, F});
+  });
+  for (let j = 0; j < 10; j++) T.push({i: 100 + j, kind: "pass", el: null, F, t0: 1.15 + 0.1 * j, at: 2.15 + 0.08 * j,   // extra balls that fly past the camera
+    phi: j * 2.4 + 0.5, Rend: 1.1 + 0.5 * rnd(j + 800), turns: 1.1 + 0.6 * rnd(j + 810), r: 24 + 26 * rnd(j + 820),
+    spin: (j % 2 ? 1 : -1) * 6, tilt: 0.3 + rnd(j + 830)});
+  if (visible) tg = T;   // not up yet: fly the balls out of the frame, and look again next frame
+  return T;
+}
+function ballAt(b, t) {   // position on the spiral: angle winds down to the target, depth eases in, the orbit narrows to the target
+  const k = cl((t - b.t0) / (b.at - b.t0));
+  if (b.kind === "pass") {   // passers keep coming at the camera and leave the frame at the edges
+    const s = 1 / mix(16, 0.55, k), th = b.phi - b.turns * TAU * (1 - k), rho = b.F * s * mix(0.7, b.Rend, k * k);
+    return {x: W / 2 + Math.cos(th) * rho, y: H / 2 + Math.sin(th) * rho, r: b.r * s, s, k};
+  }
+  const z = 1 + 15 * Math.pow(1 - k, 2.2), s = 1 / z;
+  const th = b.phi - b.turns * TAU * Math.pow(1 - k, 1.6);
+  const R = mix(0.7, b.Rend, inOutCubic((k - 0.35) / 0.65)), rho = b.F * s * R;
+  return {x: W / 2 + Math.cos(th) * rho, y: H / 2 + Math.sin(th) * rho, r: b.r * s, s, k};
+}
+function drawBall(px, py, r, rot, tilt, a, holesA) {
+  if (r <= 0.3 || a <= 0) return;
+  x.globalAlpha = a;
+  const g = x.createRadialGradient(px - r * 0.35, py - r * 0.4, r * 0.08, px, py, r);
+  g.addColorStop(0, rgba(BALL[0])); g.addColorStop(0.55, rgba(BALL[1])); g.addColorStop(1, rgba(BALL[2]));
+  x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
+  if (holesA > 0 && r > 2.5) {   // holes on the sphere, turned and foreshortened
+    x.fillStyle = `rgba(92,62,0,${0.6 * holesA})`; x.beginPath();
+    const cr = Math.cos(rot), sr = Math.sin(rot), ct = Math.cos(tilt), st = Math.sin(tilt), hr = r * 0.13;
+    for (const [hx, hy, hz] of HOLES) {
+      const x1 = hx * cr + hz * sr, z1 = -hx * sr + hz * cr, y2 = hy * ct - z1 * st, z2 = hy * st + z1 * ct;
+      if (z2 < 0.12) continue;
+      const ex = px + x1 * r * 0.96, ey = py + y2 * r * 0.96, an = Math.atan2(y2, x1), rx = hr * z2;
+      x.moveTo(ex + rx * Math.cos(an), ey + rx * Math.sin(an)); x.ellipse(ex, ey, rx, hr, an, 0, TAU);
+    }
+    x.fill();
+  }
+  x.globalCompositeOperation = "lighter";   // rim light from the vortex
+  x.strokeStyle = "rgba(77,227,255,.35)"; x.lineWidth = Math.max(1, r * 0.1); x.beginPath(); x.arc(px, py, r * 0.93, 0.15, 1.9); x.stroke();
+  x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
+}
+function drawTrail(b, t, p) {   // motion blur: a tapered ribbon along the ball's own recent path, so it follows speed and direction
+  const P = [p]; for (let j = 1; j <= 12; j++) P.push(ballAt(b, t - j * 0.013));
+  const n = P.length - 1, tail = P[n]; if (Math.hypot(p.x - tail.x, p.y - tail.y) < p.r * 0.8) return;
+  const L = [], R = [];
+  for (let j = 0; j <= n; j++) {
+    const a = P[Math.max(0, j - 1)], c = P[Math.min(n, j + 1)], dx = a.x - c.x, dy = a.y - c.y, m = Math.hypot(dx, dy) || 1;
+    const w = P[j].r * 0.75 * (1 - j / (n + 1));
+    L.push([P[j].x - dy / m * w, P[j].y + dx / m * w]); R.push([P[j].x + dy / m * w, P[j].y - dx / m * w]);
+  }
+  const g = x.createLinearGradient(p.x, p.y, tail.x, tail.y);
+  g.addColorStop(0, "rgba(255,226,110,.26)"); g.addColorStop(1, "rgba(255,226,110,0)");
+  x.globalCompositeOperation = "lighter"; x.fillStyle = g; x.beginPath(); x.moveTo(L[0][0], L[0][1]);
+  for (const q of L) x.lineTo(q[0], q[1]); for (const q of R.reverse()) x.lineTo(q[0], q[1]);
+  x.closePath(); x.fill(); x.globalCompositeOperation = "source-over";
+}
+function shapeGrad(cx, cy, r, k, fill) {   // ball shading melting into the element's flat fill
+  const g = x.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.08, cx, cy, r * 1.1);
+  g.addColorStop(0, rgba(mixC(BALL[0], fill, k))); g.addColorStop(0.55, rgba(mixC(BALL[1], fill, k))); g.addColorStop(1, rgba(mixC(BALL[2], fill, k)));
+  return g;
+}
+// what a landed ball looks like s seconds after landing; returns how far the real element is revealed (0..1)
+function drawLanded(b, s) {
+  if (b.kind === "box" || b.kind === "pill") {
+    const kw = spring(s), kh = b.kind === "pill" ? 0 : spring(s - 0.07);   // width leads height: the ball spreads like a drop
+    const w = mix(2 * b.r, b.w, kw), h = b.kind === "pill" ? b.h : mix(2 * b.r, b.h, kh);
+    const rad = cl(mix(b.r, b.rad, outCubic(s / 0.35)), 0, Math.min(w, h) / 2), rev = outCubic((s - 0.36) / 0.26);
+    if (rev < 1) {
+      x.globalAlpha = 1 - rev;
+      x.beginPath(); x.roundRect(b.px - w / 2, b.py - h / 2, w, h, rad);
+      x.fillStyle = shapeGrad(b.px, b.py, Math.max(w, h) / 2, b.kind === "pill" ? outCubic(s / 0.3) : outCubic(s / 0.14), b.fill); x.fill();
+      const ea = cl((s - 0.02) / 0.12);   // the ball's colour drains into the glowing edge
+      if (b.edge && ea > 0) {
+        x.shadowColor = rgb(b.edge, 0.6); x.shadowBlur = 14 * dpr;
+        x.strokeStyle = rgb(b.edge, 0.9 * ea); x.lineWidth = 1.5; x.stroke(); x.shadowBlur = 0;
+      }
+      x.globalAlpha = 1;
+    }
+    return rev;
+  }
+  if (b.kind === "ring") {   // the ball empties into the logo's ring, then the brand is swept in from the left
+    const k = outCubic(s / 0.3), rev = cl((s - 0.18) / 0.45), head = mix(b.x0, b.x1, outCubic(rev));
+    const ra = 1 - outCubic((s - 0.3) / 0.2);
+    if (ra > 0) {
+      x.globalAlpha = ra;
+      x.fillStyle = shapeGrad(b.px, b.py, b.r, k, [10, 24, 40, 0]); x.beginPath(); x.arc(b.px, b.py, b.r, 0, TAU); x.fill();
+      x.shadowColor = rgb(CY, 0.7); x.shadowBlur = 12 * dpr; x.strokeStyle = rgb(CY, k); x.lineWidth = b.sw; x.stroke(); x.shadowBlur = 0;
+      x.globalAlpha = 1;
+    }
+    if (rev > 0 && rev < 1) sweep(head, b.py, b.x0, Math.max(2, b.box.height * 0.04), 1 - rev);
+    return {head};
+  }
+  if (b.kind === "wipe") {   // the ball smears into a streak; its head writes the text in
+    const p = outCubic(s / 0.5), q = inOutCubic((s - 0.1) / 0.5), head = mix(b.x0, b.x1, p), tail = mix(b.x0, b.x1, q);
+    const th = mix(2 * b.r, 2.5, outCubic(s / 0.22));
+    if (q < 1) sweep(head, b.py, tail, th, 1 - cl((s - 0.45) / 0.15));
+    return {head};
+  }
+  return 0;
+}
+function sweep(head, y, tail, th, a) {   // a streak from tail to head, brightest at the head
+  if (a <= 0) return;
+  const g = x.createLinearGradient(tail, 0, head + 1, 0);
+  g.addColorStop(0, rgb(CY, 0)); g.addColorStop(0.8, rgb(CY, 0.55 * a)); g.addColorStop(1, rgb(LID, a));
+  x.globalCompositeOperation = "lighter"; x.lineCap = "round";
+  x.strokeStyle = g; x.lineWidth = th; x.beginPath(); x.moveTo(tail, y); x.lineTo(head, y); x.stroke();
+  x.fillStyle = rgb(LID, 0.9 * a); x.beginPath(); x.arc(head, y, th * 0.6 + 1.5, 0, TAU); x.fill();
+  x.globalCompositeOperation = "source-over";
+}
+function reveal(b, v) {   // the real element: opacity for shapes, a clip that follows the streak's head for text
+  if (!b.el) return;
+  if (b.kind === "box" || b.kind === "pill") { b.el.style.opacity = v; return; }
+  if (v.head == null) { b.el.style.clipPath = "inset(0 100% 0 0)"; return; }
+  b.el.style.clipPath = `inset(-30px ${Math.max(0, b.box.right - v.head)}px -30px -30px)`;
+}
+
+// ---------- one frame ----------
+function draw(t) {
+  const cx = W / 2, cy = H / 2;
+  x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const bgA = 1 - inOutCubic((t - T_FADE) / 0.7);   // the dark ground lifts and the landing page shows through
+  if (bgA > 0) { x.fillStyle = `rgba(4,8,15,${bgA})`; x.fillRect(0, 0, W, H); }
+  const ew = Math.min(W * (W < 700 ? 0.4 : 0.27), H * 0.62), eh = ew * 0.46;
+  const open = 0.025 + 0.975 * inOutCubic((t - T_OPEN) / (T_OPEN1 - T_OPEN));
+  const pr = eh * 0.92 * (0.36 + 0.1 * inOutCubic((t - 0.72) / 0.32));   // the pupil widens just before the dive
+  const gl = outExpo((t - 0.5) / 0.09) - outExpo((t - 0.8) / 0.09), look = [ew * 0.075 * gl, -eh * 0.04 * gl];   // a glance aside and back
+  const zk = cl((t - T_ZOOM) / (T_ZOOM1 - T_ZOOM)), half = Math.hypot(W, H) / 2;
+  const s = mix(0.9, 1, outCubic(t / 1.1)) * Math.exp(Math.log(half / pr * 1.4) * inOutCubic(zk));   // slow push-in, then the dive on a log scale
+  const fade = cl((1.05 - pr * s / half) / 0.5);
+  if (fade > 0) {
+    x.save(); x.setTransform(dpr * s, 0, 0, dpr * s, dpr * cx, dpr * cy); drawEye(t, ew, eh, open, fade, pr, look, s); x.restore();
+    const sr = Math.pow(s, 1.35);   // the scope ring is nearer the camera, so it flies past faster
+    x.save(); x.setTransform(dpr * sr, 0, 0, dpr * sr, dpr * cx, dpr * cy); drawReticle(t, ew * 1.2, fade * (1 - cl((sr - 2) / 2))); x.restore();
+  }
+  const T = targets(), clipR = zk < 1 ? pr * s : 0;
+  if (zk > 0) {   // the vortex is seen through the pupil, which grows until it is the whole screen
+    x.save(); if (clipR) { x.beginPath(); x.arc(cx, cy, clipR, 0, TAU); x.clip(); }
+    drawTunnel(t, cx, cy, cl(zk * 2.5) * bgA);
+    const fl = T.filter(b => t >= b.t0 && t < b.at).map(b => ({b, p: ballAt(b, t)})).sort((p, q) => p.p.s - q.p.s);
+    for (const {b, p} of fl) {
+      drawTrail(b, t, p);
+      const spun = b.spin * (1 - Math.pow(1 - p.k, 2)) * 2.2;   // spins fast in flight, settles as it lands
+      drawBall(p.x, p.y, p.r, spun, b.tilt, cl((p.k - 0.02) / 0.08), b.kind === "pass" ? 1 : 1 - cl((p.k - 0.86) / 0.12));
+    }
+    x.restore();
+  }
+  for (const b of T) {
+    if (b.kind === "none" || b.kind === "pass") continue;
+    reveal(b, t < b.at ? (b.kind === "box" || b.kind === "pill" ? 0 : {}) : drawLanded(b, t - b.at));
   }
 }
 
-let t0 = null, raf = 0, launched = false, done = false;
-const anims = [];
-function frame(now) {
-  if (done) return;
-  if (t0 == null) t0 = now;
-  const t = (now - t0) / 1000, cx = W / 2, cy = H / 2;
-  x.setTransform(dpr, 0, 0, dpr, 0, 0); x.fillStyle = "#04080F"; x.fillRect(0, 0, W, H);
-  const ew = Math.min(W * (W < 700 ? 0.42 : 0.3), H * 0.7), eh = ew * 0.46;
-  const open = 0.025 + 0.975 * inOutCubic((t - T_OPEN) / (T_OPEN1 - T_OPEN));   // a slit first, then the lids part
-  const pr = eh * 0.9 * (0.4 + 0.07 * inOutCubic((t - 0.7) / 0.35));   // the pupil widens just before the dive
-  const zk = cl((t - T_ZOOM) / (T_ZOOM1 - T_ZOOM)), half = Math.hypot(W, H) / 2;
-  const s = Math.exp(Math.log(half / pr * 1.4) * inOutCubic(zk));   // camera scale, eased on a log scale
-  const fade = cl((1.05 - pr * s / half) / 0.5);
-  if (fade > 0) { x.setTransform(dpr * s, 0, 0, dpr * s, dpr * cx * (1 - s), dpr * cy * (1 - s)); drawEye(t, cx, cy, ew, eh, open, fade, pr); }
-  if (zk > 0) {   // the tunnel is seen through the pupil, which grows until it is the whole screen
-    x.setTransform(dpr, 0, 0, dpr, 0, 0);
-    x.save(); x.beginPath(); x.arc(cx, cy, pr * s, 0, 7); x.clip(); drawTunnel(t, cx, cy, cl(zk * 2.5)); x.restore();
-  }
-  const fk = (t - T_LAUNCH) / 0.5;   // a flash as the page's parts burst out of the tunnel
-  if (fk > 0 && fk < 1) { const fl = x.createRadialGradient(cx, cy, 0, cx, cy, 0.4 * Math.min(W, H));
-    fl.addColorStop(0, `rgba(235,250,255,${0.55 * Math.sin(Math.PI * fk)})`); fl.addColorStop(1, "rgba(235,250,255,0)");
-    x.setTransform(dpr, 0, 0, dpr, 0, 0); x.fillStyle = fl; x.fillRect(0, 0, W, H); }
-  const land = document.getElementById("landing");
-  if (!launched && t >= T_LAUNCH && land && !land.hidden) launch();
-  if (!launched && t > 8) return end();   // the page never came up: get out of the way
-  raf = requestAnimationFrame(frame);
+// ---------- playback ----------
+let tNow = 0, playing = false, last = null, raf = 0, rate = 1, shown = false;
+const hooks = {onTime: null};
+function show(on) {
+  if (on === shown) return; shown = on;
+  intro.style.display = on ? "" : "none"; intro.style.opacity = "";
+  intro.style.background = on ? "none" : "";   // the canvas paints the ground from now on (and lifts it at the end)
+  document.documentElement.classList.toggle("intro-on", on);
+  if (!on) for (const b of tg || []) if (b.el) { b.el.style.opacity = ""; b.el.style.clipPath = ""; }
 }
-const parts = () => [...document.querySelectorAll("#landing .land > *")].filter(el => el.getClientRects().length);
-function launch() {
-  launched = true;
-  const runs = parts().map((el, i) => {
-    const r = el.getBoundingClientRect(), box = el.id === "drop" || el.id === "sampleTile", pad = box ? 0 : 8;
-    const L = r.left - pad, T = r.top - pad / 2, w = r.width + 2 * pad, h = r.height + pad;
-    const gh = document.createElement("div");
-    gh.className = "ghost" + (el.id === "drop" ? " amber" : box ? "" : " text");
-    Object.assign(gh.style, {left: L + "px", top: T + "px", width: w + "px", height: h + "px", borderRadius: box ? getComputedStyle(el).borderRadius : h / 2 + "px"});
-    fly.appendChild(gh); el.style.opacity = "0";
-    const dx = W / 2 - (L + w / 2), dy = H / 2 - (T + h / 2), sg = i % 2 ? 1 : -1;
-    const a = gh.animate([
-      {transform: `translate3d(${dx}px,${dy}px,-900px) rotateX(${40 - 10 * i}deg) rotateY(${sg * (220 + 40 * i)}deg) rotateZ(${-sg * (70 + 20 * i)}deg) scale(.12)`, opacity: 0},
-      {opacity: 1, offset: 0.2},
-      {transform: "translate3d(0px,0px,0px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)", opacity: 1}],
-      {duration: 950, delay: 60 * i, easing: "cubic-bezier(.22,1,.36,1)", fill: "both"});
-    anims.push(a);
-    return a.finished.then(() => {   // the object becomes the real part of the page
-      el.style.opacity = "";
-      el.animate([{opacity: 0, transform: "scale(.985)"}, {opacity: 1, transform: "none"}], {duration: 320, easing: "ease-out"});
-      const o = gh.animate([{opacity: 1}, {opacity: 0}], {duration: 360, easing: "ease-out", fill: "forwards"}); anims.push(o); return o.finished;
-    });
-  });
-  anims.push(intro.animate([{backgroundColor: "rgba(4,8,15,1)"}, {backgroundColor: "rgba(4,8,15,0)"}], {duration: 700, delay: 450, easing: "ease-in-out", fill: "forwards"}));
-  anims.push(cv.animate([{opacity: 1}, {opacity: 0}], {duration: 700, delay: 450, easing: "ease-in-out", fill: "forwards"}));
-  Promise.all(runs).then(end, end);
+function seek(t) {
+  tNow = cl(t, 0, T_END);
+  if (tNow >= T_END) show(false); else { show(true); draw(tNow); }
+  hooks.onTime && hooks.onTime(tNow, playing);
 }
-function end() {
-  if (done) return; done = true;
-  cancelAnimationFrame(raf); removeEventListener("resize", size);
+function loop(now) {
+  raf = 0; if (!playing) return;
+  if (last != null) tNow += (now - last) / 1000 * rate;
+  last = now; seek(tNow);
+  if (tNow >= T_END) { playing = false; hooks.onTime && hooks.onTime(tNow, false); if (!DEMO) finish(); return; }
+  raf = requestAnimationFrame(loop);
+}
+function play() { if (tNow >= T_END) tNow = 0; intro.classList.add("go"); playing = true; last = null; if (!raf) raf = requestAnimationFrame(loop); hooks.onTime && hooks.onTime(tNow, true); }
+function pause() { playing = false; last = null; hooks.onTime && hooks.onTime(tNow, false); }
+function finish() {   // the real page only: tear the intro down for good
+  show(false); cancelAnimationFrame(raf); removeEventListener("resize", size);
   for (const ev of ["pointerdown", "keydown"]) removeEventListener(ev, skip, true);
-  for (const a of anims) a.cancel();
-  parts().forEach(el => { el.style.opacity = ""; });
-  document.documentElement.classList.remove("intro-on");
   intro.remove();
 }
 function skip(e) {
-  if (done || skip.on) return; skip.on = true; e.preventDefault();
-  intro.animate([{opacity: 1}, {opacity: 0}], {duration: 220, easing: "ease-out", fill: "forwards"}).finished.then(end, end);
+  if (!shown || (DEMO && e.target.closest && e.target.closest("#demoBar"))) return;
+  e.preventDefault();
+  if (DEMO) { pause(); seek(T_END); return; }
+  if (skip.on) return; skip.on = true; playing = false;
+  intro.animate([{opacity: 1}, {opacity: 0}], {duration: 220, easing: "ease-out", fill: "forwards"}).finished.then(finish, finish);
 }
 for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, skip, true);
-raf = requestAnimationFrame(frame);
+addEventListener("resize", () => { if (shown && !playing) draw(tNow); });
+window.__intro = {seek, play, pause, hooks, T_END, get t() { return tNow; }, get playing() { return playing; }, set rate(v) { rate = v; }};
+
+// ---------- start once the page is ready ----------
+// Until then the closed eye holds still with a loading line under it. Waits for the page load, the fonts (they move the
+// targets), the landing, the background video and a few smooth frames, after drawing every phase once off screen to warm up.
+// Capped at 8 s: a slow network delays the intro, never blocks it.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const when = (ok, el, evs) => new Promise(r => { if (ok()) return r(); for (const e of evs) el.addEventListener(e, r, {once: true}); });
+const poll = ok => new Promise(r => { const f = () => ok() ? r() : setTimeout(f, 50); f(); });
+const calm = () => new Promise(r => { let last = 0, n = 0, k = 0;   // 3 frames in a row under 24 ms, or 1 s
+  const f = now => { n = last && now - last < 24 ? n + 1 : 0; last = now; n >= 3 || ++k > 60 ? r() : requestAnimationFrame(f); };
+  requestAnimationFrame(f); });
+async function ready() {
+  await when(() => document.readyState === "complete", window, ["load"]);
+  if (document.fonts) await document.fonts.ready;
+  const land = () => document.getElementById("landing");
+  await Promise.race([poll(() => land() && !land().hidden), sleep(2000)]);
+  const v = document.getElementById("bgVid");
+  // the video's first frames hitch the page: let it get going before the intro does (3 s at most, e.g. autoplay blocked)
+  if (v && v.src) await Promise.race([when(() => (!v.paused && v.readyState >= 3) || !!v.error, v, ["playing", "error"]), sleep(3000)]);
+  await warm();
+  await calm();
+}
+async function warm() {   // draw every phase once, one per frame, on a canvas hidden under the real one: the GPU prepares
+  // its shaders now instead of stalling mid-intro (draws thrown away in the same frame would never reach it)
+  if (!shown || playing) return;
+  const w = document.createElement("canvas"), keep = x;
+  w.width = cv.width; w.height = cv.height; w.style.cssText = "position:absolute;inset:0;width:100%;height:100%";
+  intro.insertBefore(w, cv); x = w.getContext("2d");
+  for (const t of [0.45, 0.7, 1.1, 1.3, 1.5, 1.65, 1.9, 2.4, 2.85, 3.05, 3.3, 3.6]) {
+    if (!shown || playing) break;
+    draw(t); await new Promise(r => requestAnimationFrame(r));
+  }
+  x = keep; w.remove();
+  if (shown && !playing) seek(0);   // puts the page's parts back to hidden
+}
+seek(0);
+Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow === 0) play(); });
 })();
 </script>
 <input id="file" type="file" accept="video/*" hidden>
