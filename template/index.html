@@ -25,7 +25,7 @@
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body)}
 body.rec{overflow:hidden;width:1920px;height:1080px}
-.cut{clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.cut{border-radius:14px}
 .num{font-variant-numeric:tabular-nums}
 
 /* ---------- the 1920x1080 screen ---------- */
@@ -49,12 +49,12 @@ body.rec #wrap{width:1920px;height:1080px}
 .tc b{display:block;font:600 34px/1 var(--f-display);letter-spacing:.04em;font-variant-numeric:tabular-nums}
 .tc span{display:block;margin-top:5px;font:400 12px/1 var(--f-mono);color:var(--ink-3);letter-spacing:.08em}
 
-#stagebox{position:absolute;left:32px;top:92px;width:1360px;height:765px;border:1px solid var(--line-2);background:#000}
+#stagebox{position:absolute;left:32px;top:92px;width:1360px;height:765px;border:1px solid var(--line-2);background:#000;border-radius:16px}
 #stagebox:before,#stagebox:after{content:"";position:absolute;width:26px;height:26px;border:2px solid var(--cyan);z-index:3;pointer-events:none}
-#stagebox:before{left:-6px;top:-6px;border-right:0;border-bottom:0}
-#stagebox:after{right:-6px;bottom:-6px;border-left:0;border-top:0}
-#stage{position:absolute;inset:0;width:1360px;height:765px;z-index:2}
-#vid{position:absolute;inset:0;width:1360px;height:765px;object-fit:contain;z-index:1}
+#stagebox:before{left:-6px;top:-6px;border-right:0;border-bottom:0;border-top-left-radius:20px}
+#stagebox:after{right:-6px;bottom:-6px;border-left:0;border-top:0;border-bottom-right-radius:20px}
+#stage{position:absolute;inset:0;width:1360px;height:765px;z-index:2;border-radius:15px}
+#vid{position:absolute;inset:0;width:1360px;height:765px;object-fit:contain;z-index:1;border-radius:15px}
 
 #panel{position:absolute;left:1424px;top:92px;width:460px;height:765px;display:flex;flex-direction:column;gap:12px}
 .box{position:relative;background:var(--panel);border:1px solid var(--line-2);padding:12px 14px}
@@ -71,25 +71,25 @@ body.rec #wrap{width:1920px;height:1080px}
 #listbox{flex:1;min-height:0;overflow:hidden}
 #slist{position:relative;overflow:hidden;height:calc(100% - 20px)}
 #slist .in{position:absolute;left:0;right:0;top:0}
-.srow{display:grid;grid-template-columns:34px 34px 1fr 96px 62px;align-items:center;height:26px;font:500 13px/1 var(--f-mono);color:var(--ink-3);border-left:2px solid transparent;padding-left:6px}
-.srow .pl{font-weight:600}
+.srow{display:grid;grid-template-columns:34px 96px 1fr 70px 62px;align-items:center;height:26px;font:500 13px/1 var(--f-mono);color:var(--ink-3);border-left:2px solid transparent;padding-left:6px}
+.srow .pl{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
 .srow .ty{font:600 13px/1 var(--f-display);letter-spacing:.06em}
 .srow .kmh{text-align:right}
 .srow.done{color:var(--ink-2)}
 .srow.cur{color:var(--white);background:linear-gradient(90deg,rgba(77,227,255,.16),transparent);border-left-color:var(--cyan)}
 #prows{height:178px;padding:10px 14px}
-.prow{display:grid;grid-template-columns:44px 104px 1fr 1fr 40px;align-items:center;height:38px;border-bottom:1px solid var(--line);font:500 13px/1 var(--f-mono);color:var(--ink-2)}
+.prow{display:grid;grid-template-columns:112px 104px 1fr 1fr 36px;align-items:center;height:38px;border-bottom:1px solid var(--line);font:500 13px/1 var(--f-mono);color:var(--ink-2)}
 .prow:last-child{border-bottom:0}
-.prow .id{font:700 18px/1 var(--f-display)}
+.prow .id{font:700 17px/1 var(--f-display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
 .prow .zn{font:600 12px/1 var(--f-display);letter-spacing:.12em}
 .prow .zn.k{color:var(--cyan)} .prow .zn.t{color:var(--amber)} .prow .zn.b{color:var(--ink-3)}
 .prow .ct{text-align:right;color:var(--ink-3)}
 
 #tl{position:absolute;left:32px;top:874px;width:1852px;height:66px}
 #tl .lab{position:absolute;left:0;top:0;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3)}
-#tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2)}
-#tl .fill{position:absolute;left:0;top:38px;height:4px;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
-#tl .mk{position:absolute;top:18px;transform:translateX(-50%);font:600 11px/1 var(--f-mono);color:#04080F;padding:3px 4px 2px;clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);opacity:.45}
+#tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2);border-radius:2px}
+#tl .fill{position:absolute;left:0;top:38px;height:4px;border-radius:2px;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+#tl .mk{position:absolute;top:18px;transform:translateX(-50%);font:600 11px/1 var(--f-mono);color:#04080F;padding:3px 4px 2px;border-radius:5px;opacity:.45}
 #tl .mk.done{opacity:1}
 #tl .mk:after{content:"";position:absolute}
 #tl .tick{position:absolute;top:44px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--amber);transform:translateX(-50%);opacity:.5}
@@ -112,15 +112,15 @@ body.rec #wrap{width:1920px;height:1080px}
 #cards{margin-top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .card{background:var(--panel);border:1px solid var(--line-2);padding:18px 20px 20px;position:relative;min-height:640px}
 .card .top{display:flex;align-items:center;gap:12px}
-.card .top .id{font:700 30px/1 var(--f-display)}
+.card .top .id{font:700 30px/1 var(--f-display);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .top .pos{font:500 12px/1.3 var(--f-mono);color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
 .card .top .tot{margin-left:auto;text-align:right}
 .card .top .tot b{font:700 48px/1 var(--f-display);font-variant-numeric:tabular-nums}
 .card .top .tot span{display:block;font:500 11px/1 var(--f-mono);color:var(--ink-3);letter-spacing:.14em;margin-top:4px}
-.card .badge{display:inline-block;margin:0 0 12px;font:700 12px/1 var(--f-display);letter-spacing:.16em;color:#04080F;background:var(--amber);padding:6px 10px 5px}
+.card .badge{display:inline-block;margin:0 0 12px;font:700 12px/1 var(--f-display);letter-spacing:.16em;color:#04080F;background:var(--amber);padding:6px 10px 5px;border-radius:6px}
 .bars{margin-top:16px;display:grid;gap:9px}
 .bar{display:grid;grid-template-columns:150px 1fr 38px;align-items:center;gap:10px;font:500 12px/1 var(--f-mono);color:var(--ink-2);letter-spacing:.04em;white-space:nowrap}
-.bar .tr{height:8px;background:var(--line)}
+.bar .tr{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .bar .tr i{display:block;height:100%}
 .bar b{text-align:right;color:var(--ink);font-weight:600}
 .card h4{margin:18px 0 8px;font:600 12px/1 var(--f-display);letter-spacing:.2em}
@@ -132,7 +132,7 @@ body.rec #wrap{width:1920px;height:1080px}
 
 /* ---------- interactive page ---------- */
 #ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-#ctrl button,#ctrl select{height:34px;padding:0 14px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#ctrl button,#ctrl select{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 #ctrl button:hover{border-color:var(--cyan);color:var(--cyan)}
 #ctrl input[type=range]{flex:1 1 240px;accent-color:var(--cyan)}
 #ctrl .tm{font:500 13px/1 var(--f-mono);color:var(--ink-2);min-width:120px}
@@ -143,29 +143,93 @@ body.rec #wrap{width:1920px;height:1080px}
 #ctrl button.tg[aria-pressed="false"]{color:var(--ink-3)}
 #ctrl button.tg:before{content:"";display:inline-block;width:8px;height:8px;margin-right:8px;transform:rotate(45deg);background:var(--line-2);vertical-align:1px}
 #ctrl button.tg[aria-pressed="true"]:before{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
-#ctrl .upl{display:inline-flex;align-items:center;height:34px;padding:0 16px;background:var(--amber);color:#04080F;font:700 12px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid var(--amber)}
+#ctrl .upl{display:inline-flex;align-items:center;height:34px;padding:0 16px;background:var(--amber);color:#04080F;font:700 12px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid var(--amber);border-radius:10px}
 #ctrl .upl:hover{background:#FFD98A}
 #ctrl .upl:focus-within{outline:2px solid var(--white);outline-offset:2px}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
+body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc, body.rec #landing{display:none}
+
+/* ---------- landing: only the drop zone, the sample waits behind its own tile ---------- */
+#landing{min-height:100vh;display:grid;place-items:center;padding:48px 16px;
+  background:radial-gradient(ellipse 70% 55% at 50% 38%,rgba(77,227,255,.09),transparent 70%),
+    linear-gradient(rgba(77,227,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(77,227,255,.028) 1px,transparent 1px);background-size:auto,40px 40px,40px 40px}
+/* background video (bg.mp4 published next to the page): fades in once it plays; a dark tint and the grid keep the text readable.
+   --dim-c / --dim-e: how dark the tint is in the centre / at the edges (0 = raw video, 1 = black) */
+#landing{position:relative;isolation:isolate;--dim-c:.45;--dim-e:.8}
+.bgv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:0;transition:opacity 1s ease;pointer-events:none}
+#landing.has-bg .bgv{opacity:1}
+#landing.has-bg:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 75% 65% at 50% 45%,rgba(4,8,15,var(--dim-c)),rgba(4,8,15,var(--dim-e))),
+    linear-gradient(rgba(77,227,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(77,227,255,.035) 1px,transparent 1px);background-size:auto,40px 40px,40px 40px}
+.land{width:100%;max-width:760px;display:grid;gap:28px;justify-items:center;text-align:center}
+.land .brand{text-align:left}
+.land h1{margin:0;font:700 clamp(28px,5vw,44px)/1.12 var(--f-display);letter-spacing:.02em;color:var(--white);text-wrap:balance}
+.land h1 em{font-style:normal;color:var(--cyan);text-shadow:0 0 18px rgba(77,227,255,.45)}
+.land .sub{margin:-12px 0 0;font:400 16px/1.55 var(--f-body);color:var(--ink-2);max-width:56ch}
+#drop{position:relative;width:100%;display:grid;gap:12px;justify-items:center;padding:56px 24px;cursor:pointer;border-radius:22px;
+  background:rgba(7,17,29,.82);border:1.5px dashed var(--line-2);transition:border-color .2s,background .2s,transform .2s}
+#drop:before,#drop:after{content:"";position:absolute;width:30px;height:30px;border:2px solid var(--amber)}
+#drop:before{left:-5px;top:-5px;border-right:0;border-bottom:0;border-top-left-radius:26px}
+#drop:after{right:-5px;bottom:-5px;border-left:0;border-top:0;border-bottom-right-radius:26px}
+#drop:hover,#drop.over{border-color:var(--amber);background:rgba(255,200,87,.06)}
+#drop.over{transform:scale(1.01)}
+#drop svg{color:var(--amber);filter:drop-shadow(0 0 10px rgba(255,200,87,.45))}
+#drop b{font:700 22px/1.2 var(--f-display);letter-spacing:.04em;color:var(--white)}
+#drop span{font:400 15px/1.5 var(--f-body);color:var(--ink-2)}
+#drop .btn{margin-top:8px;border-radius:12px;display:inline-flex;align-items:center;height:42px;padding:0 22px;background:var(--amber);color:#04080F;font:700 13px/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+#drop small{font:500 12px/1.4 var(--f-mono);color:var(--ink-3);letter-spacing:.04em}
+.land .or{display:flex;align-items:center;gap:14px;width:100%;font:600 11px/1 var(--f-display);letter-spacing:.24em;color:var(--ink-3)}
+.land .or:before,.land .or:after{content:"";flex:1;height:1px;background:var(--line-2)}
+#sampleTile{width:100%;border-radius:16px;display:flex;align-items:center;gap:18px;padding:16px 20px;text-align:left;cursor:pointer;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line-2);font:inherit;transition:border-color .2s,background .2s}
+#sampleTile:hover{border-color:var(--cyan);background:var(--panel-2)}
+#sampleTile:disabled{opacity:.6;cursor:progress}
+#sampleTile .play{flex:none;border-radius:14px;width:52px;height:52px;display:grid;place-items:center;border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(77,227,255,.25) inset}
+#sampleTile b{display:block;font:700 16px/1.2 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+#sampleTile span span{display:block;margin-top:5px;font:400 14px/1.45 var(--f-body);color:var(--ink-2)}
+.land .priv{font:400 13px/1.5 var(--f-body);color:var(--ink-3);max-width:60ch;margin:0}
+.land .mob{font:400 13px/1.45 var(--f-body);color:var(--amber);max-width:60ch;margin:0}
+
+/* ---------- intro: the eye opens, the camera dives through the pupil, the page's parts fly out to their places ---------- */
+html.intro-on{overflow:hidden}
+#intro{position:fixed;inset:0;z-index:1000;background:var(--bg);overflow:hidden;cursor:pointer}
+#introCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#introFly{position:absolute;inset:0;perspective:1100px;pointer-events:none}
+.ghost{position:absolute;left:0;top:0;border:1.5px solid rgba(77,227,255,.75);background:rgba(10,24,40,.6);
+  box-shadow:0 0 22px rgba(77,227,255,.35),inset 0 0 18px rgba(77,227,255,.14);will-change:transform,opacity}
+.ghost.amber{border-color:rgba(255,200,87,.9);box-shadow:0 0 24px rgba(255,200,87,.35),inset 0 0 18px rgba(255,200,87,.14)}
+.ghost.text{background:rgba(77,227,255,.07);border-color:rgba(77,227,255,.4)}
+#introSkip{position:absolute;right:max(18px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));
+  font:500 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);opacity:0;animation:skipIn .5s .5s ease-out forwards}
+@keyframes skipIn{to{opacity:1}}
+body.rec #intro{display:none}
+
+/* ---------- player names (step after the upload) ---------- */
+.names{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.panel-x .names label{display:grid;gap:7px;flex:none;font:600 11px/1 var(--f-display);letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+.names label i{font-style:normal;font-weight:700}
+.names input{height:42px;padding:0 12px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line-2);border-left:3px solid var(--c);color:var(--white);font:500 16px/1 var(--f-body);min-width:0}
+.names input::placeholder{color:var(--ink-3)}
+.names input:focus{outline:none;border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
+.panel-x h3{margin:6px 0 0;font:600 13px/1 var(--f-display);letter-spacing:.2em;color:var(--cyan);text-transform:uppercase}
 .panel-x{max-width:1100px;margin:0 auto;padding-block:22px 28px;padding-inline:16px;display:grid;gap:14px}
 .panel-x h2{margin:0;font:700 24px/1.2 var(--f-display);letter-spacing:.04em;color:var(--white);text-wrap:balance}
 .panel-x p{margin:0;font:400 15px/1.55 var(--f-body);color:var(--ink-2);max-width:72ch}
 .panel-x .row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
 .panel-x label{display:flex;align-items:center;gap:10px;font:500 13px/1 var(--f-mono);color:var(--ink-2);flex:1 1 260px;min-width:0}
 .panel-x input[type=range]{flex:1;min-width:0;accent-color:var(--amber)}
-.panel-x button{height:38px;padding:0 16px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.panel-x button{height:38px;padding:0 16px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 .panel-x button:hover{border-color:var(--cyan);color:var(--cyan)}
 .panel-x button.primary{background:var(--amber);border-color:var(--amber);color:#04080F}
 .panel-x button.primary:hover{background:#FFD98A;color:#04080F}
 .panel-x button:disabled{opacity:.45;cursor:default}
-.cvbox{position:relative;width:100%;background:#000;border:1px solid var(--line-2)}
+.cvbox{position:relative;width:100%;background:#000;border:1px solid var(--line-2);border-radius:14px;overflow:hidden}
 .cvbox canvas{display:block;width:100%;height:auto;touch-action:none}
 #setupCv{cursor:grab}
-.pbar{height:8px;background:var(--line)}
+.pbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .pbar i{display:block;height:100%;width:0;background:var(--amber);box-shadow:0 0 10px rgba(255,200,87,.6);transition:width .2s}
 #procStep{color:var(--ink);font-weight:500}
-.note{border-left:3px solid var(--amber);padding:8px 12px;background:var(--panel);font:400 14px/1.5 var(--f-body);color:var(--ink-2)}
+.note{border-left:3px solid var(--amber);border-radius:10px;padding:8px 12px;background:var(--panel);font:400 14px/1.5 var(--f-body);color:var(--ink-2)}
 .err{border-left-color:#FF6B6B;color:var(--ink)}
 #aiBox{display:grid;gap:10px;margin-top:10px}
 #report{max-width:1100px;margin:0 auto;padding:28px 16px 64px}
@@ -178,9 +242,9 @@ body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
 .tbl th{font:600 11px/1 var(--f-display);letter-spacing:.14em;color:var(--ink-3);text-align:left;padding:10px 8px;border-bottom:1px solid var(--line-2);text-transform:uppercase}
 .tbl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 .tbl td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-.pchip{display:inline-block;font:700 14px/1 var(--f-display);padding:4px 7px 3px;color:#04080F}
+.pchip{display:inline-block;font:700 14px/1 var(--f-display);padding:4px 7px 3px;color:#04080F;border-radius:6px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-.pcard{background:var(--panel);border:1px solid var(--line-2);padding:14px 16px}
+.pcard{background:var(--panel);border:1px solid var(--line-2);padding:14px 16px;border-radius:14px}
 .pcard h3{margin:0 0 6px;font:700 20px/1 var(--f-display);display:flex;justify-content:space-between}
 .pcard ul{padding-left:18px;margin:6px 0}
 .pcard li{font-size:15px}
@@ -188,10 +252,206 @@ body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
 </style>
 </head>
 <body>
+<div id="intro" aria-hidden="true"><canvas id="introCv"></canvas><div id="introFly"></div><span id="introSkip">Bấm để bỏ qua</span></div>
+<script>
+"use strict";
+// Intro, on every load: the eye opens, the camera dives through the pupil into a tunnel of rings and balls,
+// then the landing page's parts fly out of the tunnel, turning as they go, and settle where they belong.
+// Any click or key skips it. Not shown to the recorder (?record) or with reduced motion.
+(() => {
+const intro = document.getElementById("intro");
+if (new URLSearchParams(location.search).has("record") || matchMedia("(prefers-reduced-motion: reduce)").matches) { intro.remove(); return; }
+document.documentElement.classList.add("intro-on");
+const cv = document.getElementById("introCv"), x = cv.getContext("2d"), fly = document.getElementById("introFly");
+const CY = [77, 227, 255], AM = [255, 200, 87], LID = [220, 248, 255];
+const rgb = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const outCubic = k => 1 - Math.pow(1 - cl(k), 3);
+const inOutCubic = k => (k = cl(k)) < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const T_OPEN = 0.2, T_OPEN1 = 1.05, T_ZOOM = 1.0, T_ZOOM1 = 2.0, T_LAUNCH = 1.9;   // seconds; the whole intro is about 3.5 s
+let W = 0, H = 0, dpr = 1;
+const size = () => { dpr = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); };
+size(); addEventListener("resize", size);
+// pickleballs in the tunnel: angle and distance from the axis (ring radius = 1), depth, spin
+const BALLS = Array.from({length: 8}, (_, i) => ({a: i * 2.4, r: 0.32 + 0.5 * ((i * 7) % 5) / 4, z: 1.5 + i * 1.7, spin: (i % 2 ? 1 : -1) * (1.6 + i * 0.25)}));
+
+function almond(cx, cy, a, b) {   // eye outline: half width a, half height b
+  x.beginPath(); x.moveTo(cx - a, cy);
+  x.bezierCurveTo(cx - a * 0.45, cy - b * 1.33, cx + a * 0.45, cy - b * 1.33, cx + a, cy);
+  x.bezierCurveTo(cx + a * 0.45, cy + b * 1.33, cx - a * 0.45, cy + b * 1.33, cx - a, cy);
+  x.closePath();
+}
+function glow(c, a, w) {   // the current path: a wide faint stroke under a thin bright one
+  x.strokeStyle = rgb(c, a * 0.2); x.lineWidth = w * 5; x.stroke();
+  x.strokeStyle = rgb(c, a); x.lineWidth = w; x.stroke();
+}
+function drawEye(t, cx, cy, ew, eh, open, fade, pr) {
+  x.globalCompositeOperation = "lighter";
+  for (let k = 10; k >= 1; k--) {   // contour lines rippling outwards as the eye opens
+    const ap = outCubic((t - T_OPEN - 0.05 * k) / 0.6) * fade; if (ap <= 0) continue;
+    const br = 1 + 0.012 * Math.sin(t * 2.4 + k);
+    almond(cx, cy, ew * (1 + 0.1 * k) * br, eh * open * (1 + 0.26 * k) * br + 1);
+    glow(k % 2 ? CY : AM, 0.6 * Math.pow(1 - k / 11, 1.2) * ap, 1.1);
+  }
+  x.globalCompositeOperation = "source-over";
+  const b = eh * open, ir = eh * 0.9;
+  x.save(); almond(cx, cy, ew, b); x.clip();
+  x.globalAlpha = fade;
+  const sc = x.createRadialGradient(cx, cy, 0, cx, cy, ew); sc.addColorStop(0, "#0E2236"); sc.addColorStop(1, "#04080F");
+  x.fillStyle = sc; x.fillRect(cx - ew, cy - b * 1.2 - 2, ew * 2, b * 2.4 + 4);
+  const ig = x.createRadialGradient(cx, cy, pr * 0.9, cx, cy, ir);
+  ig.addColorStop(0, "#FFC857"); ig.addColorStop(0.28, "#E8963A"); ig.addColorStop(0.55, "#1E9DB8"); ig.addColorStop(0.88, "#4DE3FF"); ig.addColorStop(1, "#06121F");
+  x.fillStyle = ig; x.beginPath(); x.arc(cx, cy, ir, 0, 7); x.fill();
+  x.globalCompositeOperation = "lighter";
+  const rot = t * 0.5; x.lineWidth = Math.max(1, ir / 140);
+  for (let i = 0; i < 72; i++) {   // iris fibres
+    const a = rot + i * Math.PI / 36, r0 = pr * 1.08, r1 = ir * (0.78 + 0.16 * ((i * 37) % 7) / 6);
+    x.strokeStyle = i % 3 ? "rgba(190,245,255,.16)" : "rgba(255,226,160,.24)";
+    x.beginPath(); x.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); x.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); x.stroke();
+  }
+  for (let i = 0; i < 24; i++) {   // a ring of dots turning the other way
+    const a = -rot * 1.6 + i * Math.PI / 12, r = ir * 0.66;
+    x.fillStyle = i % 2 ? "rgba(255,200,87,.55)" : "rgba(77,227,255,.5)";
+    x.beginPath(); x.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, ir * 0.028, 0, 7); x.fill();
+  }
+  x.globalCompositeOperation = "source-over";
+  x.fillStyle = "#010307"; x.beginPath(); x.arc(cx, cy, pr, 0, 7); x.fill();
+  x.strokeStyle = "rgba(77,227,255,.45)"; x.lineWidth = Math.max(1, ir / 90); x.stroke();
+  x.strokeStyle = "rgba(255,255,255,.75)"; x.lineWidth = Math.max(1.5, ir / 60);
+  x.beginPath(); x.arc(cx - ir * 0.36, cy - ir * 0.38, ir * 0.13, 0, 7); x.stroke();
+  x.restore();
+  x.globalCompositeOperation = "lighter"; almond(cx, cy, ew, b); glow(LID, 0.85 * fade, 1.6); x.globalCompositeOperation = "source-over";
+}
+function drawBall(px, py, r, spin, a) {
+  x.globalAlpha = a;
+  const g_ = x.createRadialGradient(px - r * 0.35, py - r * 0.4, r * 0.1, px, py, r);
+  g_.addColorStop(0, "#FFF6B8"); g_.addColorStop(0.55, "#F2D43A"); g_.addColorStop(1, "#8A6F10");
+  x.fillStyle = g_; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
+  x.fillStyle = "rgba(70,48,0,.55)";
+  for (let j = 0; j < 10; j++) {   // holes on two rows, foreshortened as the ball turns
+    const th = spin + j * 1.257 + (j % 2) * 0.63, c = Math.cos(th); if (c < 0.08) continue;
+    x.beginPath(); x.ellipse(px + Math.sin(th) * r * 0.86, py + (j % 2 ? -0.34 : 0.34) * r, r * 0.1 * c, r * 0.12, 0, 0, 7); x.fill();
+  }
+  x.globalAlpha = 1;
+}
+function drawTunnel(t, cx, cy, alpha) {
+  const d = Math.max(0, t - T_ZOOM), zc = 3 * d + 3.2 * d * d, F = 0.32 * Math.hypot(W, H);
+  const ox = cx + Math.sin(t * 1.7) * W * 0.015, oy = cy + Math.cos(t * 1.3) * H * 0.015;
+  x.globalCompositeOperation = "lighter";
+  for (let i = Math.floor(zc) + 16; i > Math.floor(zc); i--) {
+    const z = i - zc; if (z < 0.2) continue;
+    const a = alpha * cl((16 - z) / 6) * cl((z - 0.2) / 0.5); if (a <= 0.01) continue;
+    const spin = (i % 2 ? 1 : -1) * t * 1.4 + i * 0.9, w = cl(4 / z, 0.7, 7);
+    for (let k = 0; k < 3; k++) { const a0 = spin + k * 2.094; x.beginPath(); x.arc(ox, oy, F / z, a0, a0 + 1.75);
+      if (z < 5) glow(i % 2 ? CY : AM, 0.75 * a, w); else { x.strokeStyle = rgb(i % 2 ? CY : AM, 0.75 * a); x.lineWidth = w; x.stroke(); } }   // far rings: no halo, so the centre stays clear
+  }
+  x.globalCompositeOperation = "source-over";
+  const bs = BALLS.map(b => ({b, z: ((b.z - zc) % 14 + 14) % 14})).sort((p, q) => q.z - p.z);
+  for (const {b, z} of bs) {
+    if (z < 0.35) continue;
+    const a = alpha * cl((14 - z) / 5) * cl((z - 0.35) / 0.4), ang = b.a + t * 0.4;
+    drawBall(ox + Math.cos(ang) * b.r * F / z, oy + Math.sin(ang) * b.r * F / z, 0.09 * F / z, b.spin * t, a);
+  }
+}
+
+let t0 = null, raf = 0, launched = false, done = false;
+const anims = [];
+function frame(now) {
+  if (done) return;
+  if (t0 == null) t0 = now;
+  const t = (now - t0) / 1000, cx = W / 2, cy = H / 2;
+  x.setTransform(dpr, 0, 0, dpr, 0, 0); x.fillStyle = "#04080F"; x.fillRect(0, 0, W, H);
+  const ew = Math.min(W * (W < 700 ? 0.42 : 0.3), H * 0.7), eh = ew * 0.46;
+  const open = 0.025 + 0.975 * inOutCubic((t - T_OPEN) / (T_OPEN1 - T_OPEN));   // a slit first, then the lids part
+  const pr = eh * 0.9 * (0.4 + 0.07 * inOutCubic((t - 0.7) / 0.35));   // the pupil widens just before the dive
+  const zk = cl((t - T_ZOOM) / (T_ZOOM1 - T_ZOOM)), half = Math.hypot(W, H) / 2;
+  const s = Math.exp(Math.log(half / pr * 1.4) * inOutCubic(zk));   // camera scale, eased on a log scale
+  const fade = cl((1.05 - pr * s / half) / 0.5);
+  if (fade > 0) { x.setTransform(dpr * s, 0, 0, dpr * s, dpr * cx * (1 - s), dpr * cy * (1 - s)); drawEye(t, cx, cy, ew, eh, open, fade, pr); }
+  if (zk > 0) {   // the tunnel is seen through the pupil, which grows until it is the whole screen
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.save(); x.beginPath(); x.arc(cx, cy, pr * s, 0, 7); x.clip(); drawTunnel(t, cx, cy, cl(zk * 2.5)); x.restore();
+  }
+  const fk = (t - T_LAUNCH) / 0.5;   // a flash as the page's parts burst out of the tunnel
+  if (fk > 0 && fk < 1) { const fl = x.createRadialGradient(cx, cy, 0, cx, cy, 0.4 * Math.min(W, H));
+    fl.addColorStop(0, `rgba(235,250,255,${0.55 * Math.sin(Math.PI * fk)})`); fl.addColorStop(1, "rgba(235,250,255,0)");
+    x.setTransform(dpr, 0, 0, dpr, 0, 0); x.fillStyle = fl; x.fillRect(0, 0, W, H); }
+  const land = document.getElementById("landing");
+  if (!launched && t >= T_LAUNCH && land && !land.hidden) launch();
+  if (!launched && t > 8) return end();   // the page never came up: get out of the way
+  raf = requestAnimationFrame(frame);
+}
+const parts = () => [...document.querySelectorAll("#landing .land > *")].filter(el => el.getClientRects().length);
+function launch() {
+  launched = true;
+  const runs = parts().map((el, i) => {
+    const r = el.getBoundingClientRect(), box = el.id === "drop" || el.id === "sampleTile", pad = box ? 0 : 8;
+    const L = r.left - pad, T = r.top - pad / 2, w = r.width + 2 * pad, h = r.height + pad;
+    const gh = document.createElement("div");
+    gh.className = "ghost" + (el.id === "drop" ? " amber" : box ? "" : " text");
+    Object.assign(gh.style, {left: L + "px", top: T + "px", width: w + "px", height: h + "px", borderRadius: box ? getComputedStyle(el).borderRadius : h / 2 + "px"});
+    fly.appendChild(gh); el.style.opacity = "0";
+    const dx = W / 2 - (L + w / 2), dy = H / 2 - (T + h / 2), sg = i % 2 ? 1 : -1;
+    const a = gh.animate([
+      {transform: `translate3d(${dx}px,${dy}px,-900px) rotateX(${40 - 10 * i}deg) rotateY(${sg * (220 + 40 * i)}deg) rotateZ(${-sg * (70 + 20 * i)}deg) scale(.12)`, opacity: 0},
+      {opacity: 1, offset: 0.2},
+      {transform: "translate3d(0px,0px,0px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)", opacity: 1}],
+      {duration: 950, delay: 60 * i, easing: "cubic-bezier(.22,1,.36,1)", fill: "both"});
+    anims.push(a);
+    return a.finished.then(() => {   // the object becomes the real part of the page
+      el.style.opacity = "";
+      el.animate([{opacity: 0, transform: "scale(.985)"}, {opacity: 1, transform: "none"}], {duration: 320, easing: "ease-out"});
+      const o = gh.animate([{opacity: 1}, {opacity: 0}], {duration: 360, easing: "ease-out", fill: "forwards"}); anims.push(o); return o.finished;
+    });
+  });
+  anims.push(intro.animate([{backgroundColor: "rgba(4,8,15,1)"}, {backgroundColor: "rgba(4,8,15,0)"}], {duration: 700, delay: 450, easing: "ease-in-out", fill: "forwards"}));
+  anims.push(cv.animate([{opacity: 1}, {opacity: 0}], {duration: 700, delay: 450, easing: "ease-in-out", fill: "forwards"}));
+  Promise.all(runs).then(end, end);
+}
+function end() {
+  if (done) return; done = true;
+  cancelAnimationFrame(raf); removeEventListener("resize", size);
+  for (const ev of ["pointerdown", "keydown"]) removeEventListener(ev, skip, true);
+  for (const a of anims) a.cancel();
+  parts().forEach(el => { el.style.opacity = ""; });
+  document.documentElement.classList.remove("intro-on");
+  intro.remove();
+}
+function skip(e) {
+  if (done || skip.on) return; skip.on = true; e.preventDefault();
+  intro.animate([{opacity: 1}, {opacity: 0}], {duration: 220, easing: "ease-out", fill: "forwards"}).finished.then(end, end);
+}
+for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, skip, true);
+raf = requestAnimationFrame(frame);
+})();
+</script>
+<input id="file" type="file" accept="video/*" hidden>
+<section id="landing" hidden><video id="bgVid" class="bgv" muted loop playsinline preload="auto" aria-hidden="true"></video><div class="land">
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14" fill="none" stroke="#4DE3FF" stroke-width="2"/><circle cx="17" cy="17" r="6" fill="none" stroke="#FFC857" stroke-width="2"/><path d="M17 0v8M17 26v8M0 17h8M26 17h8" stroke="#4DE3FF" stroke-width="2"/></svg>
+    <div><b>RALLYSCOPE</b><small>rally analysis · fixed camera</small></div>
+  </div>
+  <h1>Phân tích một rally pickleball <em>từ video của bạn</em></h1>
+  <p class="sub">Khung xương, đường bóng, tốc độ từng cú đánh và bảng điểm cho 4 người chơi.</p>
+  <label id="drop" for="file">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+    <b>Kéo thả video vào đây</b>
+    <span>hoặc</span>
+    <span class="btn">Chọn video</span>
+    <small>1 rally · camera đứng yên · thấy trọn sân</small>
+  </label>
+  <p id="mobNote" class="mob" hidden>Trên điện thoại, phân tích rất chậm và dừng khi tắt màn hình. Nên tải video lên từ máy tính (Chrome hoặc Edge).</p>
+  <div class="or">HOẶC</div>
+  <button id="sampleTile" type="button">
+    <span class="play"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></span>
+    <span><b>Xem rally mẫu trước</b><span id="sampleSub">Một rally đã phân tích sẵn (PPA Chicago Cup), để xem kết quả trông như thế nào.</span></span>
+  </button>
+  <p class="priv">Video chỉ được xử lý ngay trong trình duyệt của bạn, không gửi đi đâu.</p>
+</div></section>
 <div id="ctrl" hidden>
   <button id="bplay" type="button">Play</button>
-  <button id="bback" type="button" aria-label="Previous frame">−1f</button>
-  <button id="bfwd" type="button" aria-label="Next frame">+1f</button>
+  <button id="bback" type="button" aria-label="Lùi 3 giây">−3s</button>
+  <button id="bfwd" type="button" aria-label="Tới 3 giây">+3s</button>
   <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
   <span class="tm num" id="tmtxt">0.00 s</span>
   <select id="rate" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
@@ -203,9 +463,10 @@ body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
       <button class="tg" type="button" data-ov="tags" aria-pressed="true">Bảng tên</button>
       <button class="tg" type="button" data-ov="court" aria-pressed="true">Mặt sân</button>
       <button id="ovAll" type="button">Tắt hết</button>
+      <button id="braw" class="tg" type="button" aria-pressed="false">Video gốc</button>
     </div>
     <div class="grp" style="margin-left:auto">
-      <label class="upl" for="file">Tải video lên<input id="file" type="file" accept="video/*" hidden></label>
+      <label class="upl" for="file">Tải video khác</label>
       <button id="bsample" type="button" hidden>Xem rally mẫu</button>
     </div>
   </div>
@@ -219,6 +480,14 @@ body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
     <label for="rgB">Đến <input id="rgB" type="range" min="0" max="1000" value="1000"> <span id="rgBv" class="num">0.0 s</span></label>
   </div>
   <p id="rangeMsg" class="num"></p>
+  <h3>Tên người chơi</h3>
+  <p>Không bắt buộc. Tên sẽ thay cho P1–P4 trên đầu người chơi, trong bảng điểm và báo cáo. Để trống thì giữ P1–P4.</p>
+  <div class="names">
+    <label style="--c:#FF7A3D"><span><i style="color:#FF7A3D">P1</i> · gần, bên phải</span><input id="nm0" type="text" maxlength="12" autocomplete="off" placeholder="P1"></label>
+    <label style="--c:#9CFF57"><span><i style="color:#9CFF57">P2</i> · gần, bên trái</span><input id="nm1" type="text" maxlength="12" autocomplete="off" placeholder="P2"></label>
+    <label style="--c:#FF5FD2"><span><i style="color:#FF5FD2">P3</i> · xa, bên trái</span><input id="nm2" type="text" maxlength="12" autocomplete="off" placeholder="P3"></label>
+    <label style="--c:#4DE3FF"><span><i style="color:#4DE3FF">P4</i> · xa, bên phải</span><input id="nm3" type="text" maxlength="12" autocomplete="off" placeholder="P4"></label>
+  </div>
   <div class="row">
     <button id="btnGo" class="primary" type="button">Bắt đầu phân tích</button>
     <button id="btnRedetect" type="button">Tự tìm lại sân</button>
@@ -253,7 +522,7 @@ body.rec #ctrl, body.rec #report, body.rec #setup, body.rec #proc{display:none}
   </header>
 
   <div id="stagebox">
-    <video id="vid" muted playsinline preload="auto">
+    <video id="vid" muted playsinline preload="none">
       <source src="rally.mp4" type='video/mp4; codecs="avc1.640028"'>
       <source src="rally.webm" type='video/webm; codecs="vp9"'>
     </video>
@@ -317,7 +586,7 @@ const $ = id => document.getElementById(id);
 const vid = $("vid"), cv = $("stage"), g = cv.getContext("2d");
 const SW = 1360, SH = 765;
 let D, FPS, DUR, NF, S, OX, OY, Hinv, H, CW, CL, CK, NET;
-let courtPaths, scanPat, vignette, lastF = -1, lastT = 0;
+let courtPaths, scanPat, vignette, courtCv, finishCv, lastF = -1, lastT = 0, RAW = false;   // RAW: the plain video, nothing drawn on it
 // which overlay layers are drawn (viewer's choice, remembered in this browser)
 const OV = {skel: true, ball: true, tags: true, court: true};
 try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); } catch (e) {}
@@ -332,23 +601,29 @@ function hom(M, p) { const x = p[0], y = p[1]; const w = M[2][0]*x + M[2][1]*y +
   return [(M[0][0]*x + M[0][1]*y + M[0][2]) / w, (M[1][0]*x + M[1][1]*y + M[1][2]) / w]; }
 const st = p => [OX + p[0] * S, OY + p[1] * S];               // source px -> stage px
 const c2s = p => st(hom(Hinv, p));                              // court metres -> stage px
+// display name of player i (typed by the viewer after an upload), else P1-P4; withNames swaps P1-P4 inside texts
+const pname = i => D.players[i].name || D.players[i].id;
+const withNames = (s, D_ = D) => String(s).replace(/\bP([1-4])\b/g, (m, k) => D_.players[k - 1]?.name || m);
 function fmtT(t) { const m = Math.floor(t / 60), s = t - m * 60; return `${pad(m)}:${s.toFixed(2).padStart(5, "0")}`; }
 
-function cutPath(x, y, w, h, c = 8) {
-  g.beginPath(); g.moveTo(x + c, y); g.lineTo(x + w, y); g.lineTo(x + w, y + h - c);
-  g.lineTo(x + w - c, y + h); g.lineTo(x, y + h); g.lineTo(x, y + c); g.closePath();
+function cutPath(x, y, w, h, c = 8) {   // every panel drawn on the stage: a rounded box
+  g.beginPath(); g.roundRect(x, y, w, h, c + 2);
 }
 
 // ------------------------------------------------------------------ setup
-let SAMPLE = null;   // the bundled rally: data and the video source the browser picked
+let SAMPLE = null;   // the bundled rally: data and the video source the browser picked (loaded on demand)
 async function init() {
-  const data = await (await fetch("data.json")).json();
   await Promise.all(["600 14px 'Chakra Petch'", "700 14px 'Chakra Petch'", "500 12px 'IBM Plex Mono'",
     "400 16px 'Noto Sans'", "500 16px 'Noto Sans'"].map(f => document.fonts.load(f, "Aăâđêôơư ẠẾỘỮ0123")));
   await document.fonts.ready;
-  if (!REC) setupInteractive();
-  await applyData(data, null);
-  SAMPLE = {data, src: vid.currentSrc};
+  if (REC) return loadSample();
+  setupInteractive();
+}
+async function loadSample() {
+  if (!SAMPLE) SAMPLE = {data: await (await fetch("data.json")).json(), src: null};
+  if (SAMPLE.src) vid.src = SAMPLE.src;
+  await applyData(SAMPLE.data, null);
+  SAMPLE.src ||= vid.currentSrc;
 }
 
 // Load a rally (the bundled one, or one analysed in this browser) into the screen.
@@ -360,7 +635,7 @@ async function applyData(data, src) {
   if (src) {
     vid.querySelectorAll("source").forEach(e => e.remove());
     vid.src = src; vid.load();
-  }
+  } else if (vid.readyState === 0) { vid.preload = "auto"; vid.load(); }
   await new Promise(r => vid.readyState >= 1 ? r() : vid.addEventListener("loadedmetadata", r, {once: true}));
   DUR = Math.min(vid.duration, NF / FPS);
   const vw = vid.videoWidth || D.meta.width, vh = vid.videoHeight || D.meta.height;
@@ -400,15 +675,26 @@ function buildStatic() {
   scanPat = g.createPattern(sc, "repeat");
   vignette = g.createRadialGradient(SW / 2, SH / 2, SH * 0.35, SW / 2, SH / 2, SW * 0.62);
   vignette.addColorStop(0, "rgba(4,8,15,0)"); vignette.addColorStop(1, "rgba(4,8,15,.78)");
+  // the court and the screen finish never change within a rally: paint them once, blit them per frame
+  const layer = () => { const c = document.createElement("canvas"); c.width = SW; c.height = SH; return c; };
+  courtCv = layer(); drawCourt(courtCv.getContext("2d"));
+  finishCv = layer(); const fx = finishCv.getContext("2d");
+  fx.fillStyle = vignette; fx.fillRect(0, 0, SW, SH);
+  fx.fillStyle = scanPat; fx.globalAlpha = 0.5; fx.fillRect(0, 0, SW, SH); fx.globalAlpha = 1;
+  // bottom edge fades to dark (covers any old progress bar)
+  const bh = D.meta.cover?.bottom ? D.meta.cover.bottom * S + 40 : 110;
+  const bg = fx.createLinearGradient(0, SH - bh, 0, SH);
+  bg.addColorStop(0, "rgba(4,8,15,0)"); bg.addColorStop(0.55, "rgba(4,8,15,.82)"); bg.addColorStop(1, "rgba(4,8,15,.97)");
+  fx.fillStyle = bg; fx.fillRect(0, SH - bh, SW, bh);
 
   // strike list
   $("slistin").innerHTML = D.strikes.map(s => `<div class="srow" data-f="${s.frame}"><span>${pad(s.n)}</span>
-    <span class="pl" style="color:${PCOL[s.pi]}">${s.player}</span><span class="ty">${TYPE_EN[s.type]}</span>
+    <span class="pl" style="color:${PCOL[s.pi]}">${pname(s.pi)}</span><span class="ty">${TYPE_EN[s.type]}</span>
     <span>${s.dir ? DIR_EN[s.dir].replace("DOWN THE LINE", "LINE").replace("CROSS-COURT", "CROSS") : "—"}</span>
     <span class="kmh num">${s.kmh == null ? "—" : s.kmh.toFixed(0) + " km/h"}</span></div>`).join("");
   // player rows
   $("prows").innerHTML = D.players.map((p, i) => `<div class="prow" id="pr${i}">
-    <span class="id" style="color:${PCOL[i]}">${p.id}</span><span class="zn"></span>
+    <span class="id" style="color:${PCOL[i]}">${pname(i)}</span><span class="zn"></span>
     <span class="nd num"></span><span class="kn num"></span><span class="ct num"></span></div>`).join("");
   // timeline
   const x = t => (t / DUR * 100).toFixed(3) + "%";
@@ -425,7 +711,7 @@ function buildEnd() {
   $("endvd").textContent = D.report.verdict;
   $("cards").innerHTML = D.players.map((p, i) => `<div class="card cut" data-at="${0.5 + i * 0.35}" style="border-top:3px solid ${PCOL[i]}">
     <div class="badge" style="visibility:${p.id === best.id ? "visible" : "hidden"}">MOST PROFESSIONAL</div>
-    <div class="top"><span class="id" style="color:${PCOL[i]}">${p.id}</span><span class="pos">${PPOS[i]}<br>${p.strikes} strikes</span>
+    <div class="top"><span class="id" style="color:${PCOL[i]}">${pname(i)}</span><span class="pos">${PPOS[i]}<br>${p.strikes} strikes</span>
       <span class="tot"><b style="color:${PCOL[i]}">${Math.round(p.total)}</b><span>TOTAL / 100</span></span></div>
     <div class="bars">${PART.map(([k, lab, w]) => `<div class="bar"><span>${lab} ${w}%</span><span class="tr"><i data-w="${p.parts[k] ?? 0}" style="background:${PCOL[i]};width:0"></i></span><b class="num">${p.parts[k] == null ? "—" : Math.round(p.parts[k])}</b></div>`).join("")}</div>
     <h4 class="g">DONE WELL</h4><ul class="gl" data-at="${2.0 + i * 0.25}">${p.good.map(t => `<li>${t}</li>`).join("")}</ul>
@@ -435,34 +721,26 @@ function buildEnd() {
 
 // ------------------------------------------------------------------ stage
 function drawStage(f) {
-  g.save();
+  if (RAW) { g.fillStyle = "#000"; g.fillRect(0, 0, SW, SH); if (vid.readyState >= 2) g.drawImage(vid, OX, OY, SW - 2 * OX, SH - 2 * OY); return; }
   g.fillStyle = "#04080F"; g.fillRect(0, 0, SW, SH);
-  g.filter = "saturate(.62) contrast(1.1) brightness(.9)";
-  if (vid.readyState >= 2) g.drawImage(vid, OX, OY, SW - 2 * OX, SH - 2 * OY);
-  g.filter = "none";
-  g.globalCompositeOperation = "multiply"; g.fillStyle = "#93BEE6"; g.fillRect(0, 0, SW, SH);
-  g.globalCompositeOperation = "screen"; g.fillStyle = "rgba(10,40,70,.22)"; g.fillRect(0, 0, SW, SH);
-  g.globalCompositeOperation = "source-over";
-  g.restore();
+  if (vid.readyState >= 2) g.drawImage(vid, OX, OY, SW - 2 * OX, SH - 2 * OY);   // true colours, no tint
 
-  if (OV.court) { drawCourt(f); drawBounces(f); }
+  if (OV.court) { g.globalCompositeOperation = "lighter"; g.drawImage(courtCv, 0, 0); g.globalCompositeOperation = "source-over"; drawBounces(f); }
   const tags = drawPlayers(f);
   if (OV.ball) drawBall(f);
   drawStrikeFx(f, tags);
   if (OV.tags) drawTags(tags);
 
-  g.fillStyle = vignette; g.fillRect(0, 0, SW, SH);
-  g.fillStyle = scanPat; g.globalAlpha = 0.5; g.fillRect(0, 0, SW, SH); g.globalAlpha = 1;
-  // bottom edge fades to dark (covers any old progress bar)
-  const bh = D.meta.cover?.bottom ? D.meta.cover.bottom * S + 40 : 110;
-  const bg = g.createLinearGradient(0, SH - bh, 0, SH);
-  bg.addColorStop(0, "rgba(4,8,15,0)"); bg.addColorStop(0.55, "rgba(4,8,15,.82)"); bg.addColorStop(1, "rgba(4,8,15,.97)");
-  g.fillStyle = bg; g.fillRect(0, SH - bh, SW, bh);
+  g.drawImage(finishCv, 0, 0);
   drawTopLeft(f);
   drawTopRight(f);
 }
 
-function drawCourt(f) {
+// glow without shadowBlur (one GPU blur per call; with every layer on the page ran at ~10 fps):
+// the current path again, wider and faint, under the real stroke
+function halo(w) { const lw = g.lineWidth, a = g.globalAlpha; g.lineWidth = lw + w; g.globalAlpha = a * 0.3; g.stroke(); g.lineWidth = lw; g.globalAlpha = a; }
+
+function drawCourt(g) {   // painted once into courtCv (buildStatic), so its shadowBlur costs nothing per frame
   const {grid, lines, kz, net} = courtPaths;
   g.save();
   g.fillStyle = "rgba(77,227,255,.075)"; g.fill(kz);
@@ -498,7 +776,7 @@ function drawBounces(f) {
       const kk = (k - off) / 45; if (kk < 0) continue;
       strokePts(ringPts(b.court, 0.12 + 0.95 * ease(kk)));
       g.strokeStyle = `rgba(255,200,87,${0.9 * (1 - kk)})`; g.lineWidth = 2.2 * (1 - kk) + 0.6;
-      g.shadowColor = "#FFC857"; g.shadowBlur = 10; g.stroke();
+      halo(10); g.stroke();
     }
     if (k < 8) { const p = c2s(b.court); g.fillStyle = `rgba(255,230,160,${1 - k / 8})`; g.beginPath(); g.arc(p[0], p[1], 3, 0, 7); g.fill(); }
     g.restore();
@@ -523,37 +801,39 @@ function drawPlayers(f) {
       const ys = P.filter(Boolean).map(p => p[1]), xs = P.filter(Boolean).map(p => p[0]);
       const top = lost ? fp[1] - hh : Math.min(...ys), cx = lost ? fp[0] : (Math.min(...xs) + Math.max(...xs)) / 2;
       const z = D.series.zone[i][f], dn = D.series.dnet[i][f], kn = D.series.knee[i][f];
-      tags.push({i, col, rgb, ax: cx, ay: top - 6, w: 168, h: 44, x: cx - 84, y: top - 62,
-        l1: `${D.players[i].id}  ${lost ? "POSE LOST" : z}`, l2: lost ? `NET ${dn.toFixed(1)} m · estimated` : `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`});
+      tags.push(tag(i, col, rgb, cx, top, `${pname(i)}  ${lost ? "POSE LOST" : z}`, lost ? `NET ${dn.toFixed(1)} m · estimated` : `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`));
       continue;
     }
     // floor ring
     g.save(); g.globalCompositeOperation = "lighter";
     strokePts(ringPts(feet, 0.55)); g.fillStyle = rgba(rgb, 0.10); g.fill();
-    g.strokeStyle = rgba(rgb, 0.85); g.lineWidth = 1.6; g.shadowColor = col; g.shadowBlur = 10; g.stroke();
+    g.strokeStyle = rgba(rgb, 0.85); g.lineWidth = 1.6; halo(10); g.stroke();
     const rp = ringPts(feet, 0.72, 48), rot = Math.floor(f / 3) % 12;
     g.lineWidth = 2.4; g.strokeStyle = rgba(rgb, 0.6);
     for (let k = 0; k < 48; k += 12) { const a = (k + rot * 1) % 48; g.beginPath(); g.moveTo(...rp[a]); g.lineTo(...rp[Math.min(a + 4, 48)]); g.stroke(); }
     g.restore();
     // skeleton
     g.save(); g.lineCap = "round"; g.lineJoin = "round";
-    g.shadowColor = col; g.shadowBlur = 12; g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 3.4;
+    g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 3.4;
     g.beginPath(); for (const [a, b] of EDGES) if (P[a] && P[b]) { g.moveTo(...P[a]); g.lineTo(...P[b]); }
     if (P[0] && P[1] && P[2]) { const nk = [(P[1][0] + P[2][0]) / 2, (P[1][1] + P[2][1]) / 2]; g.moveTo(...nk); g.lineTo(...P[0]); }
-    g.stroke();
-    g.shadowBlur = 0; g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1; g.stroke();
+    halo(12); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1; g.stroke();
     g.fillStyle = "#fff";
     for (const k of [0, 5, 6, 9, 10, 11, 12]) if (P[k]) { g.beginPath(); g.arc(P[k][0], P[k][1], k === 0 ? 3.2 : 2.2, 0, 7); g.fill(); }
     if (P[0]) { const hr = Math.max(5, Math.hypot(P[1][0] - P[2][0], P[1][1] - P[2][1]) * 0.42);
-      g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 1.6; g.shadowColor = col; g.shadowBlur = 8; g.beginPath(); g.arc(P[0][0], P[0][1], hr, 0, 7); g.stroke(); }
+      g.strokeStyle = rgba(rgb, 0.9); g.lineWidth = 1.6; g.beginPath(); g.arc(P[0][0], P[0][1], hr, 0, 7); halo(8); g.stroke(); }
     g.restore();
     const ys = P.filter(Boolean).map(p => p[1]), xs = P.filter(Boolean).map(p => p[0]);
     const top = Math.min(...ys), cx = (Math.min(...xs) + Math.max(...xs)) / 2;
     const z = D.series.zone[i][f], dn = D.series.dnet[i][f], kn = D.series.knee[i][f];
-    tags.push({i, col, rgb, ax: cx, ay: top - 6, w: 168, h: 44, x: cx - 84, y: top - 62,
-      l1: `${D.players[i].id}  ${z}`, l2: `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`});
+    tags.push(tag(i, col, rgb, cx, top, `${pname(i)}  ${z}`, `NET ${dn.toFixed(1)} m · KNEE ${kn ?? "—"}°`));
   }
   return tags;
+}
+function tag(i, col, rgb, cx, top, l1, l2) {   // wide enough for a typed name
+  g.font = "600 14px 'Chakra Petch'"; const w = Math.max(168, Math.ceil(g.measureText(l1).width) + 22);
+  return {i, col, rgb, ax: cx, ay: top - 6, w, h: 44, x: cx - w / 2, y: top - 62, l1, l2};
 }
 
 function resolveTags(tags, fixed) {
@@ -602,10 +882,8 @@ function drawBall(f) {
     const c = [0, 1, 2].map(j => Math.round(lerp(BLUE[j], PINK[j], u)));
     const pa = st(a), pb = st(b);
     g.strokeStyle = rgba(c, 0.85 * Math.pow(1 - u, 1.25)); g.lineWidth = 1 + 8 * Math.pow(1 - u, 0.9);
-    g.shadowColor = rgba(c, 0.9); g.shadowBlur = 10 * (1 - u);
-    g.beginPath(); g.moveTo(...pa); g.lineTo(...pb); g.stroke();
+    g.beginPath(); g.moveTo(...pa); g.lineTo(...pb); halo(10 * (1 - u)); g.stroke();
   }
-  g.shadowBlur = 0;
   for (let k = 5; k >= 1; k--) {                     // thin white core on the newest frames
     const a = B[f - k], b = B[f - k + 1]; if (!a || !b) continue;
     g.strokeStyle = `rgba(255,255,255,${0.75 * (1 - k / 6)})`; g.lineWidth = 1.4;
@@ -637,8 +915,7 @@ function drawStrikeFx(f, tags) {
       for (const [d, col] of [[0, "255,255,255"], [4, "77,227,255"]]) {
         const kk = (k - d) / 12; if (kk < 0 || kk > 1) continue;
         g.strokeStyle = `rgba(${col},${0.95 * (1 - kk)})`; g.lineWidth = 3 * (1 - kk) + 0.8;
-        g.shadowColor = `rgb(${col})`; g.shadowBlur = 14;
-        g.beginPath(); g.arc(p[0], p[1], 8 + ease(kk) * 70, 0, 7); g.stroke();
+        g.beginPath(); g.arc(p[0], p[1], 8 + ease(kk) * 70, 0, 7); halo(14); g.stroke();
       }
       g.restore();
     }
@@ -647,7 +924,8 @@ function drawStrikeFx(f, tags) {
     if (next && f >= next.frame) continue;
     if (!OV.tags) continue;
     const a = Math.min(1, k / 6) * Math.min(1, (80 - k) / 12);
-    const w = 236, h = 74;
+    g.font = "700 20px 'Chakra Petch'"; const nw = g.measureText(s.player).width;
+    const w = Math.max(236, Math.ceil(nw + g.measureText(TYPE_EN[s.type]).width) + 34), h = 74;
     const right = p[0] < SW / 2;
     const c = {x: right ? p[0] + 40 : p[0] - 40 - w, y: p[1] - h - 30, w, h};
     c.x = clamp(c.x, 330, SW - w - 340 > 330 ? SW - w - 340 : SW - w - 8);
@@ -662,7 +940,7 @@ function drawStrikeFx(f, tags) {
     g.textBaseline = "top";
     g.font = "700 13px 'Chakra Petch'"; g.fillStyle = "#FFC857"; g.fillText(`STRIKE ${pad(s.n)} / ${pad(D.strikes.length)}`, c.x + 12, c.y + 9);
     g.font = "700 20px 'Chakra Petch'"; g.fillStyle = col; g.fillText(s.player, c.x + 12, c.y + 27);
-    g.fillStyle = "#fff"; g.fillText(TYPE_EN[s.type], c.x + 50, c.y + 27);
+    g.fillStyle = "#fff"; g.fillText(TYPE_EN[s.type], c.x + 22 + Math.max(28, nw), c.y + 27);
     g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = "#BFD3E6";
     g.fillText(`${s.dir ? DIR_EN[s.dir] : "—"} · ${s.kmh == null ? "— km/h" : s.kmh.toFixed(0) + " km/h"}`, c.x + 12, c.y + 53);
     g.restore();
@@ -672,8 +950,10 @@ function drawStrikeFx(f, tags) {
 
 function drawTopLeft(f) {
   const cv0 = D.meta.cover?.topleft;
-  const x = 14, y = 14, w = cv0 ? Math.max(300, cv0[2] * S + 20) : 300, h = cv0 ? Math.max(104, cv0[3] * S + 20) : 104;
   const s = curStrike(f);
+  const l2 = s ? `${s.player} · ${TYPE_EN[s.type]} · ${s.kmh == null ? "—" : s.kmh.toFixed(0)} km/h` : "waiting for the serve";
+  g.font = "500 12px 'IBM Plex Mono'"; const lw = Math.ceil(g.measureText(l2).width) + 28;
+  const x = 14, y = 14, w = Math.max(cv0 ? Math.max(300, cv0[2] * S + 20) : 300, lw), h = cv0 ? Math.max(104, cv0[3] * S + 20) : 104;
   g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
   g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
   const on = Math.floor(f / 20) % 2 === 0;
@@ -685,7 +965,7 @@ function drawTopLeft(f) {
   g.font = "700 30px 'Chakra Petch'"; g.fillStyle = "#fff";
   g.fillText(s ? `STRIKE ${pad(s.n)}` : "PRE-SERVE", x + 14, y + 36);
   g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = s ? PCOL[s.pi] : "#9DB4C9";
-  g.fillText(s ? `${s.player} · ${TYPE_EN[s.type]} · ${s.kmh == null ? "—" : s.kmh.toFixed(0)} km/h` : "waiting for the serve", x + 14, y + 76);
+  g.fillText(l2, x + 14, y + 76);
   g.restore();
 }
 
@@ -861,9 +1141,18 @@ function fit() {
   const w = document.documentElement.clientWidth, k = Math.min(1, w / 1920);
   $("screen").style.transform = `scale(${k})`; $("wrap").style.height = (1080 * k) + "px";
 }
+// which screen shows: "landing", "setup", "proc", or null = the analysed rally (landing while nothing is loaded)
+function showOnly(which) {
+  if (!which && !D) which = "landing";
+  for (const id of ["landing", "setup", "proc"]) $(id).hidden = id !== which;
+  $("ctrl").hidden = $("wrap").hidden = $("report").hidden = !!which;
+  const bg = $("bgVid"); if (bg.src) which === "landing" ? bg.play().catch(() => {}) : bg.pause();   // the background video only runs behind the landing
+  if (which) window.scrollTo({top: 0});
+  else fit();
+}
 function setupInteractive() {
-  $("ctrl").hidden = false; $("report").hidden = false;
-  fit(); addEventListener("resize", fit);
+  showOnly("landing");
+  addEventListener("resize", fit);
   let playing = false, tEnd = null;
   const total = () => DUR + D.meta.endcard;
   const t0 = () => D.meta.t0 || 0;
@@ -888,20 +1177,41 @@ function setupInteractive() {
   $("scrub").oninput = e => seek(e.target.value / 1000 * total());
   // overlay layers
   const syncOv = () => {
-    document.querySelectorAll("#ctrl .tg").forEach(b => b.setAttribute("aria-pressed", OV[b.dataset.ov] ? "true" : "false"));
+    document.querySelectorAll("#ctrl .tg[data-ov]").forEach(b => b.setAttribute("aria-pressed", OV[b.dataset.ov] ? "true" : "false"));
     $("ovAll").textContent = Object.values(OV).some(Boolean) ? "Tắt hết" : "Bật hết";
     try { localStorage.setItem("rallyscope-ov", JSON.stringify(OV)); } catch (e) {}
     if (D) draw(lastT);
   };
-  document.querySelectorAll("#ctrl .tg").forEach(b => b.onclick = () => { OV[b.dataset.ov] = !OV[b.dataset.ov]; syncOv(); });
+  document.querySelectorAll("#ctrl .tg[data-ov]").forEach(b => b.onclick = () => { OV[b.dataset.ov] = !OV[b.dataset.ov]; syncOv(); });
+  $("braw").onclick = () => { RAW = !RAW; $("braw").setAttribute("aria-pressed", RAW ? "true" : "false"); if (D) draw(lastT); };
   $("ovAll").onclick = () => { const on = !Object.values(OV).some(Boolean); for (const k in OV) OV[k] = on; syncOv(); };
   syncOv();
-  $("bsample").onclick = async () => { if (!SAMPLE) return; $("bsample").hidden = true; vid.src = SAMPLE.src; await applyData(SAMPLE.data, null); };
-  $("bback").onclick = () => seek(Math.max(0, (Math.round(vid.currentTime * FPS) - 1) / FPS));
-  $("bfwd").onclick = () => seek((Math.round(vid.currentTime * FPS) + 1) / FPS);
+  $("mobNote").hidden = !matchMedia("(pointer: coarse)").matches;   // touch-first device: analysing here is slow and stops when the screen sleeps
+  // background video of the landing: bg.mp4 next to the page; missing file or reduced motion = the dark background stays
+  const bg = $("bgVid");
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    bg.addEventListener("playing", () => $("landing").classList.add("has-bg"), {once: true});
+    bg.muted = true; bg.src = "bg.mp4"; bg.play().catch(() => {});
+  }
+  $("bsample").onclick = async () => { $("bsample").hidden = true; await loadSample(); };
+  $("sampleTile").onclick = async () => {
+    const b = $("sampleTile"); b.disabled = true; $("sampleSub").textContent = "Đang mở rally mẫu…";
+    try { await loadSample(); showOnly(null); }
+    catch (e) { console.error(e); $("sampleSub").textContent = "Chưa mở được rally mẫu. Thử lại."; }
+    finally { b.disabled = false; }
+  };
+  // drag & drop a video anywhere on the landing page
+  const land = $("landing"), drop = $("drop");
+  for (const ev of ["dragenter", "dragover"]) land.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); });
+  land.addEventListener("dragleave", e => { if (!land.contains(e.relatedTarget)) drop.classList.remove("over"); });
+  land.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over");
+    const f = e.dataTransfer?.files?.[0]; if (f && window.__analyse) window.__analyse(f); });
+  const jump = d => { const was = playing; seek(lastT + d); if (was) play(); };
+  $("bback").onclick = () => jump(-3);
+  $("bfwd").onclick = () => jump(3);
   $("rate").onchange = e => { vid.playbackRate = +e.target.value; };
   $("bsnd").onclick = () => { vid.muted = !vid.muted; $("bsnd").textContent = vid.muted ? "Sound off" : "Sound on"; };
-  addEventListener("keydown", e => { if (!$("setup").hidden || !$("proc").hidden || /INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
+  addEventListener("keydown", e => { if ($("wrap").hidden || /INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
     if (e.code === "Space") { e.preventDefault(); playing ? pause() : play(); }
     if (e.code === "ArrowRight") $("bfwd").click(); if (e.code === "ArrowLeft") $("bback").click(); });
 }
@@ -914,11 +1224,11 @@ function buildReport() {
     <p>${R.headline}</p><p class="muted">${R.verdict}</p>
     <h2>Điểm từng người</h2>
     <div class="tblw"><table class="tbl"><thead><tr><th>Người</th><th>Tổng</th><th>Vị trí 35%</th><th>Cú đánh 25%</th><th>Tư thế 20%</th><th>Di chuyển 20%</th><th>Số cú</th></tr></thead><tbody>
-    ${D.players.map((p, i) => `<tr><td><span class="pchip" style="background:${PCOL[i]}">${p.id}</span> <span class="muted">${PPOS[i]}</span></td>
+    ${D.players.map((p, i) => `<tr><td><span class="pchip" style="background:${PCOL[i]}">${pname(i)}</span> <span class="muted">${PPOS[i]}</span></td>
       <td class="n"><b>${fmt(p.total)}</b>${p.id === best.id ? " ★" : ""}</td>${PART.map(([k]) => `<td class="n">${fmt(p.parts[k])}</td>`).join("")}<td class="n">${p.strikes}</td></tr>`).join("")}
     </tbody></table></div>
     <div class="pgrid" style="margin-top:16px">${D.players.map((p, i) => `<div class="pcard" style="border-top:3px solid ${PCOL[i]}">
-      <h3><span style="color:${PCOL[i]}">${p.id}</span><span>${fmt(p.total)}</span></h3>
+      <h3><span style="color:${PCOL[i]}">${pname(i)}</span><span>${fmt(p.total)}</span></h3>
       <h4 style="color:#57FFA8">LÀM TỐT</h4><ul>${p.good.map(t => `<li>${t}</li>`).join("")}</ul>
       <h4 style="color:var(--amber)">CẦN SỬA</h4><ul>${p.work.map(t => `<li>${t}</li>`).join("")}</ul></div>`).join("")}</div>
     <h2>Danh sách cú đánh</h2>
@@ -1050,12 +1360,6 @@ function medAbsDiff(a, b) { const d = new Float32Array(a.length); for (let i = 0
 const say = (step, meta) => { $("procStep").textContent = step; if (meta != null) $("procMeta").textContent = meta; };
 const prog = f => { $("procBar").style.width = (clamp(f) * 100).toFixed(1) + "%"; };
 function check() { if (job && job.cancel) throw new Cancelled("cancelled"); }
-function showOnly(which) {
-  for (const id of ["setup", "proc"]) $(id).hidden = id !== which;
-  $("wrap").hidden = !!which; $("report").hidden = !!which;
-  if (which) window.scrollTo({top: 0});
-  else fit();
-}
 
 // ------------------------------------------------------------------ pose model
 async function loadPose() {
@@ -1170,7 +1474,30 @@ function detectCourt(bg, w, h) {
     hull.splice(bi, 1);
   }
   if (hull.length < 4) return null;
-  return refineCorners(orderCorners(hull), m, w, h);
+  const corners = refineCorners(orderCorners(hull), m, w, h);
+  const [fl, fr, nr, nl] = corners;
+  const left = dist(fl, nl), right = dist(fr, nr);
+  // Disconnected lines from neighbouring courts can form a plausible-looking hull.
+  if (Math.max(left, right) > 2 * Math.min(left, right) || Math.abs(fr[1] - fl[1]) > 0.35 * dist(fl, fr)) return null;
+  // A net and the near baseline also form a quadrilateral. Require evidence of
+  // both kitchen lines before offering it as a full court; otherwise calibrate by hand.
+  const cm = courtModel(corners, w, h);
+  if (!cm) return null;
+  const radius = Math.max(2, Math.round(9 * w / 1920));
+  for (const y of [NETd - CKd, NETd + CKd]) {
+    let hits = 0;
+    for (let k = 0; k < 80; k++) {
+      const p = hom(cm.Hinv, [CWd * (0.05 + 0.9 * k / 79), y]);
+      let hit = false;
+      for (let dy = -radius; dy <= radius && !hit; dy++) for (let dx = -radius; dx <= radius; dx++) {
+        const x = Math.round(p[0]) + dx, yy = Math.round(p[1]) + dy;
+        if (x >= 0 && x < w && yy >= 0 && yy < h && m[yy * w + x]) { hit = true; break; }
+      }
+      if (hit) hits++;
+    }
+    if (hits < 28) return null;
+  }
+  return corners;
 }
 // fit each side of the court to the white pixels near it and intersect the four lines
 function refineCorners(c, m, w, h) {
@@ -1224,8 +1551,8 @@ function runSetup(av, bgImg, auto, aw, ah, dur) {
     const bgC = mk(aw, ah); bgC.getContext("2d").putImageData(new ImageData(bgImg, aw, ah), 0, 0);
     let frameC = bgC;
     let corners = (auto || [[0.36 * aw, 0.36 * ah], [0.64 * aw, 0.36 * ah], [0.84 * aw, 0.88 * ah], [0.16 * aw, 0.88 * ah]]).map(p => p.slice());
-    $("setupMsg").textContent = auto ? "Máy đã tự tìm sân. Kiểm tra 4 chấm vàng ở 4 góc ngoài của sân: đường xanh (vạch kitchen, lưới) phải trùng vạch thật. Kéo chấm nếu lệch."
-      : "Chưa tự tìm được sân. Kéo 4 chấm vàng vào 4 góc ngoài của sân (2 góc xa ở trên, 2 góc gần ở dưới).";
+    $("setupMsg").textContent = auto ? "Kiểm tra 4 chấm vàng ở 4 góc ngoài của sân đang chơi: đường xanh (vạch kitchen, lưới) phải trùng vạch thật. Kéo chấm nếu lệch; vùng này dùng để loại khán giả."
+      : "Chưa xác định chắc chắn sân đang chơi. Kéo 4 chấm vàng vào 4 góc ngoài của sân (2 góc xa ở trên, 2 góc gần ở dưới), tránh lấy nhầm sân phía sau hoặc bảng quảng cáo.";
     const names = ["Xa trái", "Xa phải", "Gần phải", "Gần trái"];
     const rA = $("rgA"), rB = $("rgB");
     rA.value = 0; rB.value = 1000;
@@ -1262,7 +1589,8 @@ function runSetup(av, bgImg, auto, aw, ah, dur) {
     rA.oninput = () => { if (+rA.value > +rB.value - 20) rA.value = +rB.value - 20; showRange(); preview(tA()); };
     rB.oninput = () => { if (+rB.value < +rA.value + 20) rB.value = +rA.value + 20; showRange(); preview(tB()); };
     $("btnRedetect").onclick = () => { const c = detectCourt(bgImg, aw, ah); if (c) { corners = c; frameC = bgC; paint(); } else $("setupMsg").textContent = "Vẫn chưa tự tìm được sân. Hãy kéo 4 chấm bằng tay."; };
-    $("btnGo").onclick = () => resolve({corners: corners.map(p => p.slice()), t0: tA(), t1: tB()});
+    $("btnGo").onclick = () => resolve({corners: corners.map(p => p.slice()), t0: tA(), t1: tB(),
+      names: [0, 1, 2, 3].map(i => $("nm" + i).value.replace(/[<>&"]/g, "").trim().slice(0, 12))});
     $("btnCancelSetup").onclick = () => resolve(null);
     showRange(); paint();
   });
@@ -1275,22 +1603,24 @@ function makeBallFinder(bg, aw, ah, corners) {
     if (mx < 100 || dl * 255 < 60 * mx || !dl) return false;
     let hd = mx === r ? 60 * (g_ - b) / dl : mx === g_ ? 120 + 60 * (b - r) / dl : 240 + 60 * (r - g_) / dl; if (hd < 0) hd += 360;
     return hd >= 50 && hd <= 125; };
-  // ball-coloured things that never move (logos, a ball on the bench) are masked out, 5 px around
+  // Include the gaps in LED lettering so changing adverts do not become small balls.
   const still = new Uint8Array(n);
   for (let i = 0; i < n; i++) still[i] = isBall(bg[i * 4], bg[i * 4 + 1], bg[i * 4 + 2]) ? 1 : 0;
-  const rr = Math.max(2, Math.round(5 * sc)), bgMask = minMax1(minMax1(still, aw, ah, rr, true, true), aw, ah, rr, true, false);
+  const rr = Math.max(2, Math.round(12 * sc)), bgMask = minMax1(minMax1(still, aw, ah, rr, true, true), aw, ah, rr, true, false);
   const xs = corners.map(p => p[0]), ys = corners.map(p => p[1]), cH = Math.max(...ys) - Math.min(...ys);
   const X0 = Math.max(0, Math.floor(Math.min(...xs) - 0.12 * aw)), X1 = Math.min(aw, Math.ceil(Math.max(...xs) + 0.12 * aw));
   const Y0 = Math.max(0, Math.floor(Math.min(...ys) - 0.45 * cH)), Y1 = Math.min(ah, Math.ceil(Math.max(...ys) + 0.05 * ah));
   const bw = X1 - X0, bh = Y1 - Y0, m = new Uint8Array(bw * bh), seen = new Uint8Array(bw * bh), st_ = new Int32Array(bw * bh);
-  const amin = Math.max(3, 6 * sc * sc), amax = 600 * sc * sc;
+  const amin = Math.max(3, 6 * sc * sc), amax = 260 * sc * sc;
   const yel = (d, x, y) => { x = clamp(Math.round(x), 0, aw - 1); y = clamp(Math.round(y), 0, ah - 1); const q = (y * aw + x) * 4; return (d[q] + d[q + 1]) / 2 - d[q + 2]; };
   return d => {
     m.fill(0); seen.fill(0); const list = [];
     for (let y = Y0; y < Y1; y++) for (let x = X0; x < X1; x++) {
       const i = y * aw + x, q = i * 4;
-      if (bgMask[i] || !isBall(d[q], d[q + 1], d[q + 2])) continue;
-      if (Math.max(Math.abs(d[q] - bg[q]), Math.abs(d[q + 1] - bg[q + 1]), Math.abs(d[q + 2] - bg[q + 2])) < 25) continue;
+      if (!isBall(d[q], d[q + 1], d[q + 2])) continue;
+      // Padding around signs raises the change threshold, but must not erase a
+      // real ball passing in front of them. Shape and trajectory still validate it.
+      if (Math.max(Math.abs(d[q] - bg[q]), Math.abs(d[q + 1] - bg[q + 1]), Math.abs(d[q + 2] - bg[q + 2])) < (bgMask[i] ? 60 : 25)) continue;
       const j = (y - Y0) * bw + (x - X0); m[j] = 1; list.push(j);
     }
     const out = [];
@@ -1302,18 +1632,30 @@ function makeBallFinder(bg, aw, ah, corners) {
         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy;
           if (xx < 0 || yy < 0 || xx >= bw || yy >= bh) continue; const q = yy * bw + xx; if (m[q] && !seen[q]) { seen[q] = 1; st_[top++] = q; } } }
       const w_ = x1 - x0 + 1, h_ = y1 - y0 + 1, asp = w_ / h_;
-      if (area < amin || area > amax || asp < 0.25 || asp > 4 || area / (w_ * h_) <= 0.3) continue;
+      if (area < amin || area > amax || asp < 0.35 || asp > 2.8 || area / (w_ * h_) <= 0.4) continue;
       const cx = sx / area + X0 + 0.5, cy = sy / area + Y0 + 0.5, re = Math.sqrt(area / Math.PI) + 2.5;
       let core = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) core += yel(d, cx + dx, cy + dy); core /= 9;
       let ring = 0; for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; ring += yel(d, cx + re * Math.cos(a), cy + re * Math.sin(a)); } ring /= 12;
       const score = clamp((core - ring) / 100, 0, 1);
+      if (score < 0.3) continue;
       out.push([cx, cy, 1.6 * (1 - score) + 0.004 * Math.abs(area / (sc * sc) - 45), score]);
     }
     return out;
   };
 }
 // beam search over (position, velocity, missed frames): the whole ball path at once
-function solveBall(cands, n, scale) {
+function solveBall(cands, n, scale, fps = 60) {
+  // Reject persistent spots before path scoring: zero velocity otherwise wins over the real ball.
+  const window = Math.max(4, Math.round(0.2 * fps)), radius = 8 * scale * fps / 60;
+  // shortcut: assumes a fixed camera; use camera-motion compensation for panning footage.
+  cands = cands.map((cs, t) => (cs || []).filter(c => {
+    const lo = Math.max(0, t - window), hi = Math.min(n - 1, t + window);
+    let still = 0;
+    for (let k = lo; k <= hi; k++) {
+      if ((cands[k] || []).some(p => Math.hypot(p[0] - c[0], p[1] - c[1]) <= radius)) still++;
+    }
+    return hi - lo + 1 < 8 || still < 0.8 * (hi - lo + 1);
+  }));
   const MISS = 2.2, START = 4.0, MAXMISS = 24, K_PER = 6, K_MISS = 120;
   let S_ = [{x: 0, y: 0, vx: 0, vy: 0, lx: 0, ly: 0, m: 0, cost: 0, live: false, newv: true}];
   const back = [];
@@ -1346,6 +1688,21 @@ function solveBall(cands, n, scale) {
   let i = S_.reduce((b, s, k) => s.cost < S_[b].cost ? k : b, 0);
   const out = new Array(n).fill(null);
   for (let t = n - 1; t >= 0; t--) { const j = back[t].obs[i]; if (j >= 0) out[t] = [cands[t][j][0], cands[t][j][1]]; i = back[t].par[i]; }
+  // Flickering LED pixels evade the occupancy filter but still form stationary short runs.
+  let run = [];
+  const finish = () => {
+    if (!run.length) return;
+    const xs = run.map(t => out[t][0]), ys = run.map(t => out[t][1]);
+    if (run.length < 3 || Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) <= 2 * radius) {
+      for (const t of run) out[t] = null;
+    }
+    run = [];
+  };
+  for (let t = 0; t < n; t++) if (out[t]) {
+    if (run.length && t - run[run.length - 1] > Math.max(1, Math.round(0.035 * fps))) finish();
+    run.push(t);
+  }
+  finish();
   return out;
 }
 
@@ -1389,13 +1746,51 @@ function torsoColor(d, aw, ah, pts) {
     if (x < 0 || y < 0 || x >= aw || y >= ah) continue; const q = (y * aw + x) * 4; r += d[q]; g_ += d[q + 1]; b += d[q + 2]; k++; }
   return k >= 6 ? [r / k, g_ / k, b / k] : null;
 }
+function kitColor(d, aw, ah, pts) {
+  const top = torsoColor(d, aw, ah, pts); if (!top) return null;
+  const L = jp(pts, 23), R = jp(pts, 24), K = [(pts[75] + pts[78]) / 2, (pts[76] + pts[79]) / 2];
+  if (!K.every(Number.isFinite)) return null;
+  let r = 0, g_ = 0, b = 0, n = 0;
+  // The upper shorts/skirt distinguish teammates wearing the same shirt.
+  for (let u = 0.25; u <= 0.75; u += 0.125) for (let v = 0.1; v <= 0.4; v += 0.1) {
+    const hip = [L[0] + (R[0] - L[0]) * u, L[1] + (R[1] - L[1]) * u];
+    const x = Math.round(hip[0] + (K[0] - hip[0]) * v), y = Math.round(hip[1] + (K[1] - hip[1]) * v);
+    if (x < 0 || y < 0 || x >= aw || y >= ah) continue;
+    const q = (y * aw + x) * 4; r += d[q]; g_ += d[q + 1]; b += d[q + 2]; n++;
+  }
+  if (n < 6) return null;
+  // Colour proportions survive jersey shadows better than raw brightness.
+  // Keep a little brightness information for dark kits, and weight shorts more.
+  const colour = (rgb, weight) => { const sum = rgb.reduce((s, v) => s + v, 20); return rgb.map(v => weight * v / sum + 0.15 * v); };
+  return [...colour(top, 200), ...colour([r / n, g_ / n, b / n], 400)];
+}
+function playerInCourt(pts, cm, ah, p = null, kh = null) {
+  if (![0, 11, 12, 23, 24, 27, 28].every(j => [0, 1, 2].every(k => Number.isFinite(pts[j * 3 + k])))) return null;
+  if ([11, 12, 23, 24].some(j => pts[j * 3 + 2] < 0.5)) return null;
+  // Seeding establishes identity: demand clearer feet than when continuing an
+  // existing track. A cropped near body can otherwise seed a second far player.
+  if (Math.min(pts[83], pts[86]) < (p === null ? 0.55 : 0.4)) return null;
+  const feet = [(pts[81] + pts[84]) / 2, (pts[82] + pts[85]) / 2], g = hom(cm.H, feet);
+  const span = Math.max(pts[82], pts[85]) - pts[1];
+  // Allow the run-off needed to serve, but never search the spectator stands.
+  if (span < 0.04 * ah || !g.every(Number.isFinite) || g[0] < -0.8 || g[0] > CWd + 0.8 || g[1] < -2.8 || g[1] > CLd + 2.8) return null;
+  const width = dist(hom(cm.Hinv, [0, g[1]]), hom(cm.Hinv, [CWd, g[1]]));
+  if (span < 0.13 * width) return null;
+  if (p !== null) {
+    const hip = hipOf(pts), ground = hom(cm.H, [hip[0], hip[1] + 0.5 * kh * (hip[1] - cm.hz)]);
+    if (!ground.every(Number.isFinite) || ground[0] < -1 || ground[0] > CWd + 1 || ground[1] < -2.8 || ground[1] > CLd + 2.8) return null;
+    if (p < 2 ? ground[1] < NETd - 0.5 : ground[1] > NETd + 0.5) return null;
+  }
+  const out = Math.max(0, -g[0], g[0] - CWd) + Math.max(0, -g[1], g[1] - CLd);
+  return {pts, g, span, out};
+}
 function seedCrops(corners, cm, aw, ah) {
   const [FL, FR, NR, NL] = corners, n0 = hom(cm.Hinv, [0, NETd]), n1 = hom(cm.Hinv, [CWd, NETd]);
   const netY = (n0[1] + n1[1]) / 2, topY = Math.min(FL[1], FR[1]), depth = Math.max(10, netY - topY), cw = FR[0] - FL[0];
   const botY = Math.max(NL[1], NR[1]), nd = Math.max(10, botY - netY), bw = NR[0] - NL[0];
   const box = (x0, y0, x1, y1) => [Math.max(0, x0), Math.max(0, y0), Math.min(aw, x1), Math.min(ah, y1)];
   const fm = (FL[0] + FR[0]) / 2, nm = (NL[0] + NR[0]) / 2;
-  return [box(FL[0] - 0.35 * cw, topY - 1.1 * depth, fm + 0.15 * cw, netY + 0.3 * depth), box(fm - 0.15 * cw, topY - 1.1 * depth, FR[0] + 0.35 * cw, netY + 0.3 * depth),
+  return [box(FL[0] - 0.35 * cw, topY - 2 * depth, fm + 0.15 * cw, netY + 0.3 * depth), box(fm - 0.15 * cw, topY - 2 * depth, FR[0] + 0.35 * cw, netY + 0.3 * depth),
           box(NL[0] - 0.2 * bw, netY - 0.6 * nd, nm + 0.15 * bw, botY + 0.4 * nd), box(nm - 0.15 * bw, netY - 0.6 * nd, NR[0] + 0.2 * bw, botY + 0.4 * nd)]
     .filter(([a, b, c, e]) => c - a > 16 && e - b > 16);
 }
@@ -1409,17 +1804,30 @@ function findPlayers(src, corners, cm, aw, ah) {
       for (let j = 0; j < 33; j++) { pts[j * 3] = x0 + L[j].x * 768 / z; pts[j * 3 + 1] = y0 + L[j].y * 768 / z; pts[j * 3 + 2] = L[j].visibility ?? 1; }
       all.push(pts); }
   }
-  const diag = Math.hypot(aw, ah), uniq = [];
-  for (const p of all) if (!uniq.some(q => dist(hipOf(p), hipOf(q)) < 0.04 * diag)) uniq.push(p);
-  const cand = uniq.map(pts => {
-    const feet = [(pts[81] + pts[84]) / 2, (pts[82] + pts[85]) / 2], g_ = hom(cm.H, feet);
-    const span = Math.max(pts[82], pts[85]) - pts[1];
-    const out = Math.max(0, -g_[0], g_[0] - CWd) + Math.max(0, -g_[1] - 1, g_[1] - CLd - 1);
-    return {pts, g: g_, span, out};
-  }).filter(c => c.span > 0.04 * ah && c.g[0] > -2 && c.g[0] < CWd + 2 && c.g[1] > -5 && c.g[1] < CLd + 5);
-  const near = cand.filter(c => c.g[1] > NETd).sort((a, b) => a.out - b.out).slice(0, 2);
-  const far = cand.filter(c => c.g[1] <= NETd).sort((a, b) => a.out - b.out).slice(0, 2);
-  return {near, far};
+  const select = () => {
+    const uniq = [];
+    for (const pts of all) {
+      const c = playerInCourt(pts, cm, ah);
+      if (c && !uniq.some(q => dist(hipOf(pts), hipOf(q.pts)) < 0.2 * Math.min(c.span, q.span))) uniq.push(c);
+    }
+    return {near: uniq.filter(c => c.g[1] > NETd).sort((a, b) => a.out - b.out).slice(0, 2),
+      far: uniq.filter(c => c.g[1] <= NETd).sort((a, b) => a.out - b.out).slice(0, 2)};
+  };
+  let players = select();
+  // Tight crops let small far-court players compete with the crowd for detector slots.
+  for (const side of ["far", "near"]) {
+    if (players[side].length === 2) continue;
+    for (const y of (side === "far" ? [-0.5, 2.5, NETd - 0.7] : [CLd + 0.5, CLd - 2.5, NETd + 0.7])) {
+      const width = dist(hom(cm.Hinv, [0, y]), hom(cm.Hinv, [CWd, y])), hh = width * 0.25;
+      for (const x of [0.2, 0.5, 0.8]) {
+        const foot = hom(cm.Hinv, [CWd * x, y]);
+        all.push(...detectCrop(src, foot[0], foot[1] - 0.5 * hh, 1.6 * hh).map(d => d.pts));
+      }
+      players = select();
+      if (players[side].length === 2) break;
+    }
+  }
+  return players;
 }
 async function framePass(av, ctx) {
   const {aw, ah, corners, cm, t0, t1, bg, ref} = ctx;
@@ -1438,16 +1846,16 @@ async function framePass(av, ctx) {
     if (!seeds || fp.near.length + fp.far.length > seeds.near.length + seeds.far.length) seeds = fp;
     if (seeds.near.length === 2 && seeds.far.length === 2) break;
   }
-  if (!seeds || seeds.near.length + seeds.far.length < 2) throw new Error("Không tìm thấy người chơi trên sân ở đầu đoạn đã chọn. Thử chọn đoạn bắt đầu lúc cả 4 người đều đứng trong khung hình.");
+  if (!seeds || seeds.near.length !== 2 || seeds.far.length !== 2) throw new Error("Chưa tìm đủ 4 người chơi trong vùng sân. Kiểm tra lại 4 góc sân và chọn đoạn bắt đầu lúc đủ 4 người xuất hiện.");
   const nearS = seeds.near.sort((a, b) => b.g[0] - a.g[0]), farS = seeds.far.sort((a, b) => a.g[0] - b.g[0]);
-  const def = [[CWd * 0.75, CLd - 0.5], [CWd * 0.25, NETd + CKd + 0.3], [CWd * 0.25, NETd - CKd - 0.3], [CWd * 0.75, 0.5]];
   const seedPts = [nearS[0], nearS[1], farS[0], farS[1]];
   const kh_ = seedPts.filter(Boolean).map(s => { const hp = hipOf(s.pts); return s.span / Math.max(10, hp[1] - cm.hz); });
   if (kh_.length) kh = median(kh_);
   const P = 4, c = [], v = [], miss = new Array(P).fill(0), kit = new Array(P).fill(null), kitN = new Array(P).fill(0);
+  const seedImage = wx.getImageData(0, 0, aw, ah).data;
   for (let p = 0; p < P; p++) {
-    if (seedPts[p]) c.push(hipOf(seedPts[p].pts));
-    else { const f_ = hom(cm.Hinv, def[p]); c.push([f_[0], f_[1] - 0.5 * kh * (f_[1] - cm.hz)]); miss[p] = 10; }
+    c.push(hipOf(seedPts[p].pts));
+    kit[p] = kitColor(seedImage, aw, ah, seedPts[p].pts); kitN[p] = kit[p] ? 1 : 0;
     v.push([0, 0]);
   }
   // search spots for a lost player: 3 x 3 grid on its side of the net
@@ -1457,12 +1865,11 @@ async function framePass(av, ctx) {
       spots[side].push([f_[0], (f_[1] + 0.5 * kh * cm.hz) / (1 + 0.5 * kh)]); } });
   const J = [11, 12, 23, 24, 25, 26, 27, 28];
   const sameBody = (a, b, hh) => { let s = 0, k = 0; for (const j of J) { s += Math.hypot(a[j * 3] - b[j * 3], a[j * 3 + 1] - b[j * 3 + 1]); k++; } return s / k < 0.12 * hh; };
-  const sideOK = (p, hip) => { const hh = kh * (hip[1] - cm.hz), gy = hom(cm.H, [hip[0], hip[1] + 0.5 * hh])[1];
-    return p < 2 ? gy >= NETd - 0.5 : gy <= NETd + 0.5; };
   const kitOK = (p, col) => { if (!col || kit.some(k => !k)) return true;
     const own = Math.hypot(...col.map((x, i) => x - kit[p][i]));
-    const opp = Math.min(...[0, 1, 2, 3].filter(q => (q < 2) !== (p < 2)).map(q => Math.hypot(...col.map((x, i) => x - kit[q][i]))));
-    return !(opp + 25 < own); };
+    if (miss[p] > 3 && own > 90) return false;
+    const other = Math.min(...[0, 1, 2, 3].filter(q => q !== p).map(q => Math.hypot(...col.map((x, i) => x - kit[q][i]))));
+    return !(other + 25 < own); };
 
   await seekV(av, t0);
   const t_start = performance.now();
@@ -1481,12 +1888,12 @@ async function framePass(av, ctx) {
         let ctr = pred[p], hh = hpx[p];
         if (miss[p] > 3) { const sp = spots[p < 2 ? 0 : 1], order = sp.map((s, i) => [dist(s, c[p]), i]).sort((a, b) => a[0] - b[0]);
           ctr = sp[order[(miss[p] - 4) % sp.length][1]]; hh = Math.max(40 * aw / 1920, kh * (ctr[1] - cm.hz)); }
-        found.push(detectCrop(work, ctr[0], ctr[1], hh * 2.4 * Math.pow(1.15, Math.min(miss[p], 2))));
+        found.push(detectCrop(work, ctr[0], ctr[1], hh * (p < 2 ? 2.4 : 1.7)));
       }
       const pairs = [];
       for (let p = 0; p < P; p++) for (let k = 0; k < found[p].length; k++) {
         const pts = found[p][k].pts, hip = hipOf(pts);
-        if (!sideOK(p, hip) || !kitOK(p, torsoColor(d, aw, ah, pts))) continue;
+        if (!playerInCourt(pts, cm, ah, p, kh) || !kitOK(p, kitColor(d, aw, ah, pts))) continue;
         const dd = dist(hip, pred[p]) / hpx[p];
         if (dd < 0.35 * (1 + 0.25 * Math.min(miss[p], 4))) pairs.push([dd, p, k]);
         else if (miss[p] > 3) pairs.push([1 + dd, p, k]);
@@ -1506,7 +1913,7 @@ async function framePass(av, ctx) {
           const hp3 = [(world[23][0] + world[24][0]) / 2, hipW[0], (world[23][2] + world[24][2]) / 2];
           const torso = Math.hypot(sh[0] - hp3[0], sh[1] - hp3[1], sh[2] - hp3[2]) + 1e-6;
           rec.wrist[p] = (hp3[1] - Math.min(world[15][1], world[16][1])) / torso; }
-        if (kitN[p] < 8) { const col = torsoColor(d, aw, ah, pts); if (col) { kit[p] = kit[p] ? kit[p].map((x, i) => (x * kitN[p] + col[i]) / (kitN[p] + 1)) : col; kitN[p]++; } }
+        if (kitN[p] < 8) { const col = kitColor(d, aw, ah, pts); if (col) { kit[p] = kit[p] ? kit[p].map((x, i) => (x * kitN[p] + col[i]) / (kitN[p] + 1)) : col; kitN[p]++; } }
       }
       for (let p = 0; p < P; p++) if (!doneP.has(p)) { miss[p]++; if (miss[p] <= 2) { c[p] = pred[p]; v[p] = [v[p][0] * 0.5, v[p][1] * 0.5]; } else v[p] = [0, 0]; }
       rec.h = hpx;
@@ -1519,29 +1926,31 @@ async function framePass(av, ctx) {
       rec.lm.forEach((pts, p) => { if (!pts) return; px.strokeStyle = PCOL[p]; px.lineWidth = Math.max(2, aw / 500); px.beginPath();
         for (const [a, b] of [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]]) { px.moveTo(...jp(pts, a)); px.lineTo(...jp(pts, b)); }
         px.stroke(); });
-      for (const [bx, by] of rec.cands) { px.strokeStyle = "#FFC857"; px.lineWidth = 2; px.beginPath(); px.arc(bx, by, 8, 0, 7); px.stroke(); }
       const frac = clamp((mediaTime - t0) / (t1 - t0)), rate = done / ((now - t_start) / 1000);
       const left = rate > 0 ? (1 - frac) * (t1 - t0) * (recs.length > 5 ? recs.length / Math.max(0.1, mediaTime - t0) : 30) / rate : 0;
       prog(0.1 + 0.8 * frac);
-      say(`Đang theo dõi 4 người và quả bóng · ${Math.round(frac * 100)}%`, `${done} frame · ${rate.toFixed(1)} frame/giây · còn khoảng ${Math.ceil(left)} giây · giữ tab này ở trên cùng`);
+      say(`Đang theo dõi 4 người · ${Math.round(frac * 100)}% · đường bóng sẽ hiện sau khi lọc`, `${done} frame · ${rate.toFixed(1)} frame/giây · còn khoảng ${Math.ceil(left)} giây · giữ tab này ở trên cùng`);
     }
   };
   await new Promise((resolve, reject) => {
-    let fin = false;
-    const finish = () => { if (fin) return; fin = true; av.pause(); resolve(); };
+    let fin = false, iv = 0;
+    const finish = () => { if (fin) return; fin = true; clearInterval(iv); av.pause(); resolve(); };
+    const fail = e => { if (fin) return; fin = true; clearInterval(iv); av.pause(); reject(e); };
     if (!av.requestVideoFrameCallback) {   // fallback: step by seeking
-      (async () => { try { const step = 1 / 30; for (let t = t0; t <= t1; t += step) { check(); await seekV(av, t); onFrame(t); await tick(); } finish(); } catch (e) { fin = true; reject(e); } })();
+      (async () => { try { const step = 1 / 30; for (let t = t0; t <= t1; t += step) { check(); await seekV(av, t); onFrame(t); await tick(); } finish(); } catch (e) { fail(e); } })();
       return;
     }
+    // the last frame sits ~1 frame before t1 = duration: once the video ends no callback fires again, so watch for the end and for Dừng here
+    iv = setInterval(() => { if (job.cancel) fail(new Cancelled("cancelled")); else if (av.ended) finish(); }, 500);
     const cb = (now, meta) => {
       if (fin) return;
       av.pause();
       try { if (job.cancel) throw new Cancelled("cancelled"); if (meta.mediaTime > lastTs) { lastTs = meta.mediaTime; onFrame(meta.mediaTime); } }
-      catch (e) { fin = true; reject(e); return; }
+      catch (e) { fail(e); return; }
       if (av.ended || meta.mediaTime >= t1 - 0.002) { finish(); return; }
       av.requestVideoFrameCallback(cb); av.play().catch(() => { if (!document.hidden) finish(); });
     };
-    av.requestVideoFrameCallback(cb); av.play().catch(reject);
+    av.requestVideoFrameCallback(cb); av.play().catch(fail);
   });
   return {recs, kh};
 }
@@ -1592,7 +2001,7 @@ function analyse(ctx, pass, peaks) {
   const dnet = feetS.map(a => a.map(q => Math.abs(q[1] - NETd))), behind = dnet.map(a => a.map(d => Math.max(0, d - CKd)));
   // ball: one global path, then strikes, then smoothing between strikes
   const bc = cands.map((c_, i) => (i >= f0 && c_) ? c_ : []);
-  const ballRaw = solveBall(bc, N, (60 / fps) * sc);
+  const ballRaw = solveBall(bc, N, (60 / fps) * sc, fps);
   const maxGap = Math.max(3, Math.round(0.27 * fps));
   const fillShort = arr => { const out = arr.slice(); let last = -1;
     for (let i = 0; i < arr.length; i++) { if (!arr[i]) continue;
@@ -1795,14 +2204,14 @@ window.onReportBuilt = () => {
   const box = $("aiBox"); if (!box || !D || !D.meta.auto) return;
   if (!sampleFn) { box.innerHTML = ""; return; }
   box.innerHTML = `<h2>Nhận xét</h2><p class="muted">Các câu nhận xét ở trên được ghép tự động từ số đo. Bạn có thể nhờ Claude viết lại cho tự nhiên và sát trận hơn (dùng lượt Claude của bạn).</p>
-    <div class="row" style="display:flex;gap:10px;flex-wrap:wrap"><button id="aiGo" type="button" class="primary" style="height:38px;padding:0 16px;background:var(--amber);border:1px solid var(--amber);color:#04080F;font:700 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Viết lại nhận xét bằng Claude</button>
-    <button id="aiStop" type="button" hidden style="height:38px;padding:0 16px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Dừng</button></div>
+    <div class="row" style="display:flex;gap:10px;flex-wrap:wrap"><button id="aiGo" type="button" class="primary" style="height:38px;padding:0 16px;background:var(--amber);border:1px solid var(--amber);color:#04080F;font:700 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:10px">Viết lại nhận xét bằng Claude</button>
+    <button id="aiStop" type="button" hidden style="height:38px;padding:0 16px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:10px">Dừng</button></div>
     <p id="aiMsg" class="muted"></p>`;
   let ctl = null;
   $("aiStop").onclick = () => ctl?.abort();
   $("aiGo").onclick = async () => {
     const facts = {players: D.players.map(p => ({id: p.id, total: p.total, parts: p.parts, notes: p.notes, strikes: p.strikes, types: p.types, mean_kmh: p.mean_kmh})),
-      strikes: D.strikes.map(s_ => ({n: s_.n, t: s_.t, player: s_.player, type: s_.type, dir: s_.dir, kmh: s_.kmh, d_net: s_.d_net, from: s_.from, to: s_.to, recv_depth_m: s_.recv_depth_m, recv_pull_m: s_.recv_pull_m, outcome: s_.outcome})),
+      strikes: D.strikes.map(s_ => ({n: s_.n, t: s_.t, player: D.players[s_.pi].id, type: s_.type, dir: s_.dir, kmh: s_.kmh, d_net: s_.d_net, from: s_.from, to: s_.to, recv_depth_m: s_.recv_depth_m, recv_pull_m: s_.recv_pull_m, outcome: s_.outcome})),
       bounces: D.bounces.map(b => ({frame: b.frame, court: b.court, in: b.in})), seconds: D.report.sample.seconds};
     const prompt = `Bạn là huấn luyện viên pickleball. Dưới đây là số đo tự động của một đoạn rally đôi (P1 gần bên phải, P2 gần bên trái, P3 xa bên trái, P4 xa bên phải; toạ độ sân tính bằng mét, x ngang 0–6,1, y dọc 0–13,41 từ cuối sân xa; lưới ở y = 6,705; kitchen 2,134 m mỗi bên).
 Điểm: vị trí 35% (khoảng cách trung bình sau vạch kitchen), cú đánh 25% (đối thủ phải đỡ xa lưới và bị kéo ngang bao nhiêu), tư thế 20% (góc gối, độ cao cổ tay), di chuyển 20%.
@@ -1815,10 +2224,10 @@ ${JSON.stringify(facts)}`;
     try {
       const out = await sampleFn.json(prompt, {signal: ctl.signal, onText: () => { $("aiMsg").textContent = "Claude đang viết…"; }});
       if (out && typeof out === "object") {
-        if (typeof out.headline === "string") D.report.headline = out.headline;
-        if (typeof out.verdict === "string") D.report.verdict = out.verdict;
-        for (const p of D.players) { const o = out.players && out.players[p.id]; if (o) { if (Array.isArray(o.good) && o.good.length) p.good = o.good.map(String).slice(0, 3); if (Array.isArray(o.work) && o.work.length) p.work = o.work.map(String).slice(0, 3); } }
-        for (const s_ of D.strikes) { const l = out.strike_lines && out.strike_lines[String(s_.n)]; if (typeof l === "string" && l.trim()) s_.line = l; }
+        if (typeof out.headline === "string") D.report.headline = withNames(out.headline);
+        if (typeof out.verdict === "string") D.report.verdict = withNames(out.verdict);
+        for (const p of D.players) { const o = out.players && out.players[p.id]; if (o) { if (Array.isArray(o.good) && o.good.length) p.good = o.good.map(x => withNames(x)).slice(0, 3); if (Array.isArray(o.work) && o.work.length) p.work = o.work.map(x => withNames(x)).slice(0, 3); } }
+        for (const s_ of D.strikes) { const l = out.strike_lines && out.strike_lines[String(s_.n)]; if (typeof l === "string" && l.trim()) s_.line = withNames(l); }
         buildEnd(); buildReport(); draw(lastT);
         $("aiMsg").textContent = "Đã cập nhật nhận xét.";
       }
@@ -1830,9 +2239,20 @@ ${JSON.stringify(facts)}`;
   };
 };
 
+// typed names replace P1-P4 wherever the viewer reads them (ids stay P1-P4 for the logic and for Claude)
+function applyNames(D_, names) {
+  D_.players.forEach((p, i) => { if (names[i]) p.name = names[i]; });
+  if (!D_.players.some(p => p.name)) return;
+  const w = s => withNames(s, D_);
+  for (const p of D_.players) { p.good = p.good.map(w); p.work = p.work.map(w); }
+  for (const s_ of D_.strikes) { s_.player = D_.players[s_.pi].name || s_.player; s_.line = w(s_.line); }
+  D_.report.headline = w(D_.report.headline); D_.report.verdict = w(D_.report.verdict);
+}
+
 // ------------------------------------------------------------------ the job
 async function run(file) {
   if (job) job.cancel = true;
+  if (window.PLAYER) PLAYER.stop();
   const my = job = {cancel: false};
   const url = URL.createObjectURL(file);
   const av = document.createElement("video"); av.muted = true; av.playsInline = true; av.preload = "auto"; av.src = url;
@@ -1858,10 +2278,11 @@ async function run(file) {
     say("Đang ghép đường bóng, cú đánh và điểm số"); prog(0.93); await tick();
     const peaks = await audioP;
     const data = analyse(ctx, pass, peaks);
+    applyNames(data, pick.names);
     prog(1);
-    showOnly(null);
-    $("bsample").hidden = !SAMPLE;
+    $("bsample").hidden = false;
     await applyData(data, url);
+    showOnly(null);
   } catch (e) {
     av.pause();
     if (e instanceof Cancelled) { showOnly(null); if (D) draw(lastT); return; }

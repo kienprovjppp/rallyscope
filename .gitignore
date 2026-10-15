@@ -1,0 +1,6 @@
+site/
+test9.webm
+out_*
+mediapipe-tasks-vision-*.tgz
+.venv/
+__pycache__/

@@ -30,7 +30,7 @@ python scripts/court.py check W/bg.png W/court.json W/court_check.png
 
 # 3. Dò bóng: đo viền tối của bóng ở 2 vị trí đã biết, lấy ứng viên, rồi giải cả đường bay một lần
 python scripts/ball_viterbi.py profile W/work60.mp4 --known "f,x,y f,x,y"
-python scripts/ball_viterbi.py cands W/work60.mp4 W/bg.png W/cands.npz --rim "y1:r1,y2:r2"
+python scripts/ball_viterbi.py cands W/work60.mp4 W/bg.png W/cands.npz --court W/court.json --rim "y1:r1,y2:r2"
 python scripts/ball_viterbi.py solve W/cands.npz W/ball_raw.json
 
 # 5. Khung xương cho 4 người (seed = tâm hông ở frame 0, theo thứ tự P1..P4)
@@ -53,6 +53,14 @@ ffmpeg -i out.mp4 -i rally.mp4 -filter_complex "[1:a]apad[a]" -map 0:v -map "[a]
 ```
 
 Thư mục `page/` gồm `index.html` (chép từ `template/`), `data.json`, `rally.mp4` (H.264) và `rally.webm` (VP9, dành cho Chromium không có H.264). Mở trang qua một web server, ví dụ `python -m http.server`, không mở bằng cách double-click.
+
+Bộ theo dõi chỉ xuất tối đa một vị trí bóng mỗi frame. Trước khi chọn quỹ đạo, Python và trang tải video loại các điểm gần như đứng yên trong ít nhất 80% cửa sổ khoảng 0,4 giây (bán kính ở chiều rộng 1920: Python 3 pixel, trình duyệt 8 pixel). Trình duyệt còn lọc hình dạng, tương phản và đoạn quỹ đạo ngắn/ít dịch chuyển để giảm nhiễu LED và giày. Vùng nền có màu bóng tăng ngưỡng thay đổi màu, thay vì che tuyệt đối bóng đi ngang qua. Cách này dành cho camera cố định; bóng đứng yên lâu, bị nhòe hoặc vật khác cùng màu đang di chuyển vẫn có thể gây mất dấu/nhận nhầm. Vùng tìm bóng có khoảng đệm quanh và phía trên sân để giữ bóng bay cao. Python tự đọc `court.json` cạnh ảnh nền nếu có; dùng `--court` để chỉ định rõ. Chạy lại bước `cands` và `solve`, hoặc tải video lên lại, để áp dụng bộ lọc mới cho kết quả cũ.
+
+Luồng tải video yêu cầu tìm đủ bốn người trước khi chạy. Khởi tạo và tìm lại người đều kiểm tra vị trí theo sân, độ tin cậy chân và kích thước cơ thể; vẫn có khoảng đệm cho người giao bóng ngoài baseline. Màu áo/quần giúp giữ ID khi đồng đội che nhau. Tự dò sân chỉ đề xuất góc khi có bằng chứng cả hai vạch kitchen. Khi cần kéo tay, đặt hai góc xa tại **baseline xa**, tránh đặt ở chân lưới; kiểm tra cả vạch kitchen và lưới dự kiến trùng ảnh. Đây là hiệu chỉnh thuật toán, không huấn luyện lại mô hình.
+
+Kiểm thử: `node --test tests/court_tracking_test.mjs`, `node tests/ball_tracking_test.mjs` và `python -m unittest discover -s tests -p test_ball_tracking.py` (cần NumPy, OpenCV, SciPy). Trên Windows có Playwright cài toàn cục, thêm `--browser` vào lệnh test bóng để kiểm tra trong Chromium.
+
+Kiểm thử toàn bộ upload: `node tests/upload_test.mjs <site> <clip.webm> <out-prefix> [court.json]`. File góc tùy chọn có dạng `{width, height, corners}`, thứ tự xa trái → xa phải → gần phải → gần trái; test kéo từ vị trí chấm đang hiển thị và kiểm tra tọa độ sau từng lần kéo. `tests/fixtures/vietnam_court.json` chỉ dành cho video Việt Nam–Australia 1920×1080 trong lần kiểm chứng này. Có thể đặt `PLAYWRIGHT_MODULE` tới thư mục Playwright đã cài, `BROWSER_CHANNEL=chrome` và `BROWSER_GPU=1` để dùng Chrome/GPU thật. Cách chuẩn bị thư mục site ghi ở đầu file test. Xem phạm vi và giới hạn kiểm chứng tại [tests/TRACKING_VALIDATION.md](tests/TRACKING_VALIDATION.md).
 
 ## Cách chấm điểm
 

@@ -38,6 +38,6 @@ Bộ **RallyScope** biến một rally pickleball (camera cố định) thành v
 
 ## Trang công khai (Artifact)
 
-- Link: https://claude.ai/artifact/5ewsNu7BQSqZeeTtQZLNvM (riêng tư; hiện là bản 1, chưa có nút tải video lên).
+- Link: https://claude.ai/artifact/5ewsNu7BQSqZeeTtQZLNvM (riêng tư; bản 6 đăng ngày 2026-10-15: video nền màn hình chính `bg.mp4` (nguồn template/bg.mp4: 18 giây từ giây 36 của "Pickleball Cinematic | Sony a7IV", 1080p H.264, 5 MB; trang chạy được khi thiếu file), intro con mắt khoảng 3,5 giây mỗi lần tải trang (bấm hoặc nhấn phím để bỏ qua, không chạy khi ?record hoặc reduced motion), mọi ô bo tròn, trang mở đầu chỉ có ô thả video, rally mẫu nằm sau một ô riêng, bước điền tên người chơi thay P1–P4; tính năng tải video chưa được thử trên chính link này). Title giữ là "Chicago Cup Rally B". Khi chỉ sửa trang thì chỉ cần đăng lại trang, các file kèm theo đã có sẵn trên link.
 - Khi đăng lại: bỏ `<!doctype>`, `<html>`, `<head>`, `<body>` khỏi file. Gửi kèm `data.json`, `rally.mp4`, `rally.webm` và **`mp/pose_model.wasm`, `mp/vision_wasm_internal.wasm`** (bắt buộc cho tính năng tải video). Khai báo `capabilities: {sample: {}}` cho nút "Viết lại nhận xét bằng Claude".
 - Commit vào branch được giao. Không tạo PR nếu Kien không yêu cầu.

@@ -13,6 +13,7 @@
 """
 import argparse
 import json
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -93,6 +94,35 @@ def rim_contrast(gray, x, y, r):
 def cmd_cands(a):
     a.hrange = [int(v) for v in a.h.split(",")]
     bg = cv2.imread(a.bg)
+    if bg is None:
+        raise ValueError(f"Cannot read background: {a.bg}")
+    height, width = bg.shape[:2]
+    court_path = Path(a.court) if a.court else Path(a.bg).with_name("court.json")
+    court_mask = np.ones((height, width), np.uint8)
+    if a.court or court_path.exists():
+        court = load(court_path)
+        corners = np.asarray(court["corners"], dtype=float)
+        if corners.shape != (4, 2) or not np.isfinite(corners).all():
+            raise ValueError("Court must contain four finite image coordinates")
+        if court.get("width", width) != width or court.get("height", height) != height:
+            raise ValueError("Court and background dimensions must match")
+        # Include airborne balls above the court, as in the upload detector.
+        x0, y0 = corners.min(axis=0); x1, y1 = corners.max(axis=0)
+        court_mask.fill(0)
+        left = max(0, int(np.floor(x0 - 0.12 * width)))
+        right = min(width, int(np.ceil(x1 + 0.12 * width)))
+        top = max(0, int(np.floor(y0 - 0.45 * (y1 - y0))))
+        bottom = min(height, int(np.ceil(y1 + 0.05 * height)))
+        if left >= right or top >= bottom:
+            raise ValueError("Court does not overlap the video")
+        court_mask[top:bottom, left:right] = 1
+    else:
+        print("No court.json: searching the full frame; use --court to restrict the search")
+    cap = cv2.VideoCapture(a.video)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    cap.release()
+    if not np.isfinite(fps) or fps <= 0:
+        raise ValueError(f"Cannot read video frame rate: {a.video}")
     bg_mask = cv2.dilate(ball_mask(cv2.cvtColor(bg, cv2.COLOR_BGR2HSV), a),
                          cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11)))  # 5 px each side
     excl = np.zeros(bg.shape[:2], np.uint8)
@@ -106,10 +136,13 @@ def cmd_cands(a):
     F, X, Y, A, R, C = [], [], [], [], [], []
     nfr = 0
     for i, fr in read_frames(a.video):
+        if fr.shape[:2] != bg.shape[:2]:
+            raise ValueError("Video and background dimensions must match")
         nfr = i + 1
         hsv = cv2.cvtColor(fr, cv2.COLOR_BGR2HSV)
         gray = channel(fr, a.chan)
         m = ball_mask(hsv, a)
+        m[court_mask == 0] = 0
         m[bg_mask > 0] = 0
         m[excl > 0] = 0
         if a.diff:
@@ -132,18 +165,39 @@ def cmd_cands(a):
             C.append(1.6 * (1 - rim) + 0.004 * abs(area - 45))
         if i % 120 == 0:
             print(f"frame {i}: {sum(1 for f in F if f == i)} candidates")
-    np.savez(a.out, n=nfr, f=np.array(F), x=np.array(X), y=np.array(Y), area=np.array(A),
+    np.savez(a.out, n=nfr, fps=fps, width=width, f=np.array(F), x=np.array(X), y=np.array(Y), area=np.array(A),
              rim=np.array(R), cost=np.array(C))
     print(f"{len(F)} candidates over {nfr} frames ({len(F) / max(nfr, 1):.1f}/frame)")
 
 
 # ---------------------------------------------------------------- beam search
+def moving_candidates(per, fps, spatial_scale):
+    """Remove persistent spots before zero-velocity paths can win the beam search."""
+    window = max(4, int(0.2 * fps + 0.5))
+    radius = 3 * spatial_scale
+    out = []
+    # shortcut: assumes a fixed camera; compensate camera motion for panning footage.
+    for t, cs in enumerate(per):
+        lo, hi = max(0, t - window), min(len(per), t + window + 1)
+        out.append([c for c in cs if hi - lo < 8 or sum(
+            any(np.hypot(p[0] - c[0], p[1] - c[1]) <= radius for p in per[k])
+            for k in range(lo, hi)) < 0.8 * (hi - lo)])
+    return out
+
+
 def cmd_solve(a):
+    if not np.isfinite(a.scale) or a.scale <= 0:
+        raise ValueError("Scale must be positive and finite")
     d = np.load(a.cands)
     n = int(d["n"])
     per = [[] for _ in range(n)]
     for k in range(len(d["f"])):
         per[int(d["f"][k])].append((d["x"][k], d["y"][k], d["cost"][k], d["rim"][k]))
+    fps = float(d["fps"]) if "fps" in d else 60 / a.scale
+    spatial_scale = float(d["width"]) / 1920 if "width" in d else 1
+    if not np.isfinite([fps, spatial_scale]).all() or fps <= 0 or spatial_scale <= 0:
+        raise ValueError("Candidate frame rate and width must be positive and finite")
+    per = moving_candidates(per, fps, spatial_scale)
     anchors = load(a.anchors)["anchors"] if a.anchors else []
     for an in anchors:  # anchors enter as candidates with cost -4
         per[an["frame"]].append((an["x"], an["y"], -4.0, 1.0))
@@ -361,6 +415,7 @@ def main():
     p.add_argument("--chan", default="gray", choices=["gray", "yellow"])
     c = sub.add_parser("cands"); c.add_argument("video"); c.add_argument("bg"); c.add_argument("out")
     c.add_argument("--rim", required=True); c.add_argument("--cref", type=float, default=40.0)
+    c.add_argument("--court", help="court JSON in video pixels (default: court.json beside background)")
     c.add_argument("--h", default="5,45"); c.add_argument("--s", type=int, default=80)
     c.add_argument("--v", type=int, default=110); c.add_argument("--exclude", help='"x,y,w,h x,y,w,h"')
     c.add_argument("--chan", default="gray", choices=["gray", "yellow"])
