@@ -1,4 +1,5 @@
 site/
+_site/
 test9.webm
 out_*
 mediapipe-tasks-vision-*.tgz

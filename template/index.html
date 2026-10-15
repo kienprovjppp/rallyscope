@@ -1601,7 +1601,7 @@ const c2d = c => c.getContext("2d", {willReadFrequently: true});
 const tick = () => new Promise(r => setTimeout(r, 0));
 const num = (v, d = 1) => v.toFixed(d).replace(".", ",");
 class Cancelled extends Error {}
-let mpLib = null, poseBuf = null, LM = null, job = null;
+let mpLib = null, poseBuf = null, LM = null, LMdelegate = "", job = null;
 
 // ------------------------------------------------------------------ small maths
 function median(arr) { const a = Float64Array.from(arr).sort(); const n = a.length; return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : NaN; }
@@ -1719,9 +1719,9 @@ async function loadPose() {
       wasmBinaryPath: new URL(MP_DIR + "vision_wasm_internal.wasm", location.href).href};
     const opt = delegate => ({baseOptions: {modelAssetBuffer: poseBuf.slice(), delegate}, runningMode: "IMAGE", numPoses: 3,
       minPoseDetectionConfidence: 0.3, minPosePresenceConfidence: 0.3, minTrackingConfidence: 0.3});
-    try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("GPU")); }
+    try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("GPU")); LMdelegate = "GPU"; }
     catch (e) {
-      try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("CPU")); }
+      try { LM = await mpLib.PoseLandmarker.createFromOptions(fileset, opt("CPU")); LMdelegate = "CPU"; }
       catch (cpuError) { throw new Error(`Không khởi động được MediaPipe (${cpuError.message}). Kiểm tra mp/wasm/vision_wasm_internal.js và mp/vision_wasm_internal.wasm.`); }
     }
   }
@@ -2221,12 +2221,17 @@ async function framePass(av, ctx) {
   await seekV(av, t0);
   const t_start = performance.now();
   let lastTs = -1, done = 0, lastPaint = 0;
+  const tm = {read: 0, ball: 0, pose: 0, all: 0};   // ms spent per step, logged at the end
   const onFrame = mediaTime => {
+    const ta = performance.now();
     wx.drawImage(av, 0, 0, aw, ah);
     const d = wx.getImageData(0, 0, aw, ah).data;
     tcx.drawImage(work, 0, 0, 64, 36);
     const main = medAbsDiff(grayThumb(tcx.getImageData(0, 0, 64, 36).data), ref) <= 14;
+    const tb = performance.now();
     const rec = {t: mediaTime, main, cands: main ? ballOf(d) : [], lm: new Array(P).fill(null), knee: new Array(P).fill(NaN), wrist: new Array(P).fill(NaN), h: []};
+    const tc = performance.now();
+    tm.read += tb - ta; tm.ball += tc - tb;
     if (main) {
       const pred = c.map((cc, p) => [cc[0] + v[p][0], cc[1] + v[p][1]]);
       const hpx = pred.map(pp => Math.max(40 * aw / 1920, kh * (pp[1] - cm.hz)));
@@ -2265,6 +2270,7 @@ async function framePass(av, ctx) {
       for (let p = 0; p < P; p++) if (!doneP.has(p)) { miss[p]++; if (miss[p] <= 2) { c[p] = pred[p]; v[p] = [v[p][0] * 0.5, v[p][1] * 0.5]; } else v[p] = [0, 0]; }
       rec.h = hpx;
     }
+    tm.pose += performance.now() - tc;
     recs.push(rec); done++;
     const now = performance.now();
     if (now - lastPaint > 150) {
@@ -2278,6 +2284,7 @@ async function framePass(av, ctx) {
       prog(0.1 + 0.8 * frac);
       say(`Đang theo dõi 4 người · ${Math.round(frac * 100)}% · đường bóng sẽ hiện sau khi lọc`, `${done} frame · ${rate.toFixed(1)} frame/giây · còn khoảng ${Math.ceil(left)} giây · giữ tab này ở trên cùng`);
     }
+    tm.all += performance.now() - ta;
   };
   await new Promise((resolve, reject) => {
     let fin = false, iv = 0;
@@ -2299,6 +2306,9 @@ async function framePass(av, ctx) {
     };
     av.requestVideoFrameCallback(cb); av.play().catch(fail);
   });
+  const wall = performance.now() - t_start, per = x => (x / Math.max(1, done)).toFixed(1);
+  const gl = document.createElement("canvas").getContext("webgl2"), gx = gl && gl.getExtension("WEBGL_debug_renderer_info");
+  console.log(`[RallyScope] ${done} frame / ${(wall / 1000).toFixed(1)} s = ${(done * 1000 / wall).toFixed(2)} frame/s · ms/frame: read ${per(tm.read)}, ball ${per(tm.ball)}, pose ${per(tm.pose)}, decode+other ${per(wall - tm.all)} · pose ${LMdelegate} · ${gx ? gl.getParameter(gx.UNMASKED_RENDERER_WEBGL) : "GPU ?"}`);
   return {recs, kh};
 }
 

@@ -10,6 +10,8 @@ Trong thư mục repo, chạy `node scripts/serve.mjs`, giữ cửa sổ lệnh 
 
 Không mở trực tiếp `C:/.../template/index.html`: trình duyệt không cho trang `file://` tải các file AI bằng `fetch`, gây lỗi “Failed to fetch”. Lệnh trên phục vụ template, rally mẫu và thư mục `mp/` cùng một địa chỉ, không cần chép sang `site/`.
 
+Trang công khai chạy trên GitHub Pages: mỗi lần push lên `main`, `.github/workflows/pages.yml` chạy `node scripts/build_site.mjs _site` (chép đúng các file `serve.mjs` phục vụ) rồi đăng thư mục đó. Cũng có thể đem `_site/` lên bất kỳ host tĩnh nào. Nút "Viết lại nhận xét bằng Claude" chỉ hiện khi trang chạy trong Claude Artifact.
+
 Thư viện AI đã được đóng gói trong `mp/` (MediaPipe 0.10.21), không cần CDN. Nếu tự dựng thư mục trang, chép **toàn bộ `mp/`** gồm mô hình, runtime WASM, `vision_bundle.mjs`, `wasm/vision_wasm_internal.js` và thông tin giấy phép. Không chỉ chép hai file WASM. Khi triển khai dưới một đường dẫn con, đặt thư mục `mp/` cạnh `index.html`.
 
 ## Cài đặt

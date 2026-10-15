@@ -7,7 +7,7 @@ import {resolve} from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const sample = 'runs/ppa_trim_rally_b/page/';
-const routes = new Map([
+export const routes = new Map([
   ['/', ['template/index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['template/index.html', 'text/html; charset=utf-8']],
   ['/bg.mp4', ['template/bg.mp4', 'video/mp4']],
@@ -18,6 +18,8 @@ const routes = new Map([
   ['/mp/wasm/vision_wasm_internal.js', ['mp/wasm/vision_wasm_internal.js', 'text/javascript']],
   ['/mp/pose_model.wasm', ['mp/pose_model.wasm', 'application/wasm']],
   ['/mp/vision_wasm_internal.wasm', ['mp/vision_wasm_internal.wasm', 'application/wasm']],
+  ['/mp/LICENSE-2.0.txt', ['mp/LICENSE-2.0.txt', 'text/plain; charset=utf-8']],
+  ['/mp/THIRD_PARTY_NOTICES.md', ['mp/THIRD_PARTY_NOTICES.md', 'text/markdown; charset=utf-8']],
 ]);
 
 export function createRallyServer() {
