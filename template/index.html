@@ -108,8 +108,10 @@ body.rec #wrap{width:1920px;height:1080px}
 #scard .more{display:grid;gap:6px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line-2);font:400 13px/1.4 var(--f-body);color:var(--ink-2)}
 #scard .more .why{color:var(--ink)}
 #scard .more .key{font-size:11.5px;color:var(--ink-3)}
-#scard.pop{animation:cardpop .5s ease-out}
-@keyframes cardpop{0%{box-shadow:0 0 0 2px var(--pc),0 0 28px var(--pc)}100%{box-shadow:none}}
+/* a new strike: the card blinks twice in the hitter's colour (the only strike effect on screen) */
+#scard.pop{animation:cardpop .7s ease-out}
+@keyframes cardpop{0%,50%{box-shadow:0 0 0 2px var(--pc),0 0 30px var(--pc);border-color:var(--pc)}25%,100%{box-shadow:none}}
+@media (prefers-reduced-motion:reduce){#scard.pop{animation:none}}
 @keyframes donein{from{opacity:0;transform:translate(-50%,-30%)}}
 #tl .lab{position:absolute;left:0;top:0;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3)}
 #tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2);border-radius:2px}
@@ -1088,7 +1090,7 @@ function drawStage(f) {
   if (OV.ball) drawBounces(f);
   const tags = drawPlayers(f);
   if (OV.ball) drawBall(f);
-  drawStrikeFx(f, tags);
+  resolveTags(tags, []);
   if (OV.tags) drawTags(tags);
 
   g.drawImage(finishCv, 0, 0);
@@ -1237,28 +1239,6 @@ function drawBall(f) {
 }
 
 function curStrike(f) { let c = null; for (const s of D.strikes) if (s.frame <= f) c = s; return c; }
-
-function drawStrikeFx(f, tags) {
-  for (const s of D.strikes) {
-    const k = f - s.frame;
-    if (k < 0 || k >= 80 || !s.ball_img) continue;
-    const p = st(s.ball_img);
-    if (k < 14 && OV.ball) {
-      g.save(); g.globalCompositeOperation = "lighter";
-      if (k < 7) { g.fillStyle = `rgba(255,255,255,${0.16 * (1 - k / 7)})`; g.fillRect(0, 0, SW, SH);
-        const fl = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], 90);
-        fl.addColorStop(0, `rgba(255,255,255,${0.9 * (1 - k / 7)})`); fl.addColorStop(1, "rgba(255,255,255,0)");
-        g.fillStyle = fl; g.beginPath(); g.arc(p[0], p[1], 90, 0, 7); g.fill(); }
-      for (const [d, col] of [[0, "255,255,255"], [4, "77,227,255"]]) {
-        const kk = (k - d) / 12; if (kk < 0 || kk > 1) continue;
-        g.strokeStyle = `rgba(${col},${0.95 * (1 - kk)})`; g.lineWidth = 3 * (1 - kk) + 0.8;
-        g.beginPath(); g.arc(p[0], p[1], 8 + ease(kk) * 70, 0, 7); halo(14); g.stroke();
-      }
-      g.restore();
-    }
-  }
-  resolveTags(tags, []);
-}
 
 // ------------------------------------------------------------------ strike card (DOM over the stage: draggable, click to expand)
 // A drive (>= DRIVE_KMH, not the serve) hit at an opponent standing in the kitchen is scored 0-100 by what the reply gives:
