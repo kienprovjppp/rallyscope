@@ -107,6 +107,8 @@ body.rec #wrap{width:1920px;height:1080px}
 #scard .sp b{font:700 24px/1 var(--f-display);color:var(--white)}
 #scard .sc{margin-left:auto;font:700 18px/1 var(--f-display);font-style:normal;padding:5px 8px 4px;border-radius:8px;color:#04080F}
 #scard .sc.hi{background:#57FFA8} #scard .sc.mid{background:var(--amber)} #scard .sc.lo{background:#FF6B6B}
+#scard .x{position:absolute;top:-9px;right:-9px;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid #04080F;background:#FF4D6A;color:#fff;font:700 14px/18px var(--f-body);text-align:center;cursor:pointer;box-shadow:0 0 0 1px rgba(255,77,106,.5)}
+#scard .x:hover,#scard .x:focus-visible{background:#FF7A8E;box-shadow:0 0 12px #FF4D6A}
 #scard .hint{font:500 10px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);opacity:0;transition:opacity .18s}
 #scard:hover .hint,#scard:focus-visible .hint{opacity:1;color:var(--cyan)}
 #scard .more{display:grid;gap:6px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line-2);font:400 13px/1.4 var(--f-body);color:var(--ink-2)}
@@ -828,6 +830,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <button class="tg" type="button" data-ov="skel" aria-pressed="true">Khung xương</button>
       <button class="tg" type="button" data-ov="ball" aria-pressed="true">Đường bóng</button>
       <button class="tg" type="button" data-ov="tags" aria-pressed="true">Bảng tên</button>
+      <button class="tg" type="button" data-ov="card" aria-pressed="true">Bảng tốc độ</button>
       <button id="ovAll" type="button">Tắt hết</button>
       <button id="braw" class="tg" type="button" aria-pressed="false">Video gốc</button>
     </div>
@@ -895,7 +898,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
     </video>
     <canvas id="stage" width="1360" height="765"></canvas>
     <button id="done" type="button" hidden>Done</button>
-    <button id="scard" type="button" hidden aria-label="Cú đánh hiện tại: bấm để xem thêm, kéo để di chuyển"></button>
+    <div id="scard" role="button" tabindex="0" hidden aria-label="Cú đánh hiện tại: bấm để xem thêm, kéo để di chuyển"></div>
   </div>
 
   <aside id="panel">
@@ -969,7 +972,7 @@ let scanPat, vignette, finishCv, lastF = -1, lastT = 0, RAW = false;   // RAW: t
 const POINT_GAP = 3;
 let PCUTS = [0];
 // which overlay layers are drawn (viewer's choice, remembered in this browser)
-const OV = {skel: true, ball: true, tags: true};
+const OV = {skel: true, ball: true, tags: true, card: true};
 try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); delete OV.court; } catch (e) {}
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -1282,14 +1285,14 @@ function strikeCall(k) {
 }
 function updateCard(f) {
   const el = $("scard"), s = curStrike(f);
-  el.hidden = !s || !OV.tags || RAW;
+  el.hidden = !s || !OV.card || RAW;
   if (el.hidden) return;
   const key = s.n + "/" + cardBig;
   if (key === cardKey) return;
   const fresh = !cardKey.startsWith(s.n + "/"); cardKey = key;
   const c = CALLS[s.n - 1], kmh = s.kmh == null ? "—" : Math.round(s.kmh), lvl = c.score == null ? "" : c.score >= 70 ? "hi" : c.score >= 40 ? "mid" : "lo";
   el.style.setProperty("--pc", PCOL[s.pi]); el.classList.toggle("big", cardBig);
-  el.innerHTML = `<span class="hd"><b>${pname(s.pi)}</b>${c.quiet ? "" : `<i>${TYPE_EN[s.type]}</i>`}</span>
+  el.innerHTML = `<button class="x" type="button" aria-label="Tắt bảng tốc độ" title="Tắt bảng (bật lại bằng nút Bảng tốc độ)">×</button><span class="hd"><b>${pname(s.pi)}</b>${c.quiet ? "" : `<i>${TYPE_EN[s.type]}</i>`}</span>
     <span class="sp"><b class="num">${kmh}</b> km/h${c.score != null ? `<em class="sc ${lvl} num">${c.score}</em>` : ""}</span>
     ${cardBig ? `<span class="more"><span>Cú ${pad(s.n)} / ${pad(D.strikes.length)} · ${s.t.toFixed(2).replace(".", ",")} s${s.dir ? " · " + DIR_EN[s.dir] : ""}</span>
       ${s.dist_m != null ? `<span>Bay ${s.dist_m.toFixed(1).replace(".", ",")} m trong ${s.flight_s.toFixed(2).replace(".", ",")} s (tới chỗ đối phương đỡ)</span>` : ""}
@@ -1498,7 +1501,7 @@ function setupInteractive() {
   const card = $("scard"), toggleCard = () => { cardBig = !cardBig; cardKey = ""; updateCard(lastF); };
   try { const p = JSON.parse(localStorage.getItem("rallyscope-card") || "null"); if (p) { card.style.left = p[0] + "px"; card.style.top = p[1] + "px"; } } catch (e) {}
   let drag = null;
-  card.onpointerdown = e => { card.setPointerCapture(e.pointerId);
+  card.onpointerdown = e => { if (e.target.closest(".x")) return; card.setPointerCapture(e.pointerId);
     drag = {x: e.clientX, y: e.clientY, l: card.offsetLeft, t: card.offsetTop, k: card.getBoundingClientRect().width / card.offsetWidth, moved: false}; };
   card.onpointermove = e => { if (!drag) return;
     const dx = (e.clientX - drag.x) / drag.k, dy = (e.clientY - drag.y) / drag.k;
@@ -1509,7 +1512,8 @@ function setupInteractive() {
     if (drag.moved) { try { localStorage.setItem("rallyscope-card", JSON.stringify([card.offsetLeft, card.offsetTop])); } catch (err) {} }
     else if (e.type === "pointerup") toggleCard();
     drag = null; };
-  card.onclick = e => { if (e.detail === 0) toggleCard(); };   // keyboard: Enter / Space
+  card.onclick = e => { if (e.target.closest(".x")) { OV.card = false; syncOv(); } };   // the red x: hide the card (the toolbar button brings it back)
+  card.onkeydown = e => { if (e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.stopPropagation(); toggleCard(); } };
   // overlay layers
   const syncOv = () => {
     document.querySelectorAll("#ctrl .tg[data-ov]").forEach(b => b.setAttribute("aria-pressed", OV[b.dataset.ov] ? "true" : "false"));
