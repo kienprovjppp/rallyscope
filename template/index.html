@@ -85,7 +85,11 @@ body.rec #wrap{width:1920px;height:1080px}
 .prow .zn.k{color:var(--cyan)} .prow .zn.t{color:var(--amber)} .prow .zn.b{color:var(--ink-3)}
 .prow .ct{text-align:right;color:var(--ink-3)}
 
-#tl{position:absolute;left:32px;top:874px;width:1852px;height:66px}
+#tl{position:absolute;left:32px;top:874px;width:1852px;height:66px;cursor:pointer;touch-action:none}
+#done{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;height:64px;padding:0 44px;border-radius:14px;border:1px solid var(--amber);background:var(--amber);color:#04080F;font:700 22px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;box-shadow:0 0 40px rgba(255,200,87,.45);animation:donein .35s ease-out}
+#done:hover{background:#FFD98A}
+#done[hidden]{display:none}
+@keyframes donein{from{opacity:0;transform:translate(-50%,-30%)}}
 #tl .lab{position:absolute;left:0;top:0;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3)}
 #tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2);border-radius:2px}
 #tl .fill{position:absolute;left:0;top:38px;height:4px;border-radius:2px;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
@@ -790,7 +794,6 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
   <button id="bplay" type="button">Play</button>
   <button id="bback" type="button" aria-label="Lùi 3 giây">−3s</button>
   <button id="bfwd" type="button" aria-label="Tới 3 giây">+3s</button>
-  <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
   <span class="tm num" id="tmtxt">0.00 s</span>
   <select id="rate" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
   <button id="bsnd" type="button">Sound off</button>
@@ -799,7 +802,6 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <button class="tg" type="button" data-ov="skel" aria-pressed="true">Khung xương</button>
       <button class="tg" type="button" data-ov="ball" aria-pressed="true">Đường bóng</button>
       <button class="tg" type="button" data-ov="tags" aria-pressed="true">Bảng tên</button>
-      <button class="tg" type="button" data-ov="court" aria-pressed="true">Mặt sân</button>
       <button id="ovAll" type="button">Tắt hết</button>
       <button id="braw" class="tg" type="button" aria-pressed="false">Video gốc</button>
     </div>
@@ -865,6 +867,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <source src="rally.webm" type='video/webm; codecs="vp9"'>
     </video>
     <canvas id="stage" width="1360" height="765"></canvas>
+    <button id="done" type="button" hidden>Done</button>
   </div>
 
   <aside id="panel">
@@ -874,7 +877,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <canvas id="spark" width="430" height="34"></canvas>
     </div>
     <div class="box cut" id="radarbox">
-      <h3>TOP-DOWN RADAR <em>13.41 × 6.10 m</em></h3>
+      <h3>TOP-DOWN RADAR <em id="radlab">13.41 × 6.10 m</em></h3>
       <canvas id="radar" width="430" height="178"></canvas>
     </div>
     <div class="box cut" id="listbox">
@@ -884,7 +887,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
     <div class="box cut" id="prows"></div>
   </aside>
 
-  <div id="tl">
+  <div id="tl" tabindex="0" role="slider" aria-label="Tua video: bấm hoặc kéo, mũi tên trái/phải ±3 giây" aria-valuemin="0">
     <div class="lab">RALLY TIMELINE</div>
     <div class="rail"></div><div class="fill" id="tlfill"></div>
     <div id="tlmk"></div>
@@ -924,10 +927,14 @@ const $ = id => document.getElementById(id);
 const vid = $("vid"), cv = $("stage"), g = cv.getContext("2d");
 const SW = 1360, SH = 765;
 let D, FPS, DUR, NF, S, OX, OY, Hinv, H, CW, CL, CK, NET;
-let courtPaths, scanPat, vignette, courtCv, finishCv, lastF = -1, lastT = 0, RAW = false;   // RAW: the plain video, nothing drawn on it
+let scanPat, vignette, finishCv, lastF = -1, lastT = 0, RAW = false;   // RAW: the plain video, nothing drawn on it
+// the video can hold several points: a serve, or a strike after a pause longer than POINT_GAP seconds, starts the next one.
+// PCUTS = first frame of each point on the radar (it clears 1.5 s after the last strike/bounce of the point before)
+const POINT_GAP = 3;
+let PCUTS = [0];
 // which overlay layers are drawn (viewer's choice, remembered in this browser)
-const OV = {skel: true, ball: true, tags: true, court: true};
-try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); } catch (e) {}
+const OV = {skel: true, ball: true, tags: true};
+try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); delete OV.court; } catch (e) {}
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -990,33 +997,19 @@ async function applyData(data, src) {
 function buildStatic() {
   $("rname").firstChild.textContent = D.meta.name;
   $("rsub").textContent = `${D.strikes.length} STRIKES · ${D.report.sample.seconds.toFixed(1)} S · ${D.meta.width}×${D.meta.height} @ ${FPS} FPS`;
-  // court paths in stage px
-  const P = (a, b) => { const p = new Path2D(), u = c2s(a), v = c2s(b); p.moveTo(...u); p.lineTo(...v); return p; };
-  const grid = new Path2D();
-  for (let x = 1; x < CW; x += 1) { const u = c2s([x, 0]), v = c2s([x, CL]); grid.moveTo(...u); grid.lineTo(...v); }
-  for (let y = 1; y < CL; y += 1) { const u = c2s([0, y]), v = c2s([CW, y]); grid.moveTo(...u); grid.lineTo(...v); }
-  const lines = new Path2D();
-  [[[0,0],[CW,0]],[[CW,0],[CW,CL]],[[CW,CL],[0,CL]],[[0,CL],[0,0]],[[0,NET-CK],[CW,NET-CK]],[[0,NET+CK],[CW,NET+CK]],
-   [[CW/2,0],[CW/2,NET-CK]],[[CW/2,NET+CK],[CW/2,CL]]].forEach(([a, b]) => lines.addPath(P(a, b)));
-  const kz = new Path2D();
-  [[NET - CK, NET], [NET, NET + CK]].forEach(([y0, y1]) => {
-    const q = [[0, y0], [CW, y0], [CW, y1], [0, y1]].map(c2s);
-    kz.moveTo(...q[0]); q.slice(1).forEach(p => kz.lineTo(...p)); kz.closePath(); });
-  // the net stood up with the perspective scale measured from the players (0.88 m tall)
-  const sr = D.court.stature_ratio || 0.45, hz = D.court.horizon_y;
-  const netTop = x => { const b = hom(Hinv, [x, NET]); const hpx = 0.88 / 1.5 * sr * (b[1] - hz); return st([b[0], b[1] - hpx]); };
-  const net = {a: c2s([-0.3, NET]), b: c2s([CW + 0.3, NET]), ta: netTop(-0.3), tb: netTop(CW + 0.3)};
-  courtPaths = {grid, lines, kz, net};
+  PCUTS = [0];
+  D.strikes.forEach((s, i) => { const p = D.strikes[i - 1];
+    if (!p || (s.type !== "serve" && s.frame - p.frame <= POINT_GAP * FPS)) return;
+    const last = Math.max(p.frame, ...D.bounces.filter(b => b.frame < s.frame).map(b => b.frame));
+    PCUTS.push(Math.min(s.frame, last + Math.round(1.5 * FPS))); });
   // scanlines + vignette
   const sc = document.createElement("canvas"); sc.width = 4; sc.height = 3;
   const sg = sc.getContext("2d"); sg.fillStyle = "rgba(0,0,0,.32)"; sg.fillRect(0, 0, 4, 1);
   scanPat = g.createPattern(sc, "repeat");
   vignette = g.createRadialGradient(SW / 2, SH / 2, SH * 0.35, SW / 2, SH / 2, SW * 0.62);
   vignette.addColorStop(0, "rgba(4,8,15,0)"); vignette.addColorStop(1, "rgba(4,8,15,.78)");
-  // the court and the screen finish never change within a rally: paint them once, blit them per frame
-  const layer = () => { const c = document.createElement("canvas"); c.width = SW; c.height = SH; return c; };
-  courtCv = layer(); drawCourt(courtCv.getContext("2d"));
-  finishCv = layer(); const fx = finishCv.getContext("2d");
+  // the screen finish never changes within a rally: paint it once, blit it per frame
+  finishCv = document.createElement("canvas"); finishCv.width = SW; finishCv.height = SH; const fx = finishCv.getContext("2d");
   fx.fillStyle = vignette; fx.fillRect(0, 0, SW, SH);
   fx.fillStyle = scanPat; fx.globalAlpha = 0.5; fx.fillRect(0, 0, SW, SH); fx.globalAlpha = 1;
   // bottom edge fades to dark (covers any old progress bar)
@@ -1063,7 +1056,7 @@ function drawStage(f) {
   g.fillStyle = "#04080F"; g.fillRect(0, 0, SW, SH);
   if (vid.readyState >= 2) g.drawImage(vid, OX, OY, SW - 2 * OX, SH - 2 * OY);   // true colours, no tint
 
-  if (OV.court) { g.globalCompositeOperation = "lighter"; g.drawImage(courtCv, 0, 0); g.globalCompositeOperation = "source-over"; drawBounces(f); }
+  if (OV.ball) drawBounces(f);
   const tags = drawPlayers(f);
   if (OV.ball) drawBall(f);
   drawStrikeFx(f, tags);
@@ -1077,26 +1070,6 @@ function drawStage(f) {
 // glow without shadowBlur (one GPU blur per call; with every layer on the page ran at ~10 fps):
 // the current path again, wider and faint, under the real stroke
 function halo(w) { const lw = g.lineWidth, a = g.globalAlpha; g.lineWidth = lw + w; g.globalAlpha = a * 0.3; g.stroke(); g.lineWidth = lw; g.globalAlpha = a; }
-
-function drawCourt(g) {   // painted once into courtCv (buildStatic), so its shadowBlur costs nothing per frame
-  const {grid, lines, kz, net} = courtPaths;
-  g.save();
-  g.fillStyle = "rgba(77,227,255,.075)"; g.fill(kz);
-  g.strokeStyle = "rgba(77,227,255,.10)"; g.lineWidth = 1; g.stroke(grid);
-  g.globalCompositeOperation = "lighter";
-  g.shadowColor = "#4DE3FF"; g.shadowBlur = 14;
-  g.strokeStyle = "rgba(77,227,255,.45)"; g.lineWidth = 4; g.stroke(lines);
-  g.shadowBlur = 0; g.strokeStyle = "rgba(190,245,255,.85)"; g.lineWidth = 1.4; g.stroke(lines);
-  // amber net
-  const ng = g.createLinearGradient(0, net.a[1], 0, Math.min(net.ta[1], net.tb[1]));
-  ng.addColorStop(0, "rgba(255,200,87,.02)"); ng.addColorStop(1, "rgba(255,200,87,.11)");
-  g.fillStyle = ng; g.beginPath(); g.moveTo(...net.a); g.lineTo(...net.b); g.lineTo(...net.tb); g.lineTo(...net.ta); g.closePath(); g.fill();
-  g.shadowColor = "#FFC857"; g.shadowBlur = 12; g.strokeStyle = "rgba(255,200,87,.95)"; g.lineWidth = 2.2;
-  g.beginPath(); g.moveTo(...net.ta); g.lineTo(...net.tb); g.stroke();
-  g.lineWidth = 1.2; g.strokeStyle = "rgba(255,200,87,.6)";
-  g.beginPath(); g.moveTo(...net.a); g.lineTo(...net.b); g.moveTo(...net.a); g.lineTo(...net.ta); g.moveTo(...net.b); g.lineTo(...net.tb); g.stroke();
-  g.restore();
-}
 
 function ringPts(c, r, n = 40) {
   const out = [];
@@ -1350,7 +1323,7 @@ function drawSpark(f) {
   s.strokeStyle = "#fff"; s.lineWidth = 1; s.beginPath(); s.moveTo(x, 0); s.lineTo(x, 34); s.stroke();
 }
 
-function drawRadar(f) {
+function drawRadar(f, all) {   // all: the video has ended, show the bounces of every point together
   const r = $("radar").getContext("2d"), RW = 430, RH = 178, m = 12;
   const k = Math.min((RW - 2 * m) / CL, (RH - 2 * m) / CW);
   const ox = (RW - CL * k) / 2, oy = (RH - CW * k) / 2;
@@ -1365,15 +1338,13 @@ function drawRadar(f) {
   r.moveTo(R([0, NET + CK])[0], R([CW / 2, 0])[1]); r.lineTo(ox + CL * k, R([CW / 2, 0])[1]); r.stroke();
   r.strokeStyle = "#FFC857"; r.lineWidth = 2.4; r.shadowColor = "#FFC857"; r.shadowBlur = 8;
   r.beginPath(); r.moveTo(R([0, NET])[0], oy - 4); r.lineTo(R([0, NET])[0], oy + CW * k + 4); r.stroke(); r.shadowBlur = 0;
-  // strike points so far
-  for (const s of D.strikes) if (s.frame <= f) { const p = R(s.from); r.strokeStyle = PCOL[s.pi]; r.lineWidth = 1.2;
-    r.beginPath(); r.moveTo(p[0] - 3, p[1] - 3); r.lineTo(p[0] + 3, p[1] + 3); r.moveTo(p[0] + 3, p[1] - 3); r.lineTo(p[0] - 3, p[1] + 3); r.stroke(); }
-  for (const b of D.bounces) if (b.frame <= f) { const p = R(b.court); r.strokeStyle = "rgba(255,200,87,.9)"; r.beginPath(); r.arc(p[0], p[1], 3.5, 0, 7); r.stroke(); }
-  // ball ground trail
-  const BG = D.series.ball_ground;
-  for (let j = TRAIL; j >= 0; j--) { const q = BG[f - j]; if (!q || f - j < 0) continue;
-    const u = j / TRAIL, c = [0, 1, 2].map(i => Math.round(lerp(BLUE[i], PINK[i], u)));
-    const p = R(q); r.fillStyle = rgba(c, 0.8 * (1 - u)); r.beginPath(); r.arc(p[0], p[1], 2.4 * (1 - u) + 0.6, 0, 7); r.fill(); }
+  // bounces of the current point (or of every point once the video has ended): filled = in, hollow = out
+  const pt = PCUTS.filter(c => c <= f).length, from = all ? -1 : PCUTS[pt - 1];
+  const shown = D.bounces.filter(b => b.frame >= from && b.frame <= f);
+  r.fillStyle = r.strokeStyle = "rgba(255,200,87,.85)"; r.lineWidth = 1.4;
+  for (const b of shown) { const p = R(b.court), [bx, by] = b.court, isIn = b.in ?? (bx >= 0 && bx <= CW && by >= 0 && by <= CL);
+    r.beginPath(); r.arc(p[0], p[1], 3.5, 0, 7); isIn ? r.fill() : r.stroke(); }
+  $("radlab").textContent = all ? `ALL POINTS · ${shown.length} BOUNCES` : PCUTS.length > 1 ? `POINT ${pt} / ${PCUTS.length}` : "13.41 × 6.10 m";
   // players with trails
   for (let i = 0; i < D.players.length; i++) {
     const F = D.series.feet[i], rgb = hex2rgb(PCOL[i]);
@@ -1388,7 +1359,7 @@ function drawRadar(f) {
   r.textAlign = "left";
 }
 
-function updatePanel(f) {
+function updatePanel(f, t) {
   const v = D.series.speed[f];
   let shown = v, sub = "";
   const s = curStrike(f);
@@ -1397,7 +1368,7 @@ function updatePanel(f) {
   $("spdlab").textContent = s ? `${s.player} · ${TYPE_EN[s.type]}` : "—";
   $("spdsub").innerHTML = s && s.kmh != null ? `SHOT AVG ${s.kmh.toFixed(0)}<br>${s.dist_m.toFixed(1)} m / ${s.flight_s.toFixed(2)} s` : "";
   drawSpark(f);
-  drawRadar(f);
+  drawRadar(f, t >= DUR);
   // strike list
   let ci = -1;
   document.querySelectorAll("#slistin .srow").forEach((row, i) => {
@@ -1455,7 +1426,7 @@ function updateEnd(ph) {
 function draw(t) {
   const f = Math.max(0, Math.min(NF - 1, t >= DUR ? NF - 1 : Math.floor(t * FPS + 1e-6)));
   drawStage(f);
-  updatePanel(f);
+  updatePanel(f, t);
   updateChrome(t, f);
   updateEnd(t - DUR);
   lastF = f; lastT = t;
@@ -1492,9 +1463,11 @@ function setupInteractive() {
   showOnly("landing");
   addEventListener("resize", fit);
   let playing = false, tEnd = null;
-  const total = () => DUR + D.meta.endcard;
+  const total = () => DUR;   // the video only: the scores wait below the screen, behind the Done button
   const t0 = () => D.meta.t0 || 0;
-  const show = t => { draw(t); $("scrub").value = Math.round(t / total() * 1000); $("tmtxt").textContent = `${Math.min(t, total()).toFixed(2)} s`; };
+  const show = t => { draw(t); $("tmtxt").textContent = `${Math.min(t, total()).toFixed(2)} s`;
+    $("tl").setAttribute("aria-valuemax", DUR.toFixed(1)); $("tl").setAttribute("aria-valuenow", t.toFixed(1));
+    $("done").hidden = t < DUR; };
   const loop = now => {
     if (!playing) return;
     let t;
@@ -1507,12 +1480,17 @@ function setupInteractive() {
     playing = true; $("bplay").textContent = "Pause"; vid.playbackRate = +$("rate").value;
     if (tEnd == null) vid.play(); requestAnimationFrame(loop); };
   const pause = () => { playing = false; vid.pause(); $("bplay").textContent = "Play"; };
-  const seek = t => { pause(); t = clamp(t, 0, total());
-    if (t < DUR) { tEnd = null; vid.currentTime = Math.min(t, DUR - 1e-3); vid.addEventListener("seeked", () => show(t), {once: true}); }
+  let want = 0;   // the latest seek target: a "seeked" from an earlier seek (dragging) must not draw an old time
+  const seek = t => { pause(); want = t = clamp(t, 0, total());
+    if (t < DUR) { tEnd = null; vid.currentTime = Math.min(t, DUR - 1e-3); vid.addEventListener("seeked", () => show(want), {once: true}); }
     else { tEnd = performance.now() - (t - DUR) * 1000; vid.currentTime = DUR - 0.5 / FPS; show(t); } };
   window.PLAYER = {seek, stop: () => { pause(); tEnd = null; $("bplay").textContent = "Play"; }};
   $("bplay").onclick = () => playing ? pause() : play();
-  $("scrub").oninput = e => seek(e.target.value / 1000 * total());
+  // the timeline under the video is the seek bar: click or drag; a strike's marker jumps to that strike
+  const tl = $("tl"), tlAt = e => { const r = tl.querySelector(".rail").getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width) * DUR; };
+  tl.onpointerdown = e => { tl.setPointerCapture(e.pointerId); const f = e.target.closest(".mk")?.dataset.f; seek(f ? f / FPS : tlAt(e)); };
+  tl.onpointermove = e => { if (tl.hasPointerCapture(e.pointerId)) seek(tlAt(e)); };
+  $("done").onclick = () => $("report").scrollIntoView({behavior: "smooth", block: "start"});
   // overlay layers
   const syncOv = () => {
     document.querySelectorAll("#ctrl .tg[data-ov]").forEach(b => b.setAttribute("aria-pressed", OV[b.dataset.ov] ? "true" : "false"));
