@@ -66,15 +66,19 @@ body.rec #wrap{width:1920px;height:1080px}
 #spd .val span{font:500 14px/1 var(--f-mono);color:var(--ink-2)}
 #spd .val small{margin-left:auto;font:500 12px/1.3 var(--f-mono);color:var(--ink-3);text-align:right}
 #spark{position:absolute;left:14px;right:14px;bottom:10px;width:430px;height:34px}
-#radarbox{height:222px}
-#radar{display:block;width:430px;height:178px}
-#listbox{flex:1;min-height:0;overflow:hidden}
+/* upright radar beside the strike list */
+#mid{flex:1;min-height:0;display:flex;gap:12px}
+#radarbox{flex:none;width:190px}
+#radarbox h3{flex-direction:column;gap:5px}
+#radarbox h3 em{font-size:11px;letter-spacing:.06em}
+#radar{display:block;width:160px;height:368px}
+#listbox{flex:1;min-width:0;min-height:0;overflow:hidden}
 #slist{position:relative;overflow:hidden;height:calc(100% - 20px)}
 #slist .in{position:absolute;left:0;right:0;top:0}
-.srow{display:grid;grid-template-columns:34px 96px 1fr 70px 62px;align-items:center;height:26px;font:500 13px/1 var(--f-mono);color:var(--ink-3);border-left:2px solid transparent;padding-left:6px}
+.srow{display:grid;grid-template-columns:24px 58px 1fr 50px;align-items:center;height:26px;font:500 13px/1 var(--f-mono);color:var(--ink-3);border-left:2px solid transparent;padding-left:6px}
 .srow .pl{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
-.srow .ty{font:600 13px/1 var(--f-display);letter-spacing:.06em}
-.srow .kmh{text-align:right}
+.srow .ty{font:600 12px/1 var(--f-display);letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .kmh{text-align:right;white-space:nowrap;font-size:11px;padding-right:4px}
 .srow.done{color:var(--ink-2)}
 .srow.cur{color:var(--white);background:linear-gradient(90deg,rgba(77,227,255,.16),transparent);border-left-color:var(--cyan)}
 #prows{height:178px;padding:10px 14px}
@@ -900,13 +904,15 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <div class="val"><b id="spdv" class="num">—</b><span>km/h</span><small id="spdsub"></small></div>
       <canvas id="spark" width="430" height="34"></canvas>
     </div>
-    <div class="box cut" id="radarbox">
-      <h3>TOP-DOWN RADAR <em id="radlab">13.41 × 6.10 m</em></h3>
-      <canvas id="radar" width="430" height="178"></canvas>
-    </div>
-    <div class="box cut" id="listbox">
-      <h3>STRIKES <em id="scount">0 / 0</em></h3>
-      <div id="slist"><div class="in" id="slistin"></div></div>
+    <div id="mid">
+      <div class="box cut" id="radarbox">
+        <h3>RADAR <em id="radlab">13.41 × 6.10 m</em></h3>
+        <canvas id="radar" width="160" height="368"></canvas>
+      </div>
+      <div class="box cut" id="listbox">
+        <h3>STRIKES <em id="scount">0 / 0</em></h3>
+        <div id="slist"><div class="in" id="slistin"></div></div>
+      </div>
     </div>
     <div class="box cut" id="prows"></div>
   </aside>
@@ -1052,7 +1058,6 @@ function buildStatic() {
   // strike list
   $("slistin").innerHTML = D.strikes.map(s => `<div class="srow" data-f="${s.frame}"><span>${pad(s.n)}</span>
     <span class="pl" style="color:${PCOL[s.pi]}">${pname(s.pi)}</span><span class="ty">${TYPE_EN[s.type]}</span>
-    <span>${s.dir ? DIR_EN[s.dir].replace("DOWN THE LINE", "LINE").replace("CROSS-COURT", "CROSS") : "—"}</span>
     <span class="kmh num">${s.kmh == null ? "—" : s.kmh.toFixed(0) + " km/h"}</span></div>`).join("");
   // player rows
   $("prows").innerHTML = D.players.map((p, i) => `<div class="prow" id="pr${i}">
@@ -1320,27 +1325,28 @@ function drawSpark(f) {
 }
 
 function drawRadar(f, all) {   // all: the video has ended, show the bounces of every point together
-  const r = $("radar").getContext("2d"), RW = 430, RH = 178, m = 12;
-  const k = Math.min((RW - 2 * m) / CL, (RH - 2 * m) / CW);
-  const ox = (RW - CL * k) / 2, oy = (RH - CW * k) / 2;
-  const R = p => [ox + p[1] * k, oy + (CW - p[0]) * k];
+  // upright court, seen like the camera: far baseline (y = 0) at the top, x = 0 on the left
+  const r = $("radar").getContext("2d"), RW = r.canvas.width, RH = r.canvas.height, m = 8;
+  const k = Math.min((RW - 2 * m) / CW, (RH - 2 * m) / CL);
+  const ox = (RW - CW * k) / 2, oy = (RH - CL * k) / 2;
+  const R = p => [ox + p[0] * k, oy + p[1] * k];
   r.clearRect(0, 0, RW, RH);
-  r.fillStyle = "rgba(77,227,255,.06)"; r.fillRect(...R([CW, 0]), CL * k, CW * k);
-  r.fillStyle = "rgba(77,227,255,.12)"; r.fillRect(R([CW, NET - CK])[0], oy, 2 * CK * k, CW * k);
-  r.strokeStyle = "rgba(77,227,255,.8)"; r.lineWidth = 1.2; r.strokeRect(ox, oy, CL * k, CW * k);
+  r.fillStyle = "rgba(77,227,255,.06)"; r.fillRect(ox, oy, CW * k, CL * k);
+  r.fillStyle = "rgba(77,227,255,.12)"; r.fillRect(ox, R([0, NET - CK])[1], CW * k, 2 * CK * k);
+  r.strokeStyle = "rgba(77,227,255,.8)"; r.lineWidth = 1.2; r.strokeRect(ox, oy, CW * k, CL * k);
   r.beginPath();
-  for (const y of [NET - CK, NET + CK]) { r.moveTo(R([0, y])[0], oy); r.lineTo(R([0, y])[0], oy + CW * k); }
-  r.moveTo(ox, R([CW / 2, 0])[1]); r.lineTo(R([0, NET - CK])[0], R([CW / 2, 0])[1]);
-  r.moveTo(R([0, NET + CK])[0], R([CW / 2, 0])[1]); r.lineTo(ox + CL * k, R([CW / 2, 0])[1]); r.stroke();
+  for (const y of [NET - CK, NET + CK]) { r.moveTo(ox, R([0, y])[1]); r.lineTo(ox + CW * k, R([0, y])[1]); }
+  r.moveTo(R([CW / 2, 0])[0], oy); r.lineTo(R([CW / 2, 0])[0], R([0, NET - CK])[1]);
+  r.moveTo(R([CW / 2, 0])[0], R([0, NET + CK])[1]); r.lineTo(R([CW / 2, 0])[0], oy + CL * k); r.stroke();
   r.strokeStyle = "#FFC857"; r.lineWidth = 2.4; r.shadowColor = "#FFC857"; r.shadowBlur = 8;
-  r.beginPath(); r.moveTo(R([0, NET])[0], oy - 4); r.lineTo(R([0, NET])[0], oy + CW * k + 4); r.stroke(); r.shadowBlur = 0;
+  r.beginPath(); r.moveTo(ox - 4, R([0, NET])[1]); r.lineTo(ox + CW * k + 4, R([0, NET])[1]); r.stroke(); r.shadowBlur = 0;
   // bounces of the current point (or of every point once the video has ended): filled = in, hollow = out
   const pt = PCUTS.filter(c => c <= f).length, from = all ? -1 : PCUTS[pt - 1];
   const shown = D.bounces.filter(b => b.frame >= from && b.frame <= f);
   r.fillStyle = r.strokeStyle = "rgba(255,200,87,.85)"; r.lineWidth = 1.4;
   for (const b of shown) { const p = R(b.court), [bx, by] = b.court, isIn = b.in ?? (bx >= 0 && bx <= CW && by >= 0 && by <= CL);
     r.beginPath(); r.arc(p[0], p[1], 3.5, 0, 7); isIn ? r.fill() : r.stroke(); }
-  $("radlab").textContent = all ? `ALL POINTS · ${shown.length} BOUNCES` : PCUTS.length > 1 ? `POINT ${pt} / ${PCUTS.length}` : "13.41 × 6.10 m";
+  $("radlab").textContent = all ? `ALL · ${shown.length} BOUNCES` : PCUTS.length > 1 ? `POINT ${pt} / ${PCUTS.length}` : "13.41 × 6.10 m";
   // players with trails
   for (let i = 0; i < D.players.length; i++) {
     const F = D.series.feet[i], rgb = hex2rgb(PCOL[i]);
