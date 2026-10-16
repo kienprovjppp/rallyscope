@@ -89,6 +89,27 @@ body.rec #wrap{width:1920px;height:1080px}
 #done{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;height:64px;padding:0 44px;border-radius:14px;border:1px solid var(--amber);background:var(--amber);color:#04080F;font:700 22px/1 var(--f-display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;box-shadow:0 0 40px rgba(255,200,87,.45);animation:donein .35s ease-out}
 #done:hover{background:#FFD98A}
 #done[hidden]{display:none}
+/* strike card: small by default, outside the court on the right; drag it anywhere on the video, click to expand */
+#scard{position:absolute;left:auto;top:300px;z-index:3;display:grid;gap:4px;width:176px;padding:9px 12px 8px 14px;text-align:left;cursor:grab;touch-action:none;user-select:none;
+  background:rgba(4,8,15,.82);border:1px solid rgba(77,227,255,.45);border-left:3px solid var(--pc);border-radius:12px;color:var(--ink);font:inherit;
+  transition:box-shadow .18s,border-color .18s,transform .18s}
+#scard:hover,#scard:focus-visible{border-color:var(--cyan);border-left-color:var(--pc);box-shadow:0 0 0 1px var(--cyan),0 0 22px rgba(77,227,255,.55);transform:translateY(-1px)}
+#scard.drag{cursor:grabbing;transition:none}
+#scard.big{width:300px}
+#scard .hd{display:flex;align-items:baseline;gap:8px;font:700 16px/1.1 var(--f-display);letter-spacing:.04em}
+#scard .hd b{color:var(--pc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#scard .hd i{font-style:normal;color:var(--white);font-size:13px;letter-spacing:.08em;white-space:nowrap}
+#scard .sp{display:flex;align-items:baseline;gap:5px;font:500 12px/1 var(--f-mono);color:var(--ink-2)}
+#scard .sp b{font:700 24px/1 var(--f-display);color:var(--white)}
+#scard .sc{margin-left:auto;font:700 18px/1 var(--f-display);font-style:normal;padding:5px 8px 4px;border-radius:8px;color:#04080F}
+#scard .sc.hi{background:#57FFA8} #scard .sc.mid{background:var(--amber)} #scard .sc.lo{background:#FF6B6B}
+#scard .hint{font:500 10px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);opacity:0;transition:opacity .18s}
+#scard:hover .hint,#scard:focus-visible .hint{opacity:1;color:var(--cyan)}
+#scard .more{display:grid;gap:6px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line-2);font:400 13px/1.4 var(--f-body);color:var(--ink-2)}
+#scard .more .why{color:var(--ink)}
+#scard .more .key{font-size:11.5px;color:var(--ink-3)}
+#scard.pop{animation:cardpop .5s ease-out}
+@keyframes cardpop{0%{box-shadow:0 0 0 2px var(--pc),0 0 28px var(--pc)}100%{box-shadow:none}}
 @keyframes donein{from{opacity:0;transform:translate(-50%,-30%)}}
 #tl .lab{position:absolute;left:0;top:0;font:600 12px/1 var(--f-display);letter-spacing:.2em;color:var(--ink-3)}
 #tl .rail{position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line-2);border-radius:2px}
@@ -868,6 +889,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
     </video>
     <canvas id="stage" width="1360" height="765"></canvas>
     <button id="done" type="button" hidden>Done</button>
+    <button id="scard" type="button" hidden aria-label="Cú đánh hiện tại: bấm để xem thêm, kéo để di chuyển"></button>
   </div>
 
   <aside id="panel">
@@ -1008,6 +1030,7 @@ function buildStatic() {
     if (!p || (s.type !== "serve" && s.frame - p.frame <= POINT_GAP * FPS)) return;
     const last = Math.max(p.frame, ...D.bounces.filter(b => b.frame < s.frame).map(b => b.frame));
     PCUTS.push(Math.min(s.frame, last + Math.round(1.5 * FPS))); });
+  CALLS = D.strikes.map((_, k) => strikeCall(k)); cardKey = "";
   // scanlines + vignette
   const sc = document.createElement("canvas"); sc.width = 4; sc.height = 3;
   const sg = sc.getContext("2d"); sg.fillStyle = "rgba(0,0,0,.32)"; sg.fillRect(0, 0, 4, 1);
@@ -1069,8 +1092,6 @@ function drawStage(f) {
   if (OV.tags) drawTags(tags);
 
   g.drawImage(finishCv, 0, 0);
-  drawTopLeft(f);
-  drawTopRight(f);
 }
 
 // glow without shadowBlur (one GPU blur per call; with every layer on the page ran at ~10 fps):
@@ -1218,7 +1239,6 @@ function drawBall(f) {
 function curStrike(f) { let c = null; for (const s of D.strikes) if (s.frame <= f) c = s; return c; }
 
 function drawStrikeFx(f, tags) {
-  const fixed = [];
   for (const s of D.strikes) {
     const k = f - s.frame;
     if (k < 0 || k >= 80 || !s.ball_img) continue;
@@ -1236,78 +1256,68 @@ function drawStrikeFx(f, tags) {
       }
       g.restore();
     }
-    // callout (only the latest strike keeps one, so close strikes never stack)
-    const next = D.strikes.find(o => o.frame > s.frame);
-    if (next && f >= next.frame) continue;
-    if (!OV.tags) continue;
-    const a = Math.min(1, k / 6) * Math.min(1, (80 - k) / 12);
-    g.font = "700 20px 'Chakra Petch'"; const nw = g.measureText(s.player).width;
-    const w = Math.max(236, Math.ceil(nw + g.measureText(TYPE_EN[s.type]).width) + 34), h = 74;
-    const right = p[0] < SW / 2;
-    const c = {x: right ? p[0] + 40 : p[0] - 40 - w, y: p[1] - h - 30, w, h};
-    c.x = clamp(c.x, 330, SW - w - 340 > 330 ? SW - w - 340 : SW - w - 8);
-    c.y = clamp(c.y, 130, SH - h - 120);
-    fixed.push(c);
-    g.save(); g.globalAlpha = a;
-    const col = PCOL[s.pi];
-    g.strokeStyle = col; g.lineWidth = 1;
-    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(right ? c.x : c.x + w, c.y + h / 2); g.stroke();
-    cutPath(c.x, c.y, w, h, 10); g.fillStyle = "rgba(4,8,15,.86)"; g.fill();
-    g.strokeStyle = "#FFC857"; g.lineWidth = 1.4; g.stroke();
-    g.textBaseline = "top";
-    g.font = "700 13px 'Chakra Petch'"; g.fillStyle = "#FFC857"; g.fillText(`STRIKE ${pad(s.n)} / ${pad(D.strikes.length)}`, c.x + 12, c.y + 9);
-    g.font = "700 20px 'Chakra Petch'"; g.fillStyle = col; g.fillText(s.player, c.x + 12, c.y + 27);
-    g.fillStyle = "#fff"; g.fillText(TYPE_EN[s.type], c.x + 22 + Math.max(28, nw), c.y + 27);
-    g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = "#BFD3E6";
-    g.fillText(`${s.dir ? DIR_EN[s.dir] : "—"} · ${s.kmh == null ? "— km/h" : s.kmh.toFixed(0) + " km/h"}`, c.x + 12, c.y + 53);
-    g.restore();
   }
-  resolveTags(tags, fixed);
+  resolveTags(tags, []);
 }
 
-function drawTopLeft(f) {
-  const cv0 = D.meta.cover?.topleft;
-  const s = curStrike(f);
-  const l2 = s ? `${s.player} · ${TYPE_EN[s.type]} · ${s.kmh == null ? "—" : s.kmh.toFixed(0)} km/h` : "waiting for the serve";
-  g.font = "500 12px 'IBM Plex Mono'"; const lw = Math.ceil(g.measureText(l2).width) + 28;
-  const x = 14, y = 14, w = Math.max(cv0 ? Math.max(300, cv0[2] * S + 20) : 300, lw), h = cv0 ? Math.max(104, cv0[3] * S + 20) : 104;
-  g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
-  g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
-  const on = Math.floor(f / 20) % 2 === 0;
-  g.fillStyle = on ? "#FF4D6A" : "rgba(255,77,106,.35)"; g.beginPath(); g.arc(x + 18, y + 19, 5, 0, 7); g.fill();
-  g.textBaseline = "top"; g.font = "600 13px 'Chakra Petch'"; g.fillStyle = "#4DE3FF";
-  g.fillText("LIVE TRACKING", x + 30, y + 12);
-  g.font = "500 11px 'IBM Plex Mono'"; g.fillStyle = "#6C869F"; g.textAlign = "right";
-  g.fillText(`4 PLAYERS · BALL`, x + w - 12, y + 13); g.textAlign = "left";
-  g.font = "700 30px 'Chakra Petch'"; g.fillStyle = "#fff";
-  g.fillText(s ? `STRIKE ${pad(s.n)}` : "PRE-SERVE", x + 14, y + 36);
-  g.font = "500 12px 'IBM Plex Mono'"; g.fillStyle = s ? PCOL[s.pi] : "#9DB4C9";
-  g.fillText(l2, x + 14, y + 76);
-  g.restore();
+// ------------------------------------------------------------------ strike card (DOM over the stage: draggable, click to expand)
+// A drive (>= DRIVE_KMH, not the serve) hit at an opponent standing in the kitchen is scored 0-100 by what the reply gives:
+//   100     the receiver cannot return it, or returns it out
+//   70-90   the driving team attacks the reply (its next shot >= DRIVE_KMH)
+//   40-60   an ordinary reply                     0-30  a soft reset (< RESET_KMH), or the reply wins the point
+// A drive answered by a drive is not scored; a drive that lands out scores 0. With all four in the kitchen only name + speed show.
+// KITCHEN_M: how far behind the kitchen line still counts as "in the kitchen". Feet are measured at the ankles, so players
+// dinking at the line read 2.6-3.6 m from the net in rally B (kitchen 2.13 m); transition players read 6-8 m.
+const DRIVE_KMH = 40, RESET_KMH = 28, KITCHEN_M = 1.5;
+let CALLS = [], cardKey = "", cardBig = false;
+const inKitchen = (p, f) => D.series.dnet[p][f] <= CK + KITCHEN_M;
+const bounceOf = k => D.bounces.find(b => b.flight === k);
+const bIn = b => b.in ?? (b.court[0] >= 0 && b.court[0] <= CW && b.court[1] >= 0 && b.court[1] <= CL);
+function strikeCall(k) {
+  const S_ = D.strikes, s = S_[k], r = S_[k + 1], n = S_[k + 2], who = i => pname(i);
+  if ([0, 1, 2, 3].every(p => inKitchen(p, s.frame))) return {quiet: true, why: "Cả 4 người đang ở bếp: chỉ hiện tên và tốc độ."};
+  if (s.type === "serve" || s.kmh == null || s.kmh < DRIVE_KMH) return {why: `Không chấm: chỉ chấm cú drive (từ ${DRIVE_KMH} km/h).`};
+  const b = bounceOf(k);
+  if (b && !bIn(b)) return {score: 0, why: "Cú drive ra ngoài."};
+  // receiver: the next hitter, or the opponent nearest the bounce when nobody hit it back
+  const rf = r ? r.frame : b ? b.frame : null;
+  if (rf == null) return {why: "Không chấm: không đo được bóng sau cú drive."};
+  const away = q => Math.hypot(D.series.feet[q][rf][0] - b.court[0], D.series.feet[q][rf][1] - b.court[1]);
+  const rp = r ? r.pi : [0, 1, 2, 3].filter(q => (q < 2 ? 0 : 1) !== s.team).reduce((a, q) => away(q) < away(a) ? q : a);
+  if (!inKitchen(rp, rf)) return {why: `Không chấm: ${who(rp)} không đứng trong bếp khi nhận bóng.`};
+  if (!r) return {score: 100, why: `${who(rp)} (trong bếp) không đỡ được.`};
+  if (r.kmh != null && r.kmh >= DRIVE_KMH) return {why: `Không chấm: ${who(rp)} trả lại bằng một cú drive.`};
+  if (!n) { const rb = bounceOf(k + 1);
+    if (!rb) return {why: `Không chấm: không đo được cú đỡ của ${who(rp)}.`};
+    return bIn(rb) ? {score: 0, why: `${who(rp)} đỡ thành điểm cho đội mình.`} : {score: 100, why: `${who(rp)} đỡ ra ngoài.`}; }
+  const pull = r.recv_pull_m ?? 0, pullTxt = pull >= 0.3 ? `, kéo ${who(n.pi)} lệch ${pull.toFixed(1).replace(".", ",")} m` : "";
+  if (n.kmh != null && n.kmh >= DRIVE_KMH) return {score: Math.round(clamp(70 + (n.kmh - DRIVE_KMH), 70, 90)), why: `${who(rp)} đỡ bóng để ${who(n.pi)} tấn công tiếp ${Math.round(n.kmh)} km/h.`};
+  if (r.kmh != null && r.kmh < RESET_KMH) return {score: Math.round(30 - Math.min(30, 15 * pull)), why: `${who(rp)} reset nhẹ ${Math.round(r.kmh)} km/h${pullTxt}.`};
+  return {score: Math.round(60 - Math.min(20, 10 * pull)), why: `${who(rp)} đỡ bình thường${r.kmh != null ? ` ${Math.round(r.kmh)} km/h` : ""}${pullTxt}.`};
 }
-
-function drawTopRight(f) {
-  const cv0 = D.meta.cover?.topright;
-  const w = cv0 ? Math.max(320, cv0[2] * S + 20) : 320, h = cv0 ? Math.max(124, cv0[3] * S + 20) : 124;
-  const x = SW - 14 - w, y = 14;
-  g.save(); cutPath(x, y, w, h, 10); g.fillStyle = "rgba(4,8,15,.9)"; g.fill();
-  g.strokeStyle = "rgba(77,227,255,.7)"; g.lineWidth = 1.2; g.stroke();
-  g.textBaseline = "top"; g.font = "600 13px 'Chakra Petch'"; g.fillStyle = "#4DE3FF"; g.fillText("STRIKE SPEED", x + 14, y + 12);
-  g.font = "500 11px 'IBM Plex Mono'"; g.fillStyle = "#6C869F"; g.textAlign = "right"; g.fillText("km/h", x + w - 12, y + 13); g.textAlign = "left";
-  const ss = D.strikes, n = ss.length, top = Math.max(50, ...ss.map(s => s.kmh || 0));
-  const bx = x + 14, bw = (w - 28) / Math.max(n, 1), base = y + h - 14, bhmax = h - 52;
-  const cur = curStrike(f);
-  ss.forEach((s, i) => {
-    const v = s.kmh || 0, hh = Math.max(2, v / top * bhmax), done = s.frame <= f;
-    const xx = bx + i * bw + bw * 0.18, ww = bw * 0.64;
-    g.fillStyle = done ? PCOL[s.pi] : "rgba(108,134,159,.25)";
-    if (cur && s.n === cur.n) { g.shadowColor = PCOL[s.pi]; g.shadowBlur = 14; }
-    g.fillRect(xx, base - hh, ww, hh); g.shadowBlur = 0;
-    if (cur && s.n === cur.n && s.kmh) { g.font = "600 11px 'IBM Plex Mono'"; g.fillStyle = "#fff"; g.textAlign = "center";
-      g.fillText(s.kmh.toFixed(0), xx + ww / 2, base - hh - 14); g.textAlign = "left"; }
-  });
-  g.strokeStyle = "rgba(77,227,255,.35)"; g.beginPath(); g.moveTo(bx, base + 0.5); g.lineTo(x + w - 14, base + 0.5); g.stroke();
-  g.restore();
+function updateCard(f) {
+  const el = $("scard"), s = curStrike(f);
+  el.hidden = !s || !OV.tags || RAW;
+  if (el.hidden) return;
+  const key = s.n + "/" + cardBig;
+  if (key === cardKey) return;
+  const fresh = !cardKey.startsWith(s.n + "/"); cardKey = key;
+  const c = CALLS[s.n - 1], kmh = s.kmh == null ? "—" : Math.round(s.kmh), lvl = c.score == null ? "" : c.score >= 70 ? "hi" : c.score >= 40 ? "mid" : "lo";
+  el.style.setProperty("--pc", PCOL[s.pi]); el.classList.toggle("big", cardBig);
+  el.innerHTML = `<span class="hd"><b>${pname(s.pi)}</b>${c.quiet ? "" : `<i>${TYPE_EN[s.type]}</i>`}</span>
+    <span class="sp"><b class="num">${kmh}</b> km/h${c.score != null ? `<em class="sc ${lvl} num">${c.score}</em>` : ""}</span>
+    ${cardBig ? `<span class="more"><span>Cú ${pad(s.n)} / ${pad(D.strikes.length)} · ${s.t.toFixed(2).replace(".", ",")} s${s.dir ? " · " + DIR_EN[s.dir] : ""}</span>
+      ${s.dist_m != null ? `<span>Bay ${s.dist_m.toFixed(1).replace(".", ",")} m trong ${s.flight_s.toFixed(2).replace(".", ",")} s (tới chỗ đối phương đỡ)</span>` : ""}
+      <span class="why">${c.score != null ? `Điểm ${c.score}/100: ` : ""}${c.why}</span>
+      <span class="key">Điểm drive vào người trong bếp: 100 đỡ hỏng · 70–90 bị tấn công tiếp · 40–60 đỡ bình thường · 0–30 reset tốt. Drive bị drive lại: không chấm.</span></span>`
+      : `<span class="hint">bấm để xem thêm</span>`}`;
+  if (fresh) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+  placeCard();
+}
+function placeCard() {   // keep the card inside the stage (after a drag, an expand or a new rally)
+  const el = $("scard"), x = parseFloat(el.style.left), y = parseFloat(el.style.top);
+  el.style.left = clamp(isNaN(x) ? SW - el.offsetWidth - 16 : x, 4, SW - el.offsetWidth - 4) + "px";
+  el.style.top = clamp(isNaN(y) ? 300 : y, 4, SH - el.offsetHeight - 4) + "px";
 }
 
 // ------------------------------------------------------------------ panel
@@ -1434,6 +1444,7 @@ function draw(t) {
   drawStage(f);
   updatePanel(f, t);
   updateChrome(t, f);
+  updateCard(f);
   updateEnd(t - DUR);
   lastF = f; lastT = t;
 }
@@ -1497,6 +1508,22 @@ function setupInteractive() {
   tl.onpointerdown = e => { tl.setPointerCapture(e.pointerId); const f = e.target.closest(".mk")?.dataset.f; seek(f ? f / FPS : tlAt(e)); };
   tl.onpointermove = e => { if (tl.hasPointerCapture(e.pointerId)) seek(tlAt(e)); };
   $("done").onclick = () => $("report").scrollIntoView({behavior: "smooth", block: "start"});
+  // strike card: drag to move it (remembered in this browser), click (or Enter) to expand
+  const card = $("scard"), toggleCard = () => { cardBig = !cardBig; cardKey = ""; updateCard(lastF); };
+  try { const p = JSON.parse(localStorage.getItem("rallyscope-card") || "null"); if (p) { card.style.left = p[0] + "px"; card.style.top = p[1] + "px"; } } catch (e) {}
+  let drag = null;
+  card.onpointerdown = e => { card.setPointerCapture(e.pointerId);
+    drag = {x: e.clientX, y: e.clientY, l: card.offsetLeft, t: card.offsetTop, k: card.getBoundingClientRect().width / card.offsetWidth, moved: false}; };
+  card.onpointermove = e => { if (!drag) return;
+    const dx = (e.clientX - drag.x) / drag.k, dy = (e.clientY - drag.y) / drag.k;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true; card.classList.add("drag");
+    card.style.left = drag.l + dx + "px"; card.style.top = drag.t + dy + "px"; placeCard(); };
+  card.onpointerup = card.onpointercancel = e => { if (!drag) return; card.classList.remove("drag");
+    if (drag.moved) { try { localStorage.setItem("rallyscope-card", JSON.stringify([card.offsetLeft, card.offsetTop])); } catch (err) {} }
+    else if (e.type === "pointerup") toggleCard();
+    drag = null; };
+  card.onclick = e => { if (e.detail === 0) toggleCard(); };   // keyboard: Enter / Space
   // overlay layers
   const syncOv = () => {
     document.querySelectorAll("#ctrl .tg[data-ov]").forEach(b => b.setAttribute("aria-pressed", OV[b.dataset.ov] ? "true" : "false"));
