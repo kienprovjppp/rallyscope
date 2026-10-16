@@ -136,10 +136,15 @@ body.rec #wrap{width:1920px;height:1080px}
 
 /* ---------- interactive page ---------- */
 #ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-#ctrl button,#ctrl select{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-#ctrl button:hover{border-color:var(--cyan);color:var(--cyan)}
-#ctrl input[type=range]{flex:1 1 240px;accent-color:var(--cyan)}
-#ctrl .tm{font:500 13px/1 var(--f-mono);color:var(--ink-2);min-width:120px}
+#ctrl button,#ctrl select,#pctl button,#pctl select{height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:600 12px/1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#ctrl button:hover,#pctl button:hover,#pctl select:hover{border-color:var(--cyan);color:var(--cyan)}
+/* play / jump / speed sit left of the timeline, inside the scaled screen; the timeline is shorter on the interactive page only */
+#pctl{position:absolute;left:32px;top:888px;display:flex;align-items:center;gap:8px}
+#pctl button,#pctl select{height:42px;font-size:14px}
+#pctl #bplay{min-width:104px;background:var(--cyan);border-color:var(--cyan);color:#04080F}
+#pctl #bplay:hover{background:#9AF0FF;color:#04080F}
+body:not(.rec) #tl{left:400px;width:1484px}
+body.rec #pctl{display:none}
 #ctrl .grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #ctrl .lbl{font:600 11px/1 var(--f-display);letter-spacing:.18em;color:var(--ink-3)}
 #ctrl .row2{flex-basis:100%;display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center}
@@ -791,12 +796,6 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
   <p class="priv">Video chỉ được xử lý ngay trong trình duyệt của bạn, không gửi đi đâu.</p>
 </div></section>
 <div id="ctrl" hidden>
-  <button id="bplay" type="button">Play</button>
-  <button id="bback" type="button" aria-label="Lùi 3 giây">−3s</button>
-  <button id="bfwd" type="button" aria-label="Tới 3 giây">+3s</button>
-  <span class="tm num" id="tmtxt">0.00 s</span>
-  <select id="rate" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
-  <button id="bsnd" type="button">Sound off</button>
   <div class="row2">
     <div class="grp"><span class="lbl">LỚP PHỦ</span>
       <button class="tg" type="button" data-ov="skel" aria-pressed="true">Khung xương</button>
@@ -806,6 +805,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <button id="braw" class="tg" type="button" aria-pressed="false">Video gốc</button>
     </div>
     <div class="grp" style="margin-left:auto">
+      <button id="bsnd" type="button">Sound off</button>
       <label class="upl" for="file">Tải video khác</label>
       <button id="bsample" type="button" hidden>Xem rally mẫu</button>
     </div>
@@ -887,6 +887,12 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
     <div class="box cut" id="prows"></div>
   </aside>
 
+  <div id="pctl">
+    <button id="bplay" type="button">Play</button>
+    <button id="bback" type="button" aria-label="Lùi 3 giây">−3s</button>
+    <button id="bfwd" type="button" aria-label="Tới 3 giây">+3s</button>
+    <select id="rate" aria-label="Tốc độ phát"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
+  </div>
   <div id="tl" tabindex="0" role="slider" aria-label="Tua video: bấm hoặc kéo, mũi tên trái/phải ±3 giây" aria-valuemin="0">
     <div class="lab">RALLY TIMELINE</div>
     <div class="rail"></div><div class="fill" id="tlfill"></div>
@@ -1465,7 +1471,7 @@ function setupInteractive() {
   let playing = false, tEnd = null;
   const total = () => DUR;   // the video only: the scores wait below the screen, behind the Done button
   const t0 = () => D.meta.t0 || 0;
-  const show = t => { draw(t); $("tmtxt").textContent = `${Math.min(t, total()).toFixed(2)} s`;
+  const show = t => { draw(t);
     $("tl").setAttribute("aria-valuemax", DUR.toFixed(1)); $("tl").setAttribute("aria-valuenow", t.toFixed(1));
     $("done").hidden = t < DUR; };
   const loop = now => {
