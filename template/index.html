@@ -107,6 +107,11 @@ body.rec #wrap{width:1920px;height:1080px}
 #scard .sp b{font:700 24px/1 var(--f-display);color:var(--white)}
 #scard .sc{margin-left:auto;font:700 18px/1 var(--f-display);font-style:normal;padding:5px 8px 4px;border-radius:8px;color:#04080F}
 #scard .sc.hi{background:#57FFA8} #scard .sc.mid{background:var(--amber)} #scard .sc.lo{background:#FF6B6B}
+#smini{position:absolute;right:14px;bottom:14px;z-index:3;display:flex;align-items:baseline;gap:5px;padding:7px 12px 6px;border-radius:999px;cursor:pointer;
+  background:rgba(4,8,15,.85);border:1px solid rgba(77,227,255,.5);border-left:3px solid var(--pc,var(--cyan));color:var(--ink-2);font:500 11px/1 var(--f-mono);transition:box-shadow .18s,border-color .18s}
+#smini b{font:700 18px/1 var(--f-display);color:var(--white)}
+#smini:hover,#smini:focus-visible{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),0 0 18px rgba(77,227,255,.55)}
+#smini.pop{animation:cardpop .7s ease-out}
 #scard .x{position:absolute;top:-9px;right:-9px;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid #04080F;background:#FF4D6A;color:#fff;font:700 14px/18px var(--f-body);text-align:center;cursor:pointer;box-shadow:0 0 0 1px rgba(255,77,106,.5)}
 #scard .x:hover,#scard .x:focus-visible{background:#FF7A8E;box-shadow:0 0 12px #FF4D6A}
 #scard .hint{font:500 10px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);opacity:0;transition:opacity .18s}
@@ -830,7 +835,6 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
       <button class="tg" type="button" data-ov="skel" aria-pressed="true">Khung xương</button>
       <button class="tg" type="button" data-ov="ball" aria-pressed="true">Đường bóng</button>
       <button class="tg" type="button" data-ov="tags" aria-pressed="true">Bảng tên</button>
-      <button class="tg" type="button" data-ov="card" aria-pressed="true">Bảng tốc độ</button>
       <button id="ovAll" type="button">Tắt hết</button>
       <button id="braw" class="tg" type="button" aria-pressed="false">Video gốc</button>
     </div>
@@ -899,6 +903,7 @@ Promise.race([ready(), sleep(8000)]).then(() => { if (shown && !playing && tNow 
     <canvas id="stage" width="1360" height="765"></canvas>
     <button id="done" type="button" hidden>Done</button>
     <div id="scard" role="button" tabindex="0" hidden aria-label="Cú đánh hiện tại: bấm để xem thêm, kéo để di chuyển"></div>
+    <button id="smini" type="button" hidden aria-label="Mở lại bảng tốc độ"><b class="num">—</b> km/h</button>
   </div>
 
   <aside id="panel">
@@ -972,8 +977,8 @@ let scanPat, vignette, finishCv, lastF = -1, lastT = 0, RAW = false;   // RAW: t
 const POINT_GAP = 3;
 let PCUTS = [0];
 // which overlay layers are drawn (viewer's choice, remembered in this browser)
-const OV = {skel: true, ball: true, tags: true, card: true};
-try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); delete OV.court; } catch (e) {}
+const OV = {skel: true, ball: true, tags: true};
+try { Object.assign(OV, JSON.parse(localStorage.getItem("rallyscope-ov") || "{}")); delete OV.court; delete OV.card; } catch (e) {}
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -1257,7 +1262,7 @@ function curStrike(f) { let c = null; for (const s of D.strikes) if (s.frame <= 
 // KITCHEN_M: how far behind the kitchen line still counts as "in the kitchen". Feet are measured at the ankles, so players
 // dinking at the line read 2.6-3.6 m from the net in rally B (kitchen 2.13 m); transition players read 6-8 m.
 const DRIVE_KMH = 40, RESET_KMH = 28, KITCHEN_M = 1.5;
-let CALLS = [], cardKey = "", cardBig = false;
+let CALLS = [], cardKey = "", cardBig = false, cardMin = false;   // cardMin: shrunk to the corner chip
 const inKitchen = (p, f) => D.series.dnet[p][f] <= CK + KITCHEN_M;
 const bounceOf = k => D.bounces.find(b => b.flight === k);
 const bIn = b => b.in ?? (b.court[0] >= 0 && b.court[0] <= CW && b.court[1] >= 0 && b.court[1] <= CL);
@@ -1284,15 +1289,20 @@ function strikeCall(k) {
   return {score: Math.round(60 - Math.min(20, 10 * pull)), why: `${who(rp)} đỡ bình thường${r.kmh != null ? ` ${Math.round(r.kmh)} km/h` : ""}${pullTxt}.`};
 }
 function updateCard(f) {
-  const el = $("scard"), s = curStrike(f);
-  el.hidden = !s || !OV.card || RAW;
+  const el = $("scard"), mini = $("smini"), s = curStrike(f), on = !!s && !RAW;
+  el.hidden = !on || cardMin; mini.hidden = !on || !cardMin;
+  if (!mini.hidden && mini.dataset.n !== String(s.n)) {   // minimised: only the speed, in the hitter's colour
+    mini.dataset.n = s.n; mini.style.setProperty("--pc", PCOL[s.pi]);
+    mini.querySelector("b").textContent = s.kmh == null ? "—" : Math.round(s.kmh);
+    mini.classList.remove("pop"); void mini.offsetWidth; mini.classList.add("pop");
+  }
   if (el.hidden) return;
   const key = s.n + "/" + cardBig;
   if (key === cardKey) return;
   const fresh = !cardKey.startsWith(s.n + "/"); cardKey = key;
   const c = CALLS[s.n - 1], kmh = s.kmh == null ? "—" : Math.round(s.kmh), lvl = c.score == null ? "" : c.score >= 70 ? "hi" : c.score >= 40 ? "mid" : "lo";
   el.style.setProperty("--pc", PCOL[s.pi]); el.classList.toggle("big", cardBig);
-  el.innerHTML = `<button class="x" type="button" aria-label="Tắt bảng tốc độ" title="Tắt bảng (bật lại bằng nút Bảng tốc độ)">×</button><span class="hd"><b>${pname(s.pi)}</b>${c.quiet ? "" : `<i>${TYPE_EN[s.type]}</i>`}</span>
+  el.innerHTML = `<button class="x" type="button" aria-label="Thu nhỏ bảng tốc độ" title="Thu nhỏ xuống góc">×</button><span class="hd"><b>${pname(s.pi)}</b>${c.quiet ? "" : `<i>${TYPE_EN[s.type]}</i>`}</span>
     <span class="sp"><b class="num">${kmh}</b> km/h${c.score != null ? `<em class="sc ${lvl} num">${c.score}</em>` : ""}</span>
     ${cardBig ? `<span class="more"><span>Cú ${pad(s.n)} / ${pad(D.strikes.length)} · ${s.t.toFixed(2).replace(".", ",")} s${s.dir ? " · " + DIR_EN[s.dir] : ""}</span>
       ${s.dist_m != null ? `<span>Bay ${s.dist_m.toFixed(1).replace(".", ",")} m trong ${s.flight_s.toFixed(2).replace(".", ",")} s (tới chỗ đối phương đỡ)</span>` : ""}
@@ -1512,7 +1522,26 @@ function setupInteractive() {
     if (drag.moved) { try { localStorage.setItem("rallyscope-card", JSON.stringify([card.offsetLeft, card.offsetTop])); } catch (err) {} }
     else if (e.type === "pointerup") toggleCard();
     drag = null; };
-  card.onclick = e => { if (e.target.closest(".x")) { OV.card = false; syncOv(); } };   // the red x: hide the card (the toolbar button brings it back)
+  // the red x sucks the card into the chip in the corner; clicking the chip blows it back out to where it was
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const genie = () => {   // card -> chip, in stage px (both live in #stagebox)
+    const mini = $("smini"), mh = mini.hidden; mini.hidden = false;
+    const cx = card.offsetLeft + card.offsetWidth / 2, cy = card.offsetTop + card.offsetHeight / 2;
+    const mx = mini.offsetLeft + mini.offsetWidth / 2, my = mini.offsetTop + mini.offsetHeight / 2;
+    const sx = mini.offsetWidth / card.offsetWidth, sy = mini.offsetHeight / card.offsetHeight; mini.hidden = mh;
+    return [{transform: "none", opacity: 1, offset: 0},
+      {transform: `translate(${(mx - cx) * 0.3}px,${(my - cy) * 0.55}px) scale(${0.75},${0.45}) skewX(-14deg)`, opacity: 0.95, offset: 0.5},
+      {transform: `translate(${mx - cx}px,${my - cy}px) scale(${sx},${sy})`, opacity: 0, offset: 1}];
+  };
+  const shrink = () => { if (cardMin) return;
+    const done = () => { cardMin = true; $("smini").dataset.n = ""; updateCard(lastF); };
+    if (still()) return done();
+    card.animate(genie(), {duration: 450, easing: "cubic-bezier(.55,0,.85,.35)"}).finished.then(done, done); };
+  const grow = () => { if (!cardMin) return;
+    cardMin = false; cardKey = ""; updateCard(lastF);
+    if (!still()) card.animate(genie().reverse().map((k, i) => ({...k, offset: [0, 0.5, 1][i]})), {duration: 480, easing: "cubic-bezier(.2,1.25,.4,1)"}); };
+  card.onclick = e => { if (e.target.closest(".x")) shrink(); };
+  $("smini").onclick = grow;
   card.onkeydown = e => { if (e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.stopPropagation(); toggleCard(); } };
   // overlay layers
   const syncOv = () => {
